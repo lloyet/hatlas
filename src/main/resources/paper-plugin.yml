@@ -1,6 +1,8 @@
 name: atlas
 version: '$version'
 main: org.minecraft.atlas.Atlas
+# Adds the PostgreSQL JDBC driver to the classpath when config.yml storage.type is postgresql.
+loader: org.minecraft.atlas.AtlasLoader
 api-version: '1.21'
 load: POSTWORLD
 

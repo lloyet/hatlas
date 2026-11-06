@@ -1,5 +1,28 @@
 # Atlas plugin configuration
-# See also: homes.yml, safezones.yml, combats.yml, factions.yml, donjons.yml, jobs.yml, tags.yml
+# See also: homes.yml, safezones.yml, combats.yml, factions.yml, donjons.yml, jobs.yml, shops.yml
+
+# Where runtime data is stored (factions, crystals, jobs, donjons, homes, shops, …).
+# Tuning stays in the .yml files; only runtime data goes here. Changing the type needs a restart.
+storage:
+  # yaml       = legacy *-data.yml files in this folder
+  # sqlite     = one database file (recommended for a single server)
+  # postgresql = external server (needed to share data with other servers or a website)
+  # On the first start with a database, existing *-data.yml files are imported once and
+  # renamed to *.yml.migrated (kept as backup).
+  type: sqlite
+  # Every domain is saved at this interval, in addition to saves right after important actions.
+  autosave_minutes: 5
+  sqlite:
+    # Relative to plugins/atlas/
+    file: atlas.db
+  postgresql:
+    host: localhost
+    port: 5432
+    database: atlas
+    username: atlas
+    # Prefer the ATLAS_DB_PASSWORD environment variable (it overrides this value).
+    password: ''
+    ssl: false
 
 # Teleport-to-player settings for /tpa
 tpa:

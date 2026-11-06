@@ -1,5 +1,8 @@
 package org.minecraft.atlas.gui;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -173,8 +176,7 @@ public class AuctionConfirmGui implements AtlasGui {
 
         int overflow = FactionVault.deposit(sellerFaction, listing.price());
         // Save the faction state (both vaults mutated).
-        FactionManager.saveFactions(Atlas.factionsDataConfig);
-        Atlas.saveFactionsDataConfig();
+        Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
         if (overflow > 0 && player.getLocation().getWorld() != null) {
             ItemStack overflowStack = RubyItem.get("ruby");
             overflowStack.setAmount(overflow);

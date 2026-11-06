@@ -7,13 +7,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 import org.minecraft.atlas.Atlas;
+import org.minecraft.atlas.storage.model.LocationData;
+import org.minecraft.atlas.storage.model.MiscData;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,55 +42,36 @@ public class TagManager {
     // Persistence
     // -------------------------------------------------------------------------
 
-    public static void loadTags(FileConfiguration config) {
+    /** Stored tags in worlds that are not loaded: written back unchanged. */
+    private static final List<MiscData.TagRow> unresolved = new ArrayList<>();
+
+    public static void restore(MiscData.TagsData data) {
         tags.clear();
-        ConfigurationSection sec = config.getConfigurationSection("tags");
-        if (sec == null) return;
-
-        for (String name : sec.getKeys(false)) {
-            ConfigurationSection ts = sec.getConfigurationSection(name);
-            if (ts == null) continue;
-
-            String worldName = ts.getString("world");
-            if (worldName == null) continue;
-            World world = Bukkit.getWorld(worldName);
-            if (world == null) continue;
-
-            double x = ts.getDouble("x");
-            double y = ts.getDouble("y");
-            double z = ts.getDouble("z");
-            List<String> lines = new ArrayList<>(ts.getStringList("lines"));
-            Location loc = new Location(world, x, y, z);
-
-            Tag tag = new Tag(name, loc, lines);
-
-            String uuidStr = ts.getString("text_display_uuid");
-            if (uuidStr != null) {
-                try { tag.setTextDisplayUUID(UUID.fromString(uuidStr)); }
-                catch (IllegalArgumentException ignored) {}
+        unresolved.clear();
+        for (MiscData.TagRow row : data.tags()) {
+            World world = Bukkit.getWorld(row.location().world());
+            if (world == null) {
+                unresolved.add(row);
+                continue;
             }
-
-            tags.put(name, tag);
+            Location loc = new Location(world, row.location().x(), row.location().y(), row.location().z());
+            Tag tag = new Tag(row.name(), loc, new ArrayList<>(row.lines()));
+            tag.setTextDisplayUUID(row.textDisplay());
+            tags.put(row.name(), tag);
         }
     }
 
-    public static void saveTags(FileConfiguration config) {
-        config.set("tags", null);
-        if (tags.isEmpty()) return;
-
-        ConfigurationSection sec = config.createSection("tags");
+    public static MiscData.TagsData snapshot() {
+        List<MiscData.TagRow> out = new ArrayList<>();
         for (Tag tag : tags.values()) {
-            ConfigurationSection ts = sec.createSection(tag.getName());
-            Location loc = tag.getLocation();
-            ts.set("world", loc.getWorld().getName());
-            ts.set("x",     loc.getX());
-            ts.set("y",     loc.getY());
-            ts.set("z",     loc.getZ());
-            ts.set("lines", tag.getLines());
-            if (tag.getTextDisplayUUID() != null) {
-                ts.set("text_display_uuid", tag.getTextDisplayUUID().toString());
-            }
+            LocationData loc = LocationData.of(tag.getLocation());
+            if (loc == null) continue;
+            out.add(new MiscData.TagRow(tag.getName(), loc, List.copyOf(tag.getLines()), tag.getTextDisplayUUID()));
         }
+        for (MiscData.TagRow row : unresolved) {
+            if (!tags.containsKey(row.name())) out.add(row);
+        }
+        return new MiscData.TagsData(List.copyOf(out));
     }
 
     // -------------------------------------------------------------------------

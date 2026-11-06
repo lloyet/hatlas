@@ -2,14 +2,16 @@ package org.minecraft.atlas.faction;
 
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.minecraft.atlas.Atlas;
+import org.bukkit.inventory.ItemStack;
 import org.minecraft.atlas.crystal.AtlasCrystal;
 import org.minecraft.atlas.crystal.AtlasCrystalManager;
 import org.minecraft.atlas.job.JobManager;
 import org.minecraft.atlas.listener.LocatorBarListener;
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.ItemBytes;
+import org.minecraft.atlas.storage.Storage;
+import org.minecraft.atlas.storage.model.FactionsData;
 import org.minecraft.atlas.teleport.HomeManager;
 
 import java.util.*;
@@ -31,7 +33,17 @@ public class FactionManager {
         if (playerFaction.containsKey(ownerUUID)) return false;
         factions.put(factionName, new Faction(factionName, ownerUUID));
         playerFaction.put(ownerUUID, factionName);
+        persist();
         return true;
+    }
+
+    /**
+     * Saves factions AND crystals right away, in one transaction. Both must be written
+     * together: a crystal saved without its faction (or a disband not saved while its
+     * crystal is) leaves an orphan crystal that keeps its claims after a crash (known issue §7.10).
+     */
+    public static void persist() {
+        Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
     }
 
     /** Deletes a faction. Only the owner can do this. */
@@ -52,6 +64,7 @@ public class FactionManager {
         playerFaction.remove(requesterUUID);
         forfeitSecondaryHomes(requesterUUID);
         factions.remove(factionName);
+        persist();
         LocatorBarListener.refresh(formerMembers);
         return true;
     }
@@ -300,6 +313,7 @@ public class FactionManager {
         playerFaction.remove(faction.getOwner());
         forfeitSecondaryHomes(faction.getOwner());
         factions.remove(factionName);
+        persist();
         LocatorBarListener.refresh(formerMembers);
     }
 
@@ -310,8 +324,7 @@ public class FactionManager {
      */
     private static void forfeitSecondaryHomes(UUID playerUUID) {
         HomeManager.removeSecondaryHomes(playerUUID);
-        HomeManager.saveHomes(Atlas.homesDataConfig);
-        Atlas.saveHomesDataConfig();
+        Storage.save(DataDomain.HOMES);
     }
 
     /** Changes the color of the faction. Owner or Leaders can do this. */
@@ -362,128 +375,76 @@ public class FactionManager {
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
-    /** Serializes all factions into the data config under the "factions" key. */
-    public static void saveFactions(FileConfiguration config) {
-        config.set("factions", null);
-        ConfigurationSection factionsSection = config.createSection("factions");
-
-        for (Faction faction : factions.values()) {
-            ConfigurationSection s = factionsSection.createSection(faction.getName());
-            s.set("owner", faction.getOwner().toString());
-            s.set("members", faction.getMembers().stream().map(UUID::toString).toList());
-            String colorName = NamedTextColor.NAMES.key(faction.getColor());
-            s.set("color", colorName != null ? colorName : "white");
-            s.set("description", faction.getDescription());
-            s.set("level", faction.getLevel());
-            s.set("exp", faction.getExp());
-            if (faction.getSkillPoints() > 0) s.set("skill_points", faction.getSkillPoints());
-
-            Map<UUID, FactionRole> roles = faction.getRoles();
-            if (!roles.isEmpty()) {
-                ConfigurationSection rolesSection = s.createSection("roles");
-                roles.forEach((uuid, role) -> rolesSection.set(uuid.toString(), role.name()));
+    /** Immutable copy of every faction, for storage. Main thread only. */
+    public static FactionsData snapshot() {
+        List<FactionsData.FactionRow> rows = new ArrayList<>();
+        int defaultVault = FactionLevelManager.getDefaultVaultSize();
+        for (Faction f : factions.values()) {
+            List<FactionsData.Member> members = new ArrayList<>();
+            Set<UUID> seen = new HashSet<>();
+            for (UUID m : f.getMembers()) {
+                if (!seen.add(m)) continue;
+                FactionRole role = f.getRoles().get(m);
+                members.add(new FactionsData.Member(m, true, role == null ? null : role.name()));
             }
-
-            if (!faction.getAllies().isEmpty()) {
-                s.set("allies", new ArrayList<>(faction.getAllies()));
-            }
-
-            if (faction.getDowngradeMul() != 1) s.set("downgrade_mul", faction.getDowngradeMul());
-            if (faction.getDowngradeWindowEndMs() != 0L) s.set("downgrade_window_end", faction.getDowngradeWindowEndMs());
-            if (faction.isOutpostUnlocked()) s.set("outpost_unlocked", true);
-            if (!faction.getPurchasedHomeTiers().isEmpty())
-                s.set("purchased_home_tiers", new ArrayList<>(faction.getPurchasedHomeTiers()));
-            if (!faction.getPurchasedVaultTiers().isEmpty())
-                s.set("purchased_vault_tiers", new ArrayList<>(faction.getPurchasedVaultTiers()));
-            if (faction.getVaultSize() != FactionLevelManager.getDefaultVaultSize())
-                s.set("vault_size", faction.getVaultSize());
-            org.bukkit.inventory.ItemStack[] vault = faction.getVaultContents();
-            boolean hasContents = false;
-            for (org.bukkit.inventory.ItemStack stack : vault) {
-                if (stack != null && stack.getType() != org.bukkit.Material.AIR) { hasContents = true; break; }
-            }
-            if (hasContents) {
-                ConfigurationSection vaultSec = s.createSection("vault_contents");
-                for (int i = 0; i < vault.length; i++) {
-                    if (vault[i] != null && vault[i].getType() != org.bukkit.Material.AIR) {
-                        vaultSec.set(String.valueOf(i), vault[i]);
-                    }
-                }
-            }
+            f.getRoles().forEach((uuid, role) -> {
+                if (seen.add(uuid)) members.add(new FactionsData.Member(uuid, false, role.name()));
+            });
+            String colorName = NamedTextColor.NAMES.key(f.getColor());
+            rows.add(new FactionsData.FactionRow(f.getName(), f.getOwner(),
+                    colorName != null ? colorName : "white", f.getDescription() == null ? "" : f.getDescription(),
+                    f.getLevel(), f.getExp(), f.getSkillPoints(), f.isOutpostUnlocked(),
+                    f.getVaultSize() != defaultVault ? f.getVaultSize() : null,
+                    f.getDowngradeMul(), f.getDowngradeWindowEndMs(),
+                    List.copyOf(members), List.copyOf(f.getAllies()),
+                    List.copyOf(new TreeSet<>(f.getPurchasedHomeTiers())),
+                    List.copyOf(new TreeSet<>(f.getPurchasedVaultTiers())),
+                    ItemBytes.fromArray(f.getVaultContents())));
         }
+        return new FactionsData(List.copyOf(rows));
     }
 
-    /** Deserializes factions from the data config and recreates all faction/player mappings. */
-    public static void loadFactions(FileConfiguration config) {
+    /** Rebuilds factions and the player → faction index from storage. Main thread only. */
+    public static void restore(FactionsData data) {
         factions.clear();
         playerFaction.clear();
+        int defaultVault = FactionLevelManager.getDefaultVaultSize();
+        for (FactionsData.FactionRow row : data.factions()) {
+            Faction faction = new Faction(row.name(), row.owner());
+            playerFaction.put(row.owner(), row.name());
 
-        ConfigurationSection factionsSection = config.getConfigurationSection("factions");
-        if (factionsSection == null) return;
-
-        for (String factionName : factionsSection.getKeys(false)) {
-            ConfigurationSection s = factionsSection.getConfigurationSection(factionName);
-            if (s == null) continue;
-
-            String ownerStr = s.getString("owner");
-            if (ownerStr == null) continue;
-
-            UUID ownerUUID = UUID.fromString(ownerStr);
-            Faction faction = new Faction(factionName, ownerUUID);
-            playerFaction.put(ownerUUID, factionName);
-
-            String colorName = s.getString("color", "white");
-            NamedTextColor color = NamedTextColor.NAMES.value(colorName);
+            NamedTextColor color = NamedTextColor.NAMES.value(row.color());
             faction.setColor(color != null ? color : NamedTextColor.WHITE);
+            faction.setDescription(row.description());
+            faction.setLevel(row.level());
+            faction.setExp(row.exp());
+            faction.setSkillPoints(row.skillPoints());
 
-            faction.setDescription(s.getString("description", ""));
-
-            for (String memberStr : s.getStringList("members")) {
-                UUID memberUUID = UUID.fromString(memberStr);
-                faction.addMember(memberUUID);
-                playerFaction.put(memberUUID, factionName);
-            }
-
-            faction.setLevel(s.getInt("level", 0));
-            faction.setExp(s.getInt("exp", 0));
-            faction.setSkillPoints(s.getInt("skill_points", 0));
-
-            ConfigurationSection rolesSection = s.getConfigurationSection("roles");
-            if (rolesSection != null) {
-                for (String uuidStr : rolesSection.getKeys(false)) {
+            for (FactionsData.Member m : row.members()) {
+                if (m.member()) {
+                    faction.addMember(m.uuid());
+                    playerFaction.put(m.uuid(), row.name());
+                }
+                if (m.role() != null) {
                     try {
-                        UUID uuid = UUID.fromString(uuidStr);
-                        String roleName = rolesSection.getString(uuidStr, "MEMBER");
-                        faction.setRole(uuid, FactionRole.valueOf(roleName));
+                        faction.setRole(m.uuid(), FactionRole.valueOf(m.role()));
                     } catch (IllegalArgumentException ignored) {}
                 }
             }
+            for (String ally : row.allies()) faction.addAlly(ally);
 
-            for (String ally : s.getStringList("allies")) {
-                faction.addAlly(ally);
-            }
+            faction.setDowngradeMul(row.downgradeMul());
+            faction.setDowngradeWindowEndMs(row.downgradeWindowEnd());
+            faction.setOutpostUnlocked(row.outpostUnlocked());
+            for (int idx : row.homeTiers()) faction.addPurchasedHomeTier(idx);
+            for (int idx : row.vaultTiers()) faction.addPurchasedVaultTier(idx);
 
-            faction.setDowngradeMul(s.getInt("downgrade_mul", 1));
-            faction.setDowngradeWindowEndMs(s.getLong("downgrade_window_end", 0L));
-            faction.setOutpostUnlocked(s.getBoolean("outpost_unlocked", false));
-            for (int idx : s.getIntegerList("purchased_home_tiers")) faction.addPurchasedHomeTier(idx);
-            for (int idx : s.getIntegerList("purchased_vault_tiers")) faction.addPurchasedVaultTier(idx);
+            if (row.vaultSize() != null && row.vaultSize() != defaultVault) faction.setVaultSize(row.vaultSize());
+            ItemStack[] saved = ItemBytes.toArray(row.vaultContents());
+            ItemStack[] vault = faction.getVaultContents();
+            for (int i = 0; i < saved.length && i < vault.length; i++) vault[i] = saved[i];
 
-            int defaultVaultSize = FactionLevelManager.getDefaultVaultSize();
-            int savedVaultSize = s.getInt("vault_size", defaultVaultSize);
-            if (savedVaultSize != defaultVaultSize) faction.setVaultSize(savedVaultSize);
-            ConfigurationSection vaultSec = s.getConfigurationSection("vault_contents");
-            if (vaultSec != null) {
-                org.bukkit.inventory.ItemStack[] vault = faction.getVaultContents();
-                for (String slotStr : vaultSec.getKeys(false)) {
-                    try {
-                        int slot = Integer.parseInt(slotStr);
-                        if (slot >= 0 && slot < vault.length) vault[slot] = vaultSec.getItemStack(slotStr);
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
-
-            factions.put(factionName, faction);
+            factions.put(row.name(), faction);
         }
     }
 

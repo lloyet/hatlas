@@ -1,5 +1,8 @@
 package org.minecraft.atlas.gui;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -94,8 +97,7 @@ public class CrystalVaultGui implements AtlasGui {
             ItemStack[] save = new ItemStack[realSize];
             System.arraycopy(live, 0, save, 0, Math.min(realSize, live.length));
             faction.setVaultContents(save);
-            FactionManager.saveFactions(Atlas.factionsDataConfig);
-            Atlas.saveFactionsDataConfig();
+            Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
         }
 
         viewers.remove(uuid);

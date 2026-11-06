@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -69,8 +72,7 @@ public class HomeCommand {
         }
 
         HomeManager.setHome(uuid, name, player.getLocation());
-        HomeManager.saveHomes(Atlas.homesDataConfig);
-        Atlas.saveHomesDataConfig();
+        Storage.save(DataDomain.HOMES);
 
         String label = isMain ? "Main home" : "Home '" + name + "'";
         player.sendMessage(success(label + (alreadyExists ? " updated." : " set.")));
@@ -138,8 +140,7 @@ public class HomeCommand {
                             String name = StringArgumentType.getString(ctx, "name");
                             boolean deleted = HomeManager.deleteHome(player.getUniqueId(), name);
                             if (deleted) {
-                                HomeManager.saveHomes(Atlas.homesDataConfig);
-                                Atlas.saveHomesDataConfig();
+                                Storage.save(DataDomain.HOMES);
                                 player.sendMessage(success("Home '" + name + "' deleted."));
                             } else {
                                 player.sendMessage(error("Home '" + name + "' not found."));

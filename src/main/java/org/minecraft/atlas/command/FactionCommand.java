@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -1038,8 +1041,7 @@ public class FactionCommand {
                             String chunkKey = worldName + ":" + cx + ":" + cz;
                             crystalForClaim.getClaimedChunks().add(chunkKey);
                             FactionClaimManager.claimChunk(factionName, worldName, cx, cz);
-                            AtlasCrystalManager.saveCrystalData(org.minecraft.atlas.Atlas.factionsDataConfig);
-                            org.minecraft.atlas.Atlas.saveFactionsDataConfig();
+                            Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
                             int used = AtlasCrystalManager.getTotalClaimedChunks(factionName);
                             int cap  = AtlasCrystalManager.getTotalClaimCapacity(factionName);
                             player.sendMessage(success("Chunk claimed! Claims used: " + used + " / " + cap + "."));
@@ -1093,8 +1095,7 @@ public class FactionCommand {
                                 c.getClaimedChunks().remove(unclaimKey);
                             }
                             FactionClaimManager.unclaimChunk(worldName, cx, cz);
-                            AtlasCrystalManager.saveCrystalData(org.minecraft.atlas.Atlas.factionsDataConfig);
-                            org.minecraft.atlas.Atlas.saveFactionsDataConfig();
+                            Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
                             int used2 = AtlasCrystalManager.getTotalClaimedChunks(factionName);
                             int cap2  = AtlasCrystalManager.getTotalClaimCapacity(factionName);
                             player.sendMessage(success("Chunk unclaimed. Claims used: " + used2 + " / " + cap2 + "."));

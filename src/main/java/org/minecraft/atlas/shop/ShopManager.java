@@ -31,6 +31,11 @@ import org.minecraft.atlas.faction.FactionManager;
 import org.minecraft.atlas.job.Job;
 import org.minecraft.atlas.job.PlayerJobData;
 import org.minecraft.atlas.job.JobManager;
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.ItemBytes;
+import org.minecraft.atlas.storage.Storage;
+import org.minecraft.atlas.storage.model.LocationData;
+import org.minecraft.atlas.storage.model.ShopsData;
 import org.minecraft.atlas.util.GuiUtil;
 
 import java.util.ArrayList;
@@ -47,11 +52,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * Job shops. Each shop is a villager NPC that sells a rotating selection drawn by weight
  * from its common and rare item pools.
  *
- * <p>{@code shops.yml} is the source of truth for tuning, per-job default pools and the
- * shops themselves (job, NPC location, pools). Admin commands edit that file's sections
- * in place, so hand-written entries keep their format. The current rotation and the last
- * reset time are runtime state saved to {@code shops-data.yml}, so the reset timer
- * survives restarts.
+ * <p>{@code shops.yml} holds tuning and the per-job default pools used to seed new shops.
+ * The shops themselves (job, NPC, pools), the current rotation and the last reset time
+ * are persisted through {@code Storage} (domain SHOPS). Shops still hand-written in the old
+ * {@code shops.yml > shops} section are imported once at startup.
  */
 public final class ShopManager {
 
@@ -93,25 +97,22 @@ public final class ShopManager {
         return lastResetMs + resetIntervalHours * 3_600_000L;
     }
 
-    // ── Loading (shops.yml) ───────────────────────────────────────────────────
+    // ── Tuning (shops.yml) ────────────────────────────────────────────────────
 
-    /** Loads settings and shops from {@code shops.yml}. Call before {@link #loadData}. */
+    /** Per-job default pools ({@code shops.yml > job_defaults}), used to seed new shops. */
+    private static ConfigurationSection jobDefaults;
+
+    /**
+     * Loads tuning and the per-job default pools from {@code shops.yml}. The shops
+     * themselves come from storage ({@link #restore}).
+     */
     public static void loadConfig(FileConfiguration config) {
         resetIntervalHours = Math.max(1L, config.getLong("reset_interval_hours", 168L));
         for (ShopTier tier : ShopTier.values()) {
             int n = config.getInt("items_per_shop." + tier.key(), 12);
             itemsPerTier.put(tier, Math.clamp(n, 1, MAX_ITEMS_PER_TIER));
         }
-
-        shops.clear();
-        ConfigurationSection root = config.getConfigurationSection("shops");
-        if (root == null) return;
-        for (String name : root.getKeys(false)) {
-            ConfigurationSection s = root.getConfigurationSection(name);
-            if (s == null) continue;
-            Shop shop = parseShop(name.toLowerCase(), s);
-            if (shop != null) shops.put(shop.getName(), shop);
-        }
+        jobDefaults = config.getConfigurationSection("job_defaults");
     }
 
     private static Shop parseShop(String name, ConfigurationSection s) {
@@ -139,22 +140,24 @@ public final class ShopManager {
         }
 
         for (ShopTier tier : ShopTier.values()) {
-            ConfigurationSection pool = s.getConfigurationSection(tier.key());
-            if (pool == null) continue;
-            for (String id : pool.getKeys(false)) {
-                ConfigurationSection entry = pool.getConfigurationSection(id);
-                if (entry == null) continue;
-                ShopItem item = parseItem(name, id, entry);
-                if (item != null) shop.getPool(tier).put(id, item);
-            }
+            parsePool(name, s.getConfigurationSection(tier.key()), shop.getPool(tier));
         }
         return shop;
     }
 
+    private static void parsePool(String shopName, ConfigurationSection pool, Map<String, ShopItem> into) {
+        if (pool == null) return;
+        for (String id : pool.getKeys(false)) {
+            ConfigurationSection entry = pool.getConfigurationSection(id);
+            if (entry == null) continue;
+            ShopItem item = parseItem(shopName, id, entry);
+            if (item != null) into.put(id, item);
+        }
+    }
+
     /**
-     * Parses one pool entry. Either {@code item:} (a serialized stack, written by
-     * {@code /shop additem}) or {@code material:} plus optional {@code amount},
-     * {@code potion} and {@code enchantments} (hand-written).
+     * Parses one pool entry. Either {@code item:} (a serialized stack) or {@code material:}
+     * plus optional {@code amount}, {@code potion} and {@code enchantments} (hand-written).
      */
     private static ShopItem parseItem(String shopName, String id, ConfigurationSection s) {
         ItemStack stack = s.getItemStack("item");
@@ -197,39 +200,94 @@ public final class ShopManager {
         return new ShopItem(id, name, stack, price, weight);
     }
 
-    // ── Runtime state (shops-data.yml) ────────────────────────────────────────
+    // ── Storage (domain SHOPS) ────────────────────────────────────────────────
 
-    public static void loadData(FileConfiguration data) {
-        lastResetMs = data.getLong("last_reset", 0L);
-        ConfigurationSection root = data.getConfigurationSection("shops");
+    /** Shops, pools, NPCs, rotation and the reset timer, for storage. Main thread only. */
+    public static ShopsData snapshot() {
+        List<ShopsData.ShopRow> rows = new ArrayList<>();
+        Map<String, Map<String, List<String>>> rotation = new LinkedHashMap<>();
         for (Shop shop : shops.values()) {
+            List<ShopsData.Item> items = new ArrayList<>();
+            Map<String, List<String>> tiers = new LinkedHashMap<>();
+            for (ShopTier tier : ShopTier.values()) {
+                for (ShopItem it : shop.getPool(tier).values()) {
+                    byte[] bytes = ItemBytes.fromItem(it.item());
+                    if (bytes != null) {
+                        items.add(new ShopsData.Item(tier.key(), it.id(), it.name(), bytes, it.price(), it.weight()));
+                    }
+                }
+                tiers.put(tier.key(), List.copyOf(shop.getCurrentIds(tier)));
+            }
+            rows.add(new ShopsData.ShopRow(shop.getName(), shop.getJob().name(),
+                    LocationData.of(shop.getNpcLocation()), shop.getNpcUuid(), List.copyOf(items)));
+            rotation.put(shop.getName(), tiers);
+        }
+        return new ShopsData(List.copyOf(rows), rotation, lastResetMs);
+    }
+
+    /**
+     * Rebuilds shops from storage, imports the shops still hand-written in
+     * {@code shops.yml > shops} (old format) and restores the rotation. Call after
+     * {@link #loadConfig}.
+     *
+     * @return true if shops were imported from shops.yml (the caller then saves SHOPS
+     *         and removes the {@code shops} section from shops.yml)
+     */
+    public static boolean restore(ShopsData data, FileConfiguration config) {
+        shops.clear();
+        for (ShopsData.ShopRow row : data.shops()) {
+            Job job;
+            try {
+                job = Job.valueOf(row.job());
+            } catch (IllegalArgumentException e) {
+                Atlas.instance.getLogger().warning("Shop '" + row.name() + "' has an invalid job — skipped.");
+                continue;
+            }
+            Shop shop = new Shop(row.name(), job);
+            if (row.npc() != null) shop.setNpcLocation(row.npc().toLocation());
+            shop.setNpcUuid(row.npcUuid());
+            for (ShopsData.Item it : row.items()) {
+                ShopTier tier = ShopTier.fromKey(it.tier());
+                ItemStack stack = ItemBytes.toItem(it.item());
+                if (tier == null || stack == null) continue;
+                shop.getPool(tier).put(it.id(), new ShopItem(it.id(), it.name(), stack, it.price(), it.weight()));
+            }
+            shops.put(shop.getName(), shop);
+        }
+
+        boolean imported = false;
+        ConfigurationSection legacy = config.getConfigurationSection("shops");
+        if (legacy != null) {
+            for (String name : legacy.getKeys(false)) {
+                String key = name.toLowerCase();
+                ConfigurationSection s = legacy.getConfigurationSection(name);
+                if (s == null || shops.containsKey(key)) continue;
+                Shop shop = parseShop(key, s);
+                if (shop == null) continue;
+                shops.put(key, shop);
+                imported = true;
+                Atlas.instance.getLogger().info("Shop '" + key + "' imported from shops.yml into storage.");
+            }
+        }
+
+        lastResetMs = data.lastReset();
+        for (Shop shop : shops.values()) {
+            Map<String, List<String>> saved = data.rotation().getOrDefault(shop.getName(), Map.of());
             for (ShopTier tier : ShopTier.values()) {
                 List<String> ids = shop.getCurrentIds(tier);
                 ids.clear();
-                if (root != null) {
-                    for (String id : root.getStringList(shop.getName() + "." + tier.key())) {
-                        if (shop.getPool(tier).containsKey(id)) ids.add(id);
-                    }
+                for (String id : saved.getOrDefault(tier.key(), List.of())) {
+                    if (shop.getPool(tier).containsKey(id)) ids.add(id);
                 }
-                // Selection lost (new shop, or its entries were removed from shops.yml) — refill now.
+                // Selection lost (new shop, or its entries were removed) — refill now.
                 if (ids.isEmpty()) roll(shop, tier);
             }
         }
-    }
-
-    public static void saveData(FileConfiguration data) {
-        data.set("last_reset", lastResetMs);
-        data.set("shops", null);
-        for (Shop shop : shops.values()) {
-            for (ShopTier tier : ShopTier.values()) {
-                data.set("shops." + shop.getName() + "." + tier.key(), new ArrayList<>(shop.getCurrentIds(tier)));
-            }
-        }
+        return imported;
     }
 
     private static void persistData() {
-        saveData(Atlas.shopsDataConfig);
-        Atlas.saveShopsDataConfig();
+        Storage.save(DataDomain.SHOPS);
     }
 
     // ── Rotation ──────────────────────────────────────────────────────────────
@@ -280,39 +338,27 @@ public final class ShopManager {
         }
     }
 
-    // ── Admin mutations (edit shops.yml in place) ─────────────────────────────
+    // ── Admin mutations ───────────────────────────────────────────────────────
 
     /**
      * Creates a shop for {@code job}, seeded with that job's default pools from
-     * {@code job_defaults}, and spawns its NPC at {@code loc}. Returns an error message,
-     * or null on success.
+     * {@code shops.yml > job_defaults}, and spawns its NPC at {@code loc}. Returns an error
+     * message, or null on success.
      */
     public static String createShop(String rawName, Job job, Location loc) {
         String name = rawName.toLowerCase();
-        // Names become YAML path segments — keep them to a safe charset (no dots).
         if (!name.matches("[a-z0-9_-]+")) return "Shop names may only contain letters, digits, '_' and '-'.";
         if (shops.containsKey(name)) return "A shop named '" + name + "' already exists.";
         if (job == Job.JOKEYRINI) return "Jokeyrini is not a playable job.";
 
-        FileConfiguration config = Atlas.shopsConfig;
-        ConfigurationSection s = config.createSection("shops." + name);
-        s.set("job", job.name());
-        ConfigurationSection defaults = config.getConfigurationSection("job_defaults." + job.name());
+        Shop shop = new Shop(name, job);
+        ConfigurationSection defaults = jobDefaults == null ? null : jobDefaults.getConfigurationSection(job.name());
         for (ShopTier tier : ShopTier.values()) {
-            ConfigurationSection pool = defaults == null ? null : defaults.getConfigurationSection(tier.key());
-            ConfigurationSection target = s.createSection(tier.key());
-            if (pool != null) copySection(pool, target);
-        }
-
-        Shop shop = parseShop(name, s);
-        if (shop == null) {
-            config.set("shops." + name, null);
-            return "Could not create the shop.";
+            parsePool(name, defaults == null ? null : defaults.getConfigurationSection(tier.key()), shop.getPool(tier));
         }
         shops.put(name, shop);
         spawnNpc(shop, loc);
         for (ShopTier tier : ShopTier.values()) roll(shop, tier);
-        saveConfig();
         persistData();
         return null;
     }
@@ -322,8 +368,6 @@ public final class ShopManager {
         Shop shop = shops.remove(name.toLowerCase());
         if (shop == null) return false;
         removeNpc(shop);
-        Atlas.shopsConfig.set("shops." + shop.getName(), null);
-        saveConfig();
         persistData();
         return true;
     }
@@ -343,41 +387,17 @@ public final class ShopManager {
                         .serialize(stack.getItemMeta().displayName())
                 : GuiUtil.formatMaterial(stack.getType().name());
 
-        ConfigurationSection s = Atlas.shopsConfig.createSection(
-                "shops." + shop.getName() + "." + tier.key() + "." + id);
-        s.set("name", label);
-        s.set("item", stack.clone());
-        s.set("price", price);
-        s.set("weight", weight);
-        saveConfig();
-
         shop.getPool(tier).put(id, new ShopItem(id, label, stack.clone(), price, weight));
         if (weight > 0 && shop.getCurrentIds(tier).size() < getItemsPerTier(tier)) {
             shop.getCurrentIds(tier).add(id);
-            persistData();
         }
+        persistData();
         return id;
-    }
-
-    private static void copySection(ConfigurationSection from, ConfigurationSection to) {
-        for (String key : from.getKeys(false)) {
-            Object value = from.get(key);
-            if (value instanceof ConfigurationSection sub) copySection(sub, to.createSection(key));
-            else to.set(key, value);
-        }
-    }
-
-    private static void saveConfig() {
-        try {
-            Atlas.shopsConfig.save(Atlas.shopsFile);
-        } catch (java.io.IOException e) {
-            Atlas.instance.getLogger().severe("Could not save shops.yml: " + e.getMessage());
-        }
     }
 
     // ── NPCs ──────────────────────────────────────────────────────────────────
 
-    /** Spawns NPCs for shops that have a location in shops.yml but no NPC yet (hand-added shops). */
+    /** Spawns NPCs for shops that have a location but no NPC yet (shops imported from shops.yml). */
     public static void spawnMissingNpcs() {
         boolean changed = false;
         for (Shop shop : shops.values()) {
@@ -385,7 +405,7 @@ public final class ShopManager {
             spawnNpc(shop, shop.getNpcLocation());
             changed = true;
         }
-        if (changed) saveConfig();
+        if (changed) persistData();
     }
 
     private static void spawnNpc(Shop shop, Location loc) {
@@ -407,16 +427,6 @@ public final class ShopManager {
         });
         shop.setNpcLocation(villager.getLocation());
         shop.setNpcUuid(villager.getUniqueId());
-
-        ConfigurationSection npc = Atlas.shopsConfig.createSection("shops." + shop.getName() + ".npc");
-        Location l = villager.getLocation();
-        npc.set("world", l.getWorld().getName());
-        npc.set("x", l.getX());
-        npc.set("y", l.getY());
-        npc.set("z", l.getZ());
-        npc.set("yaw", l.getYaw());
-        npc.set("pitch", l.getPitch());
-        npc.set("uuid", villager.getUniqueId().toString());
     }
 
     /** Removes the shop's NPC, loading its chunk's entities if needed. */

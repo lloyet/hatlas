@@ -6,18 +6,20 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.minecraft.atlas.storage.model.MiscData;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Owns all {@link OreZone} instances. Holds the default ore-weight template
  * loaded from {@code orezones.yml}, drives the periodic refill scheduler at
- * {@link #intervalResetHours}, and serializes runtime state to
- * {@code orezones-data.yml}.
+ * {@link #intervalResetHours}, and persists zones through {@code Storage} (domain OREZONES).
  */
 public final class OreZoneManager {
 
@@ -146,65 +148,40 @@ public final class OreZoneManager {
         Bukkit.getScheduler().runTaskTimer(plugin, OreZoneManager::fillAll, periodTicks, periodTicks);
     }
 
-    // ── Persistence (orezones-data.yml) ────────────────────────────────────────
+    // ── Persistence ────────────────────────────────────────────────────────────
 
-    public static void load(FileConfiguration data) {
+    /** Call after {@link #loadConfig} (empty zones are re-seeded with the default weights). */
+    public static void restore(MiscData.OreZonesData data) {
         zones.clear();
-        ConfigurationSection root = data.getConfigurationSection("orezones");
-        if (root == null) return;
-
-        for (String name : root.getKeys(false)) {
-            ConfigurationSection sec = root.getConfigurationSection(name);
-            if (sec == null) continue;
-
-            OreZone zone = new OreZone(name.toLowerCase());
-
-            String worldName = sec.getString("world");
-            if (worldName != null && sec.contains("min_x")) {
-                zone.setRawBounds(worldName,
-                        sec.getInt("min_x"), sec.getInt("min_y"), sec.getInt("min_z"),
-                        sec.getInt("max_x"), sec.getInt("max_y"), sec.getInt("max_z"));
+        for (MiscData.OreZoneRow row : data.zones()) {
+            OreZone zone = new OreZone(row.name().toLowerCase());
+            if (row.world() != null) {
+                zone.setRawBounds(row.world(), row.minX(), row.minY(), row.minZ(), row.maxX(), row.maxY(), row.maxZ());
             }
-
-            ConfigurationSection weightsSec = sec.getConfigurationSection("ore_weights");
-            if (weightsSec != null) {
-                for (String key : weightsSec.getKeys(false)) {
-                    int w = weightsSec.getInt(key, 0);
-                    if (w > 0 && OreType.fromKey(key) != null) {
-                        zone.getOreWeights().put(key.toLowerCase(), w);
-                    }
+            for (MiscData.OreWeight w : row.weights()) {
+                if (w.weight() > 0 && OreType.fromKey(w.ore()) != null) {
+                    zone.getOreWeights().put(w.ore().toLowerCase(), w.weight());
                 }
             }
-            // If a saved zone has no weights (corrupted file, hand-edit, etc.),
+            // If a saved zone has no weights (corrupted data, hand-edit, etc.),
             // re-seed with the defaults so the next reset still produces blocks.
             if (zone.getOreWeights().isEmpty()) {
                 zone.getOreWeights().putAll(defaultOreWeights);
             }
-
             zones.put(zone.getName(), zone);
         }
     }
 
-    public static void save(FileConfiguration data) {
-        data.set("orezones", null);
-        if (zones.isEmpty()) return;
-
-        ConfigurationSection root = data.createSection("orezones");
+    public static MiscData.OreZonesData snapshot() {
+        List<MiscData.OreZoneRow> out = new ArrayList<>();
         for (OreZone z : zones.values()) {
-            ConfigurationSection sec = root.createSection(z.getName());
-            if (z.hasBounds()) {
-                sec.set("world", z.getWorldName());
-                sec.set("min_x", z.getMinX());
-                sec.set("min_y", z.getMinY());
-                sec.set("min_z", z.getMinZ());
-                sec.set("max_x", z.getMaxX());
-                sec.set("max_y", z.getMaxY());
-                sec.set("max_z", z.getMaxZ());
-            }
-            ConfigurationSection weightsSec = sec.createSection("ore_weights");
-            for (Map.Entry<String, Integer> e : z.getOreWeights().entrySet()) {
-                weightsSec.set(e.getKey(), e.getValue());
-            }
+            List<MiscData.OreWeight> weights = new ArrayList<>();
+            z.getOreWeights().forEach((ore, w) -> weights.add(new MiscData.OreWeight(ore, w)));
+            boolean b = z.hasBounds();
+            out.add(new MiscData.OreZoneRow(z.getName(), b ? z.getWorldName() : null,
+                    b ? z.getMinX() : 0, b ? z.getMinY() : 0, b ? z.getMinZ() : 0,
+                    b ? z.getMaxX() : 0, b ? z.getMaxY() : 0, b ? z.getMaxZ() : 0, List.copyOf(weights)));
         }
+        return new MiscData.OreZonesData(List.copyOf(out));
     }
 }

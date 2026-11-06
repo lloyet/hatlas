@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -71,8 +74,7 @@ public class TagCommand {
                                             org.bukkit.Location spawnLoc = player.getLocation().add(0, 1, 0);
                                             Tag tag = TagManager.createTag(name, spawnLoc, text);
 
-                                            TagManager.saveTags(Atlas.tagsDataConfig);
-                                            Atlas.saveTagsDataConfig();
+                                            Storage.save(DataDomain.TAGS);
 
                                             player.sendMessage(success("Tag '" + name + "' created."));
                                             return Command.SINGLE_SUCCESS;
@@ -90,8 +92,7 @@ public class TagCommand {
                                         return Command.SINGLE_SUCCESS;
                                     }
 
-                                    TagManager.saveTags(Atlas.instance.getConfig());
-                                    Atlas.instance.saveConfig();
+                                    Storage.save(DataDomain.TAGS);
 
                                     ctx.getSource().getSender().sendMessage(success("Tag '" + name + "' deleted."));
                                     return Command.SINGLE_SUCCESS;
@@ -111,8 +112,7 @@ public class TagCommand {
                                                 return Command.SINGLE_SUCCESS;
                                             }
 
-                                            TagManager.saveTags(Atlas.tagsDataConfig);
-                                            Atlas.saveTagsDataConfig();
+                                            Storage.save(DataDomain.TAGS);
 
                                             Tag tag = TagManager.getTag(name);
                                             ctx.getSource().getSender().sendMessage(success(
@@ -144,8 +144,7 @@ public class TagCommand {
                                                         return Command.SINGLE_SUCCESS;
                                                     }
 
-                                                    TagManager.saveTags(Atlas.instance.getConfig());
-                                                    Atlas.instance.saveConfig();
+                                                    Storage.save(DataDomain.TAGS);
 
                                                     ctx.getSource().getSender().sendMessage(success(
                                                             "Line " + line + " of tag '" + name + "' updated."));

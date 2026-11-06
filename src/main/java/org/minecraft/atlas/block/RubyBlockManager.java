@@ -9,10 +9,10 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.minecraft.atlas.Item.RubyItem;
+import org.minecraft.atlas.storage.model.BlockPos;
+import org.minecraft.atlas.storage.model.MiscData;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -161,41 +161,33 @@ public final class RubyBlockManager {
 
     // ── Persistence ─────────────────────────────────────────────────────────────
 
-    public static void loadConfig(FileConfiguration config) {
+    /** Stored blocks in worlds that are not loaded: written back unchanged. */
+    private static final List<MiscData.CustomBlock> UNRESOLVED = new ArrayList<>();
+
+    /** Call after {@link #init} (needs the block specs). */
+    public static void restore(MiscData.BlocksData data) {
         PLACED.clear();
-        ConfigurationSection sec = config.getConfigurationSection("custom-blocks");
-        if (sec == null) return;
-
-        for (String key : sec.getKeys(false)) {
-            ConfigurationSection bs = sec.getConfigurationSection(key);
-            if (bs == null) continue;
-
-            String worldName = bs.getString("world");
-            if (worldName == null) continue;
-            World world = Bukkit.getWorld(worldName);
-            if (world == null) continue;
-
-            String id = bs.getString("id");
-            if (id == null || !SPECS.containsKey(id)) continue;
-
-            Location loc = new Location(world,
-                    bs.getInt("x"), bs.getInt("y"), bs.getInt("z"));
-            PLACED.put(loc, id);
+        UNRESOLVED.clear();
+        for (MiscData.CustomBlock b : data.blocks()) {
+            if (!SPECS.containsKey(b.blockId())) continue;
+            World world = Bukkit.getWorld(b.pos().world());
+            if (world == null) {
+                UNRESOLVED.add(b);
+                continue;
+            }
+            PLACED.put(new Location(world, b.pos().x(), b.pos().y(), b.pos().z()), b.blockId());
         }
     }
 
-    public static void saveConfig(FileConfiguration config) {
-        config.set("custom-blocks", null);
-        int i = 0;
+    public static MiscData.BlocksData snapshot() {
+        List<MiscData.CustomBlock> out = new ArrayList<>();
         for (Map.Entry<Location, String> e : PLACED.entrySet()) {
             Location loc = e.getKey();
             if (loc.getWorld() == null) continue;
-            String path = "custom-blocks." + (i++);
-            config.set(path + ".id", e.getValue());
-            config.set(path + ".world", loc.getWorld().getName());
-            config.set(path + ".x", loc.getBlockX());
-            config.set(path + ".y", loc.getBlockY());
-            config.set(path + ".z", loc.getBlockZ());
+            out.add(new MiscData.CustomBlock(new BlockPos(loc.getWorld().getName(),
+                    loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()), e.getValue()));
         }
+        out.addAll(UNRESOLVED);
+        return new MiscData.BlocksData(List.copyOf(out));
     }
 }

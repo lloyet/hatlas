@@ -1,11 +1,9 @@
 package org.minecraft.atlas.safezone;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.minecraft.atlas.storage.model.ChunkPos;
+import org.minecraft.atlas.storage.model.LocationData;
+import org.minecraft.atlas.storage.model.SafeZonesData;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,125 +94,46 @@ public class SafeZoneManager {
 
     // ── Persistence ────────────────────────────────────────────────────────────
 
-    public static void saveConfig(FileConfiguration safezonesDataConfig) {
-        safezonesDataConfig.set("safezones",       null);
-        safezonesDataConfig.set("safezone_visits", null);
+    /** Spawn points whose world is not loaded, by zone name: written back unchanged. */
+    private static final Map<String, LocationData> unresolvedSpawns = new HashMap<>();
 
-        if (!safeZones.isEmpty()) {
-            ConfigurationSection root = safezonesDataConfig.createSection("safezones");
-            for (SafeZone p : safeZones.values()) {
-                ConfigurationSection sec = root.createSection(p.getName());
-                Map<String, List<String>> byWorld = groupChunkKeysByWorld(p.getChunks());
-                if (!byWorld.isEmpty()) {
-                    ConfigurationSection chunksSec = sec.createSection("chunks");
-                    for (Map.Entry<String, List<String>> e : byWorld.entrySet()) {
-                        chunksSec.set(e.getKey(), e.getValue());
-                    }
-                }
-                if (p.getSpawnPoint() != null)
-                    sec.set("spawn_point", encodeLocation(p.getSpawnPoint()));
-                if (!p.getDescription().isEmpty())
-                    sec.set("description", p.getDescription());
+    /** Safe zones and visits, for storage. Main thread only. */
+    public static SafeZonesData snapshot() {
+        List<SafeZonesData.Zone> zones = new ArrayList<>();
+        for (SafeZone z : safeZones.values()) {
+            List<ChunkPos> chunks = new ArrayList<>();
+            for (String key : z.getChunks()) {
+                ChunkPos p = ChunkPos.fromRuntimeKey(key);
+                if (p != null) chunks.add(p);
             }
+            LocationData spawn = LocationData.of(z.getSpawnPoint());
+            if (spawn == null) spawn = unresolvedSpawns.get(z.getName());
+            zones.add(new SafeZonesData.Zone(z.getName(), z.getDescription(), spawn, List.copyOf(chunks)));
         }
-
-        if (!playerVisits.isEmpty()) {
-            ConfigurationSection visits = safezonesDataConfig.createSection("safezone_visits");
-            for (Map.Entry<UUID, Set<String>> e : playerVisits.entrySet()) {
-                if (!e.getValue().isEmpty())
-                    visits.set(e.getKey().toString(), new ArrayList<>(e.getValue()));
-            }
-        }
+        Map<UUID, Set<String>> visits = new HashMap<>();
+        playerVisits.forEach((u, set) -> {
+            if (!set.isEmpty()) visits.put(u, Set.copyOf(set));
+        });
+        return new SafeZonesData(List.copyOf(zones), Map.copyOf(visits));
     }
 
-    public static void loadConfig(FileConfiguration safezonesDataConfig) {
+    public static void restore(SafeZonesData data) {
         safeZones.clear();
         playerVisits.clear();
-
-        ConfigurationSection root = safezonesDataConfig.getConfigurationSection("safezones");
-        if (root != null) {
-            for (String name : root.getKeys(false)) {
-                SafeZone p = new SafeZone(name.toLowerCase());
-                ConfigurationSection sec = root.getConfigurationSection(name);
-                if (sec != null) {
-                    ConfigurationSection chunksSec = sec.getConfigurationSection("chunks");
-                    if (chunksSec != null) {
-                        for (String worldName : chunksSec.getKeys(false)) {
-                            for (String keyStr : chunksSec.getStringList(worldName)) {
-                                try {
-                                    long key = Long.parseLong(keyStr);
-                                    int cx = (int) key;
-                                    int cz = (int) (key >> 32);
-                                    p.getChunks().add(worldName + ":" + cx + ":" + cz);
-                                } catch (NumberFormatException ignored) {}
-                            }
-                        }
-                    }
-                    String sp = sec.getString("spawn_point");
-                    if (sp != null) {
-                        Location loc = decodeLocation(sp);
-                        if (loc != null) p.setSpawnPoint(loc);
-                    }
-                    p.setDescription(sec.getString("description", ""));
-                }
-                safeZones.put(p.getName(), p);
+        unresolvedSpawns.clear();
+        for (SafeZonesData.Zone row : data.zones()) {
+            SafeZone z = new SafeZone(row.name().toLowerCase());
+            for (ChunkPos p : row.chunks()) z.getChunks().add(p.runtimeKey());
+            if (row.spawn() != null) {
+                Location loc = row.spawn().toLocation();
+                if (loc != null) z.setSpawnPoint(loc);
+                else unresolvedSpawns.put(z.getName(), row.spawn());
             }
+            z.setDescription(row.description());
+            safeZones.put(z.getName(), z);
         }
-
-        ConfigurationSection visits = safezonesDataConfig.getConfigurationSection("safezone_visits");
-        if (visits != null) {
-            for (String uuidStr : visits.getKeys(false)) {
-                try {
-                    UUID uuid = UUID.fromString(uuidStr);
-                    List<String> list = visits.getStringList(uuidStr);
-                    if (!list.isEmpty())
-                        playerVisits.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet()).addAll(list);
-                } catch (IllegalArgumentException ignored) {}
-            }
-        }
-    }
-
-    // ── Encoding helpers ───────────────────────────────────────────────────────
-
-    /**
-     * Splits the runtime "world:cx:cz" chunk-key strings into a map of
-     * {@code worldName → list of stringified chunk-key longs}, mirroring the donjon
-     * protected_chunks layout but nested per world.
-     */
-    private static Map<String, List<String>> groupChunkKeysByWorld(Set<String> runtimeKeys) {
-        Map<String, List<String>> byWorld = new LinkedHashMap<>();
-        for (String chunkKey : runtimeKeys) {
-            String[] parts = chunkKey.split(":");
-            if (parts.length != 3) continue;
-            try {
-                int cx = Integer.parseInt(parts[1]);
-                int cz = Integer.parseInt(parts[2]);
-                byWorld.computeIfAbsent(parts[0], w -> new ArrayList<>())
-                        .add(String.valueOf(Chunk.getChunkKey(cx, cz)));
-            } catch (NumberFormatException ignored) {}
-        }
-        return byWorld;
-    }
-
-    private static String encodeLocation(Location loc) {
-        return loc.getWorld().getName() + ":" + loc.getX() + ":" + loc.getY() + ":" + loc.getZ()
-                + ":" + loc.getYaw() + ":" + loc.getPitch();
-    }
-
-    private static Location decodeLocation(String s) {
-        String[] p = s.split(":");
-        if (p.length < 4) return null;
-        try {
-            World world = Bukkit.getWorld(p[0]);
-            if (world == null) return null;
-            double x = Double.parseDouble(p[1]);
-            double y = Double.parseDouble(p[2]);
-            double z = Double.parseDouble(p[3]);
-            float yaw   = p.length > 4 ? Float.parseFloat(p[4]) : 0f;
-            float pitch = p.length > 5 ? Float.parseFloat(p[5]) : 0f;
-            return new Location(world, x, y, z, yaw, pitch);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        data.visits().forEach((u, set) -> {
+            if (!set.isEmpty()) playerVisits.computeIfAbsent(u, k -> ConcurrentHashMap.newKeySet()).addAll(set);
+        });
     }
 }

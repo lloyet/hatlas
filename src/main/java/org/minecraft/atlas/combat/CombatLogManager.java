@@ -5,13 +5,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
+import org.minecraft.atlas.storage.model.MiscData;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,39 +37,28 @@ public class CombatLogManager {
     }
 
     /**
-     * Restores in-combat timers from {@code combats-data.yml}. Expired entries are skipped
-     * so a long server outage does not resurrect stale fights.
+     * Restores in-combat timers. Expired entries are skipped so a long server outage does
+     * not resurrect stale fights.
      */
-    public static void loadCombatData(YamlConfiguration config) {
+    public static void restore(MiscData.CombatData data) {
         combatUntil.clear();
-        ConfigurationSection section = config.getConfigurationSection("combat_log.in_combat");
-        if (section == null) return;
         long now = System.currentTimeMillis();
-        for (String key : section.getKeys(false)) {
-            long until = section.getLong(key);
-            if (until <= now) continue;
-            try {
-                combatUntil.put(UUID.fromString(key), until);
-            } catch (IllegalArgumentException ignored) {}
-        }
+        data.inCombatUntil().forEach((uuid, until) -> {
+            if (until > now) combatUntil.put(uuid, until);
+        });
     }
 
     /**
-     * Persists in-combat timers (UUID → until-millis) so a server restart does not erase
-     * an active fight. Expired entries are dropped on save.
+     * In-combat timers (UUID → until-millis), so a server restart does not erase an
+     * active fight. Expired entries are dropped.
      */
-    public static void saveCombatData(YamlConfiguration config) {
-        config.set("combat_log.in_combat", null);
+    public static MiscData.CombatData snapshot() {
         long now = System.currentTimeMillis();
-        Map<String, Long> snapshot = new HashMap<>();
+        Map<UUID, Long> out = new HashMap<>();
         for (Map.Entry<UUID, Long> e : combatUntil.entrySet()) {
-            if (e.getValue() > now) snapshot.put(e.getKey().toString(), e.getValue());
+            if (e.getValue() > now) out.put(e.getKey(), e.getValue());
         }
-        if (!snapshot.isEmpty()) {
-            for (Map.Entry<String, Long> e : snapshot.entrySet()) {
-                config.set("combat_log.in_combat." + e.getKey(), e.getValue());
-            }
-        }
+        return new MiscData.CombatData(Map.copyOf(out));
     }
 
     /** Suppresses the combat-logout kill during a legitimate server shutdown. */

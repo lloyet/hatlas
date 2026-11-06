@@ -1,5 +1,8 @@
 package org.minecraft.atlas.listener;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -300,13 +303,12 @@ public class FactionListener implements Listener {
 
             // Scatter a slice of the vault rubies at the crystal location. Items are dropped
             // AFTER the explosion so the blast can't destroy them. The drop is mutating: the
-            // faction's vault is decremented in-place and persisted to factions-data.yml.
+            // faction's vault is decremented in-place and persisted through Storage.
             if (faction != null) {
                 int dropCount = org.minecraft.atlas.faction.FactionVault.computeProtectionBreakDrop(faction);
                 if (dropCount > 0) {
                     org.minecraft.atlas.faction.FactionVault.drop(faction, crystal.getLocation(), dropCount);
-                    FactionManager.saveFactions(org.minecraft.atlas.Atlas.factionsDataConfig);
-                    org.minecraft.atlas.Atlas.saveFactionsDataConfig();
+                    Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
                 }
             }
 
