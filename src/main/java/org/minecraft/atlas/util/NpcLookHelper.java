@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.minecraft.atlas.donjon.SmugglerManager;
 import org.minecraft.atlas.safezone.SafeZoneNpcManager;
+import org.minecraft.atlas.shop.ShopManager;
 
 /**
  * Periodically rotates atlas NPCs (donjon Smugglers and safe-zone Explorers) toward the
@@ -40,7 +41,8 @@ public final class NpcLookHelper {
     }
 
     private static boolean isAtlasNpc(Entity entity) {
-        return SmugglerManager.isSmugglerNpc(entity) || SafeZoneNpcManager.isExplorer(entity);
+        return SmugglerManager.isSmugglerNpc(entity) || SafeZoneNpcManager.isExplorer(entity)
+                || ShopManager.isShopNpc(entity);
     }
 
     private static Player findNearestPlayer(Entity entity) {

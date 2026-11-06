@@ -164,3 +164,6 @@ permissions:
   atlas.orezone.admin:
     description: Manage ore zones via /orezone (pos1, pos2, add, remove, reset, list)
     default: op
+  atlas.shop.admin:
+    description: Manage job shops via /shop (create, delete, list, additem, reset)
+    default: op

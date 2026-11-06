@@ -65,6 +65,9 @@ import org.minecraft.atlas.auction.AuctionManager;
 import org.minecraft.atlas.command.AuctionCommand;
 import org.minecraft.atlas.command.OreZoneCommand;
 import org.minecraft.atlas.orezone.OreZoneManager;
+import org.minecraft.atlas.command.ShopCommand;
+import org.minecraft.atlas.listener.ShopNpcListener;
+import org.minecraft.atlas.shop.ShopManager;
 import org.minecraft.atlas.util.AfkManager;
 import org.minecraft.atlas.util.ItemClearManager;
 import org.minecraft.atlas.util.NpcLookHelper;
@@ -131,6 +134,12 @@ public final class Atlas extends JavaPlugin {
 
     public static YamlConfiguration orezonesDataConfig;
     public static File orezonesDataFile;
+
+    public static YamlConfiguration shopsConfig;
+    public static File shopsFile;
+
+    public static YamlConfiguration shopsDataConfig;
+    public static File shopsDataFile;
 
     @Override
     public void onEnable() {
@@ -216,6 +225,14 @@ public final class Atlas extends JavaPlugin {
         orezonesDataFile = new File(getDataFolder(), "orezones-data.yml");
         orezonesDataConfig = YamlConfiguration.loadConfiguration(orezonesDataFile);
 
+        // shops.yml — job shops (tuning, per-job default pools, shops + NPCs); edited by /shop
+        shopsFile = new File(getDataFolder(), "shops.yml");
+        if (!shopsFile.exists()) saveResource("shops.yml", false);
+        shopsConfig = YamlConfiguration.loadConfiguration(shopsFile);
+
+        shopsDataFile = new File(getDataFolder(), "shops-data.yml");
+        shopsDataConfig = YamlConfiguration.loadConfiguration(shopsDataFile);
+
         // Load from config / data files
         AtlasCrystalManager.loadConfig(factionsConfig);
         SafeZoneManager.loadConfig(safezonesDataConfig);
@@ -261,6 +278,9 @@ public final class Atlas extends JavaPlugin {
         AuctionManager.loadData(auctionsDataConfig);
         OreZoneManager.loadConfig(orezonesConfig);
         OreZoneManager.load(orezonesDataConfig);
+        ShopManager.loadConfig(shopsConfig);
+        ShopManager.loadData(shopsDataConfig);
+        ShopManager.spawnMissingNpcs();
         ResourcePackManager.loadConfig(configFile);
         TagManager.init();
         TagManager.loadTags(tagsDataConfig);
@@ -281,6 +301,7 @@ public final class Atlas extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(), this);
         getServer().getPluginManager().registerEvents(new RubyRestrictionListener(), this);
         getServer().getPluginManager().registerEvents(new AuctionNpcListener(), this);
+        getServer().getPluginManager().registerEvents(new ShopNpcListener(), this);
         AfkManager afkManager = new AfkManager();
         getServer().getPluginManager().registerEvents(afkManager, this);
         getServer().getPluginManager().registerEvents(new org.minecraft.atlas.listener.CombatLogListener(), this);
@@ -298,6 +319,7 @@ public final class Atlas extends JavaPlugin {
         FactionClaimBorderRenderer.schedule(this);
         NpcLookHelper.schedule(this);
         OreZoneManager.schedule(this);
+        ShopManager.schedule(this);
 
         // Register all commands
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS,
@@ -321,6 +343,7 @@ public final class Atlas extends JavaPlugin {
                         event.registrar().register(ItemCommand.build());
                         event.registrar().register(AuctionCommand.build());
                         event.registrar().register(OreZoneCommand.build());
+                        event.registrar().register(ShopCommand.build());
                     }
                 }
         );
@@ -383,6 +406,10 @@ public final class Atlas extends JavaPlugin {
         OreZoneManager.save(orezonesDataConfig);
         saveOrezonesDataConfig();
 
+        // Save to shops-data.yml
+        ShopManager.saveData(shopsDataConfig);
+        saveShopsDataConfig();
+
         getLogger().info("Atlas disabled.");
     }
 
@@ -407,6 +434,14 @@ public final class Atlas extends JavaPlugin {
             auctionsDataConfig.save(auctionsDataFile);
         } catch (IOException e) {
             instance.getLogger().severe("Could not save auctions-data.yml: " + e.getMessage());
+        }
+    }
+
+    public static void saveShopsDataConfig() {
+        try {
+            shopsDataConfig.save(shopsDataFile);
+        } catch (IOException e) {
+            instance.getLogger().severe("Could not save shops-data.yml: " + e.getMessage());
         }
     }
 

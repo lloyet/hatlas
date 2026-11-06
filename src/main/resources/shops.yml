@@ -1,0 +1,316 @@
+# ============================================================
+# Job Shop System
+# ============================================================
+# Every shop is a villager NPC tied to one job. Right-clicking it (faction required)
+# opens a menu with two sub-shops:
+#   - Common: any faction member who has a job (whatever the job) can buy.
+#   - Rare:   only faction members whose job matches the shop's job can buy.
+# Prices are in ruby gems, taken from the buyer's inventory.
+
+# How often (in hours) every shop restocks: its common and rare selections are
+# re-drawn at random from the pools below, using each entry's weight.
+# 168 = one week.
+reset_interval_hours: 168
+
+# How many items are on sale at once in each sub-shop (max 28).
+# If a pool has fewer entries, all of them are on sale.
+items_per_shop:
+  common: 12
+  rare: 12
+
+# ------------------------------------------------------------
+# Item entry format
+# ------------------------------------------------------------
+#   <entry_id>:
+#     name: "Label"        # shown in the shop GUI (optional, defaults to the material name)
+#     material: IRON_PICKAXE
+#     amount: 1            # optional, default 1
+#     price: 8             # in ruby
+#     weight: 40           # higher = more likely to be picked at each restock (0 = never)
+#     potion: healing      # optional, for POTION / SPLASH_POTION / LINGERING_POTION / TIPPED_ARROW
+#     enchantments:        # optional; on ENCHANTED_BOOK these become stored enchantments
+#       efficiency: 3
+#
+# Entries added in-game with /shop additem store the exact held item under `item:`
+# instead of `material:` (keeps custom names, lore, enchantments, …).
+
+# ------------------------------------------------------------
+# Default pools per job
+# ------------------------------------------------------------
+# Copied into a new shop by /shop create <name> <job>. Editing these afterwards does
+# NOT change existing shops — edit the shop's own section under `shops:` instead.
+job_defaults:
+
+  MINER:
+    common:
+      stone_pickaxe:  { name: "Stone Pickaxe",  material: STONE_PICKAXE,  price: 1, weight: 40 }
+      iron_pickaxe:   { name: "Iron Pickaxe",   material: IRON_PICKAXE,   price: 4, weight: 30 }
+      iron_shovel:    { name: "Iron Shovel",    material: IRON_SHOVEL,    price: 3, weight: 25 }
+      torch:          { name: "Torches",        material: TORCH,          amount: 32, price: 1, weight: 40 }
+      lantern:        { name: "Lanterns",       material: LANTERN,        amount: 4,  price: 2, weight: 20 }
+      ladder:         { name: "Ladders",        material: LADDER,         amount: 16, price: 1, weight: 25 }
+      coal:           { name: "Coal",           material: COAL,           amount: 16, price: 2, weight: 25 }
+      rail:           { name: "Rails",          material: RAIL,           amount: 32, price: 3, weight: 15 }
+      minecart:       { name: "Minecart",       material: MINECART,       price: 3, weight: 10 }
+      bread:          { name: "Bread",          material: BREAD,          amount: 16, price: 1, weight: 30 }
+      water_bucket:   { name: "Water Bucket",   material: WATER_BUCKET,   price: 2, weight: 15 }
+      iron_helmet:    { name: "Iron Helmet",    material: IRON_HELMET,    price: 5, weight: 15 }
+      cobbled_deepslate: { name: "Cobbled Deepslate", material: COBBLED_DEEPSLATE, amount: 64, price: 1, weight: 20 }
+    rare:
+      diamond_pickaxe_eff:
+        name: "Prospector's Pickaxe"
+        material: DIAMOND_PICKAXE
+        price: 30
+        weight: 25
+        enchantments: { efficiency: 4, unbreaking: 3 }
+      diamond_pickaxe_fortune:
+        name: "Fortune Pickaxe"
+        material: DIAMOND_PICKAXE
+        price: 48
+        weight: 12
+        enchantments: { fortune: 3, efficiency: 3 }
+      diamond_pickaxe_silk:
+        name: "Silk Touch Pickaxe"
+        material: DIAMOND_PICKAXE
+        price: 40
+        weight: 12
+        enchantments: { silk_touch: 1, efficiency: 3 }
+      diamond_shovel_eff:
+        name: "Excavator Shovel"
+        material: DIAMOND_SHOVEL
+        price: 22
+        weight: 18
+        enchantments: { efficiency: 5, unbreaking: 3 }
+      iron_pickaxe_eff:
+        name: "Tempered Iron Pickaxe"
+        material: IRON_PICKAXE
+        price: 12
+        weight: 30
+        enchantments: { efficiency: 3, unbreaking: 2 }
+      mending_book:
+        name: "Book of Mending"
+        material: ENCHANTED_BOOK
+        price: 40
+        weight: 8
+        enchantments: { mending: 1 }
+      fortune_book:
+        name: "Book of Fortune III"
+        material: ENCHANTED_BOOK
+        price: 35
+        weight: 8
+        enchantments: { fortune: 3 }
+      night_vision:   { name: "Potion of Night Vision", material: POTION, potion: long_night_vision, price: 8, weight: 20 }
+      diamond:        { name: "Diamonds",       material: DIAMOND,        amount: 3, price: 18, weight: 15 }
+      emerald:        { name: "Emeralds",       material: EMERALD,        amount: 4, price: 10, weight: 15 }
+      tnt:            { name: "TNT",            material: TNT,            amount: 8, price: 12, weight: 12 }
+      netherite_template: { name: "Netherite Upgrade Template", material: NETHERITE_UPGRADE_SMITHING_TEMPLATE, price: 45, weight: 5 }
+      diamond_chestplate:
+        name: "Miner's Chestplate"
+        material: DIAMOND_CHESTPLATE
+        price: 38
+        weight: 8
+        enchantments: { protection: 2 }
+
+  LUMBERJACK:
+    common:
+      stone_axe:      { name: "Stone Axe",      material: STONE_AXE,      price: 1, weight: 40 }
+      iron_axe:       { name: "Iron Axe",       material: IRON_AXE,       price: 4, weight: 30 }
+      shears:         { name: "Shears",         material: SHEARS,         price: 2, weight: 20 }
+      oak_sapling:    { name: "Oak Saplings",   material: OAK_SAPLING,    amount: 8, price: 1, weight: 30 }
+      spruce_sapling: { name: "Spruce Saplings", material: SPRUCE_SAPLING, amount: 8, price: 1, weight: 30 }
+      birch_sapling:  { name: "Birch Saplings", material: BIRCH_SAPLING,  amount: 8, price: 1, weight: 30 }
+      jungle_sapling: { name: "Jungle Saplings", material: JUNGLE_SAPLING, amount: 8, price: 1, weight: 20 }
+      acacia_sapling: { name: "Acacia Saplings", material: ACACIA_SAPLING, amount: 8, price: 1, weight: 20 }
+      dark_oak_sapling: { name: "Dark Oak Saplings", material: DARK_OAK_SAPLING, amount: 8, price: 2, weight: 15 }
+      bone_meal:      { name: "Bone Meal",      material: BONE_MEAL,      amount: 32, price: 2, weight: 25 }
+      oak_log:        { name: "Oak Logs",       material: OAK_LOG,        amount: 32, price: 2, weight: 25 }
+      spruce_log:     { name: "Spruce Logs",    material: SPRUCE_LOG,     amount: 32, price: 2, weight: 25 }
+      bread:          { name: "Bread",          material: BREAD,          amount: 16, price: 1, weight: 20 }
+    rare:
+      diamond_axe_eff:
+        name: "Timber Axe"
+        material: DIAMOND_AXE
+        price: 30
+        weight: 25
+        enchantments: { efficiency: 5, unbreaking: 3 }
+      iron_axe_eff:
+        name: "Sharpened Iron Axe"
+        material: IRON_AXE
+        price: 12
+        weight: 30
+        enchantments: { efficiency: 3, unbreaking: 2 }
+      diamond_axe_mending:
+        name: "Everlasting Axe"
+        material: DIAMOND_AXE
+        price: 50
+        weight: 8
+        enchantments: { efficiency: 4, unbreaking: 3, mending: 1 }
+      cherry_sapling: { name: "Cherry Saplings", material: CHERRY_SAPLING, amount: 4, price: 8, weight: 20 }
+      pale_oak_sapling: { name: "Pale Oak Saplings", material: PALE_OAK_SAPLING, amount: 4, price: 10, weight: 15 }
+      mangrove_propagule: { name: "Mangrove Propagules", material: MANGROVE_PROPAGULE, amount: 4, price: 8, weight: 15 }
+      azalea:         { name: "Flowering Azalea", material: FLOWERING_AZALEA, amount: 4, price: 6, weight: 15 }
+      crimson_fungus: { name: "Crimson Fungus", material: CRIMSON_FUNGUS, amount: 4, price: 10, weight: 12 }
+      warped_fungus:  { name: "Warped Fungus",  material: WARPED_FUNGUS,  amount: 4, price: 10, weight: 12 }
+      cherry_log:     { name: "Cherry Logs",    material: CHERRY_LOG,     amount: 32, price: 8, weight: 15 }
+      efficiency_book:
+        name: "Book of Efficiency V"
+        material: ENCHANTED_BOOK
+        price: 30
+        weight: 8
+        enchantments: { efficiency: 5 }
+      unbreaking_book:
+        name: "Book of Unbreaking III"
+        material: ENCHANTED_BOOK
+        price: 25
+        weight: 10
+        enchantments: { unbreaking: 3 }
+      honey_bottle:   { name: "Honey Bottles", material: HONEY_BOTTLE, amount: 4, price: 6, weight: 15 }
+
+  HUNTER:
+    common:
+      bow:            { name: "Bow",            material: BOW,            price: 3, weight: 35 }
+      arrow:          { name: "Arrows",         material: ARROW,          amount: 32, price: 2, weight: 40 }
+      crossbow:       { name: "Crossbow",       material: CROSSBOW,       price: 4, weight: 20 }
+      stone_sword:    { name: "Stone Sword",    material: STONE_SWORD,    price: 1, weight: 30 }
+      iron_sword:     { name: "Iron Sword",     material: IRON_SWORD,     price: 4, weight: 25 }
+      shield:         { name: "Shield",         material: SHIELD,         price: 3, weight: 20 }
+      leather_helmet: { name: "Leather Cap",    material: LEATHER_HELMET, price: 1, weight: 20 }
+      leather_chestplate: { name: "Leather Tunic", material: LEATHER_CHESTPLATE, price: 2, weight: 20 }
+      cooked_beef:    { name: "Steak",          material: COOKED_BEEF,    amount: 16, price: 2, weight: 30 }
+      lead:           { name: "Leads",          material: LEAD,           amount: 2, price: 2, weight: 15 }
+      spyglass:       { name: "Spyglass",       material: SPYGLASS,       price: 3, weight: 10 }
+      string:         { name: "String",         material: STRING,         amount: 16, price: 1, weight: 20 }
+      bone:           { name: "Bones",          material: BONE,           amount: 16, price: 1, weight: 15 }
+    rare:
+      bow_power:
+        name: "Hunter's Bow"
+        material: BOW
+        price: 28
+        weight: 25
+        enchantments: { power: 4, unbreaking: 3 }
+      bow_infinity:
+        name: "Endless Bow"
+        material: BOW
+        price: 40
+        weight: 10
+        enchantments: { infinity: 1, power: 3 }
+      crossbow_multishot:
+        name: "Volley Crossbow"
+        material: CROSSBOW
+        price: 30
+        weight: 15
+        enchantments: { multishot: 1, quick_charge: 2 }
+      diamond_sword_sharp:
+        name: "Hunter's Blade"
+        material: DIAMOND_SWORD
+        price: 35
+        weight: 18
+        enchantments: { sharpness: 4, looting: 2 }
+      iron_sword_looting:
+        name: "Skinning Sword"
+        material: IRON_SWORD
+        price: 16
+        weight: 25
+        enchantments: { looting: 3 }
+      spectral_arrow: { name: "Spectral Arrows", material: SPECTRAL_ARROW, amount: 16, price: 8, weight: 20 }
+      poison_arrow:   { name: "Arrows of Poison", material: TIPPED_ARROW, potion: poison, amount: 16, price: 10, weight: 15 }
+      slowness_arrow: { name: "Arrows of Slowness", material: TIPPED_ARROW, potion: slowness, amount: 16, price: 10, weight: 15 }
+      name_tag:       { name: "Name Tag",       material: NAME_TAG,       price: 8, weight: 15 }
+      saddle:         { name: "Saddle",         material: SADDLE,         price: 10, weight: 12 }
+      iron_chestplate_prot:
+        name: "Tracker's Chestplate"
+        material: IRON_CHESTPLATE
+        price: 20
+        weight: 15
+        enchantments: { protection: 3 }
+      totem:          { name: "Totem of Undying", material: TOTEM_OF_UNDYING, price: 64, weight: 3 }
+
+  FARMER:
+    common:
+      stone_hoe:      { name: "Stone Hoe",      material: STONE_HOE,      price: 1, weight: 30 }
+      iron_hoe:       { name: "Iron Hoe",       material: IRON_HOE,       price: 3, weight: 25 }
+      wheat_seeds:    { name: "Wheat Seeds",    material: WHEAT_SEEDS,    amount: 32, price: 1, weight: 40 }
+      beetroot_seeds: { name: "Beetroot Seeds", material: BEETROOT_SEEDS, amount: 32, price: 1, weight: 30 }
+      carrot:         { name: "Carrots",        material: CARROT,         amount: 16, price: 1, weight: 30 }
+      potato:         { name: "Potatoes",       material: POTATO,         amount: 16, price: 1, weight: 30 }
+      pumpkin_seeds:  { name: "Pumpkin Seeds",  material: PUMPKIN_SEEDS,  amount: 8, price: 1, weight: 20 }
+      melon_seeds:    { name: "Melon Seeds",    material: MELON_SEEDS,    amount: 8, price: 1, weight: 20 }
+      sugar_cane:     { name: "Sugar Cane",     material: SUGAR_CANE,     amount: 8, price: 1, weight: 20 }
+      bone_meal:      { name: "Bone Meal",      material: BONE_MEAL,      amount: 32, price: 2, weight: 30 }
+      water_bucket:   { name: "Water Bucket",   material: WATER_BUCKET,   price: 2, weight: 20 }
+      composter:      { name: "Composter",      material: COMPOSTER,      price: 1, weight: 15 }
+      hay_block:      { name: "Hay Bales",      material: HAY_BLOCK,      amount: 8, price: 2, weight: 15 }
+      cocoa_beans:    { name: "Cocoa Beans",    material: COCOA_BEANS,    amount: 8, price: 1, weight: 15 }
+    rare:
+      diamond_hoe_fortune:
+        name: "Harvester's Hoe"
+        material: DIAMOND_HOE
+        price: 28
+        weight: 20
+        enchantments: { fortune: 3, efficiency: 3, unbreaking: 3 }
+      iron_hoe_unbreaking:
+        name: "Sturdy Hoe"
+        material: IRON_HOE
+        price: 10
+        weight: 25
+        enchantments: { unbreaking: 3, efficiency: 2 }
+      golden_carrot:  { name: "Golden Carrots", material: GOLDEN_CARROT,  amount: 8, price: 10, weight: 20 }
+      golden_apple:   { name: "Golden Apple",   material: GOLDEN_APPLE,   price: 16, weight: 12 }
+      glistering_melon: { name: "Glistering Melon", material: GLISTERING_MELON_SLICE, amount: 4, price: 8, weight: 15 }
+      torchflower_seeds: { name: "Torchflower Seeds", material: TORCHFLOWER_SEEDS, amount: 2, price: 12, weight: 10 }
+      pitcher_pod:    { name: "Pitcher Pod",    material: PITCHER_POD,    amount: 2, price: 12, weight: 10 }
+      sniffer_egg:    { name: "Sniffer Egg",    material: SNIFFER_EGG,    price: 40, weight: 4 }
+      sweet_berries:  { name: "Sweet Berries",  material: SWEET_BERRIES,  amount: 16, price: 6, weight: 20 }
+      glow_berries:   { name: "Glow Berries",   material: GLOW_BERRIES,   amount: 16, price: 8, weight: 15 }
+      honeycomb:      { name: "Honeycomb",      material: HONEYCOMB,      amount: 8, price: 8, weight: 15 }
+      bee_nest:       { name: "Bee Nest",       material: BEE_NEST,       price: 25, weight: 6 }
+      fortune_book:
+        name: "Book of Fortune III"
+        material: ENCHANTED_BOOK
+        price: 35
+        weight: 6
+        enchantments: { fortune: 3 }
+
+  ALCHEMIST:
+    common:
+      healing:        { name: "Potion of Healing",   material: POTION, potion: healing,         price: 3, weight: 35 }
+      swiftness:      { name: "Potion of Swiftness", material: POTION, potion: swiftness,       price: 3, weight: 25 }
+      fire_resistance: { name: "Potion of Fire Resistance", material: POTION, potion: fire_resistance, price: 3, weight: 20 }
+      night_vision:   { name: "Potion of Night Vision", material: POTION, potion: night_vision, price: 2, weight: 20 }
+      water_breathing: { name: "Potion of Water Breathing", material: POTION, potion: water_breathing, price: 3, weight: 15 }
+      glass_bottle:   { name: "Glass Bottles",  material: GLASS_BOTTLE,   amount: 16, price: 1, weight: 35 }
+      nether_wart:    { name: "Nether Wart",    material: NETHER_WART,    amount: 16, price: 2, weight: 30 }
+      blaze_powder:   { name: "Blaze Powder",   material: BLAZE_POWDER,   amount: 8, price: 3, weight: 25 }
+      redstone:       { name: "Redstone Dust",  material: REDSTONE,       amount: 16, price: 1, weight: 25 }
+      glowstone_dust: { name: "Glowstone Dust", material: GLOWSTONE_DUST, amount: 16, price: 2, weight: 25 }
+      sugar:          { name: "Sugar",          material: SUGAR,          amount: 16, price: 1, weight: 20 }
+      spider_eye:     { name: "Spider Eyes",    material: SPIDER_EYE,     amount: 8, price: 1, weight: 15 }
+      brewing_stand:  { name: "Brewing Stand",  material: BREWING_STAND,  price: 4, weight: 10 }
+    rare:
+      strong_healing: { name: "Potion of Healing II", material: POTION, potion: strong_healing, price: 8, weight: 25 }
+      strong_regeneration: { name: "Potion of Regeneration II", material: POTION, potion: strong_regeneration, price: 12, weight: 18 }
+      strong_strength: { name: "Potion of Strength II", material: POTION, potion: strong_strength, price: 14, weight: 15 }
+      strong_swiftness: { name: "Potion of Swiftness II", material: POTION, potion: strong_swiftness, price: 10, weight: 18 }
+      long_fire_resistance: { name: "Potion of Fire Resistance (8:00)", material: POTION, potion: long_fire_resistance, price: 8, weight: 18 }
+      turtle_master:  { name: "Potion of the Turtle Master", material: POTION, potion: turtle_master, price: 14, weight: 10 }
+      slow_falling:   { name: "Potion of Slow Falling", material: POTION, potion: long_slow_falling, price: 8, weight: 15 }
+      splash_healing: { name: "Splash Potion of Healing II", material: SPLASH_POTION, potion: strong_healing, price: 10, weight: 18 }
+      splash_poison:  { name: "Splash Potion of Poison", material: SPLASH_POTION, potion: strong_poison, price: 10, weight: 12 }
+      lingering_regen: { name: "Lingering Potion of Regeneration", material: LINGERING_POTION, potion: regeneration, price: 16, weight: 8 }
+      ghast_tear:     { name: "Ghast Tears",    material: GHAST_TEAR,     amount: 2, price: 10, weight: 15 }
+      dragon_breath:  { name: "Dragon's Breath", material: DRAGON_BREATH, amount: 4, price: 25, weight: 6 }
+      phantom_membrane: { name: "Phantom Membranes", material: PHANTOM_MEMBRANE, amount: 4, price: 8, weight: 12 }
+
+# ------------------------------------------------------------
+# Shops
+# ------------------------------------------------------------
+# Managed with /shop create | delete | additem, but can be edited by hand (then restart).
+# A hand-written shop with an `npc` location but no `uuid` gets its NPC spawned on startup.
+#
+# shops:
+#   miner_shop:
+#     job: MINER
+#     npc: { world: world, x: 0.5, y: 64.0, z: 0.5, yaw: 0.0, pitch: 0.0 }
+#     common: { ... entries ... }
+#     rare:   { ... entries ... }
+shops: {}
