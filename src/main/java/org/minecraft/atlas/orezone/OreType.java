@@ -20,6 +20,7 @@ public enum OreType {
     IRON   ("iron",    Material.IRON_ORE),
     COPPER ("copper",  Material.COPPER_ORE),
     COAL   ("coal",    Material.COAL_ORE),
+    STONE  ("stone",   Material.STONE),
     RUBY   ("ruby",    null) {
         @Override
         public void placeAt(Block block) {
