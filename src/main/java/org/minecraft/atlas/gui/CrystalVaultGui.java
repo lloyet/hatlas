@@ -31,6 +31,13 @@ import java.util.UUID;
  * deposit gems, but only players allowed to spend the vault
  * ({@link FactionManager#canSpendVault}: owner or BANKER+) may take gems out; for the others
  * every click that could pull an item out of the vault is cancelled.
+ *
+ * <p><b>Live sync.</b> While the GUI is open its inventory is the real vault: code that
+ * reads or changes the vault without the GUI ({@link org.minecraft.atlas.faction.FactionVault}:
+ * shop / auction payments, crystal drops; the storage snapshot) first pulls the live
+ * contents ({@link #pullLive}) and pushes its change back ({@link #pushLive}). Without
+ * this, closing the GUI wrote back the contents it showed and undid a payment made
+ * meanwhile (ruby duplication).
  */
 public class CrystalVaultGui implements AtlasGui {
 
@@ -66,6 +73,47 @@ public class CrystalVaultGui implements AtlasGui {
         this.inventory.setContents(copy);
     }
 
+    /** Copies the live contents of this faction's open vault GUI into the faction (no-op if closed). */
+    public static void pullLive(Faction faction) {
+        CrystalVaultGui holder = openVaults.get(faction.getName());
+        if (holder != null) holder.storeInto(faction);
+    }
+
+    /** Shows the faction's current vault contents in its open vault GUI (no-op if closed). */
+    public static void pushLive(Faction faction) {
+        CrystalVaultGui holder = openVaults.get(faction.getName());
+        if (holder == null) return;
+        ItemStack[] stored = faction.getVaultContents();
+        ItemStack[] view = new ItemStack[holder.inventory.getSize()];
+        for (int i = 0; i < Math.min(stored.length, view.length); i++) {
+            view[i] = stored[i] == null ? null : stored[i].clone();
+        }
+        holder.inventory.setContents(view);
+    }
+
+    /** Pulls every open vault GUI into its faction (before a storage snapshot). */
+    public static void pullAllLive() {
+        for (CrystalVaultGui holder : openVaults.values()) {
+            Faction faction = FactionManager.getFaction(holder.factionName);
+            if (faction != null) holder.storeInto(faction);
+        }
+    }
+
+    /**
+     * Writes this GUI's contents to the faction. Only the first vaultSize slots are kept
+     * (extras from the rounded-up inventory size are always empty). Items are cloned so
+     * the faction never holds mirrors of the live inventory.
+     */
+    private void storeInto(Faction faction) {
+        ItemStack[] live = inventory.getContents();
+        int realSize = faction.getVaultSize();
+        ItemStack[] save = new ItemStack[realSize];
+        for (int i = 0; i < Math.min(realSize, live.length); i++) {
+            save[i] = live[i] == null ? null : live[i].clone();
+        }
+        faction.setVaultContents(save);
+    }
+
     public static void open(Player player, Faction faction) {
         CrystalVaultGui holder = openVaults.computeIfAbsent(faction.getName(),
                 k -> new CrystalVaultGui(faction));
@@ -89,6 +137,18 @@ public class CrystalVaultGui implements AtlasGui {
         }
     }
 
+    private static boolean isEmpty(ItemStack item) {
+        return item == null || item.isEmpty();
+    }
+
+    private boolean vaultHasSimilar(ItemStack cursor) {
+        if (isEmpty(cursor)) return false;
+        for (ItemStack s : inventory.getContents()) {
+            if (!isEmpty(s) && s.isSimilar(cursor)) return true;
+        }
+        return false;
+    }
+
     /** True when this click could move an item out of the vault (top inventory). */
     private boolean canWithdraw(InventoryClickEvent event) {
         boolean inVault = event.getClickedInventory() == inventory;
@@ -97,8 +157,11 @@ public class CrystalVaultGui implements AtlasGui {
             // inventory into it, only deposits.
             case PLACE_ALL, PLACE_ONE, PLACE_SOME, NOTHING -> false;
             case MOVE_TO_OTHER_INVENTORY -> inVault;
-            // Double-click collects matching items from both inventories.
-            case COLLECT_TO_CURSOR -> true;
+            // Number key onto an EMPTY vault slot only moves the hotbar item in (deposit).
+            case HOTBAR_SWAP, HOTBAR_MOVE_AND_READD -> inVault && !isEmpty(event.getCurrentItem());
+            // Double-click collects matching items from both inventories: a withdrawal only
+            // if the vault holds such an item.
+            case COLLECT_TO_CURSOR -> vaultHasSimilar(event.getCursor());
             // Pickups, swaps, hotbar swaps, drops, clone…: deny inside the vault.
             default -> inVault;
         };
@@ -116,13 +179,7 @@ public class CrystalVaultGui implements AtlasGui {
 
         Faction faction = FactionManager.getFaction(factionName);
         if (faction != null) {
-            // Snapshot back to faction state. Only copy the first vaultSize slots — extras from
-            // the rounded-up inventory size are always empty (filter prevents any placement).
-            ItemStack[] live = event.getInventory().getContents();
-            int realSize = faction.getVaultSize();
-            ItemStack[] save = new ItemStack[realSize];
-            System.arraycopy(live, 0, save, 0, Math.min(realSize, live.length));
-            faction.setVaultContents(save);
+            storeInto(faction);
             Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
         }
 

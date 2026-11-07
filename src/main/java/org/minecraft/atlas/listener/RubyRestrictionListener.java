@@ -116,6 +116,9 @@ public final class RubyRestrictionListener implements Listener {
      */
     private static boolean isDisallowed(Inventory destination, ItemStack item) {
         boolean isGem = RubyItem.isRubyGem(item);
+        // Faction vault: ruby gems only — checked first, so non-ruby items are refused too.
+        if (destination.getHolder() instanceof CrystalVaultGui) return !isGem;
+
         String blockId = RubyBlockManager.customBlockIdForItem(item);
         boolean isRubyBlock = "ruby_block".equals(blockId);
         boolean isRubyOre   = "ruby_ore".equals(blockId) || "deepslate_ruby_ore".equals(blockId);
@@ -127,9 +130,6 @@ public final class RubyRestrictionListener implements Listener {
         if (type == InventoryType.PLAYER
                 || type == InventoryType.CRAFTING
                 || type == InventoryType.CREATIVE) return false;
-
-        // Faction vault: ruby gems only.
-        if (destination.getHolder() instanceof CrystalVaultGui) return !isGem;
 
         // Crafting table (3×3): ruby_block (decomposition recipe) and ruby gem
         // (compaction recipe — 9 gems → 1 block) both allowed. Ores remain forbidden.

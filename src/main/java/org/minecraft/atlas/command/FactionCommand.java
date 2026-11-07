@@ -614,7 +614,7 @@ public class FactionCommand {
                                         target.sendMessage(info("You have been promoted to " + roleName + " in your faction."));
                                         FactionManager.broadcastToFaction(factionName,
                                                 info(target.getName() + " has been promoted to " + roleName + "."),
-                                                player.getUniqueId());
+                                                player.getUniqueId(), target.getUniqueId());
                                     } else {
                                         player.sendMessage(error("Could not promote " + target.getName() + ". Only the Owner can promote, and the player must be in your faction and not already at the highest role."));
                                     }
@@ -649,7 +649,7 @@ public class FactionCommand {
                                         target.sendMessage(info("You have been demoted to " + roleName + " in your faction."));
                                         FactionManager.broadcastToFaction(factionName,
                                                 info(target.getName() + " has been demoted to " + roleName + "."),
-                                                player.getUniqueId());
+                                                player.getUniqueId(), target.getUniqueId());
                                     } else {
                                         player.sendMessage(error("Could not demote " + target.getName() + ". Only the Owner can demote, and the player must be in your faction and not already at the lowest role."));
                                     }
