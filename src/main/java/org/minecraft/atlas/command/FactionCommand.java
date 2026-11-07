@@ -282,7 +282,7 @@ public class FactionCommand {
                         help = help
                                 .append(Component.newline()).append(helpEntry("exp", "add <amount>", "[debug] Add exp to faction"))
                                 .append(Component.newline()).append(helpEntry("exp", "set <amount>", "[debug] Set faction exp"))
-                                .append(Component.newline()).append(helpEntry("level", "set <level>", "[debug] Set faction level (0-100)"))
+                                .append(Component.newline()).append(helpEntry("level", "set <level>", "[debug] Set faction level (0-99)"))
                                 .append(Component.newline()).append(helpEntry("skillpoints", "set <amount>", "[debug] Set faction skill points"));
                     }
                     if (sender.hasPermission("atlas.faction.admin.disband")) {

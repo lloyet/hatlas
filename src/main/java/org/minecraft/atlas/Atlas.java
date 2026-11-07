@@ -251,6 +251,8 @@ public final class Atlas extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new org.minecraft.atlas.listener.CombatLogListener(), this);
         getServer().getPluginManager().registerEvents(new ResourcePackManager(), this);
         ResourcePackManager.sendToAll();
+        // Force-loaded chunks loaded their entities before FactionListener existed.
+        AtlasCrystalManager.restoreLoadedEntities();
 
         // Schedulers
         GolemListener.schedule(this);

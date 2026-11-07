@@ -274,42 +274,29 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 1. ~~`jobs.yml` uses `multiplier_exp:` but the code read `exp_multiplier`~~ — **fixed 2026-11-05**: `QuestManager.expMultiplierSection()` reads `multiplier_exp` (legacy `exp_multiplier` still accepted) for job and Jokeyrini tasks.
 2. ~~`TagCommand` `delete`/`edit` saved tags to `config.yml`~~ — **fixed 2026-11-05**: all `/tag` subcommands now save to `tags-data.yml`.
 3. `ElectricalCreeperManager.OBSIDIAN_HITS_REQUIRED = 3`, but a listener comment says "4 hits". The WIKI also contradicts itself on creeper eggs.
-4. Faction max level is 99 in code, while the WIKI and `/f level set` help say 100.
+4. ~~Faction max level 99 in code, 100 in the WIKI and `/f level set` help~~ — **fixed 2026-11-07**: 99 is the max (Open Question 4); help text and both WIKIs say 99.
 5. `factions.yml` `crystal.immunity_base_seconds` / `immunity_multiplier` are loaded but no longer used (the protection-stockpile system replaced them). The `Faction` downgrade fields are also unused.
 6. The `config.yml` comment says "/air tp" for random teleport. The WIKI values (tpa cooldown 30 s, 5 s countdowns) differ from the configs (tpa 60 s, 10 s countdowns).
 7. The `structures/*.nbt` files are unused by the code **by design** (see §4.5).
 8. Typo `maxActiveDonjonons` in `DonjonManager`.
 9. ~~`FactionClaimManager.saveClaims/loadClaims` are legacy~~ — **removed 2026-11-06**: claims are persisted per crystal (CRYSTALS domain, `crystal_claims`).
 10. ~~**Orphan crystals keep claims**~~ — **fixed 2026-11-06**: `FactionManager.persist()` saves factions + crystals right after create/delete/disband; `loadCrystalData` drops crystals of unknown factions (WARN log + file rewrite); `restore()` removes orphan crystal entities when their chunk loads.
-11. **Crystals in chunks already loaded at enable are never restored** (found 2026-11-06, PR #22 tests): `FactionListener.onEntitiesLoad` only sees chunks whose entities load after the listener is registered. A force-loaded chunk's crystal stays a stub (and an orphan entity stays in the world) until the chunk unloads and reloads. Fix proposed: after registering listeners in `Atlas.onEnable`, run the same check on every `EnderCrystal` already loaded in each world.
+11. ~~**Crystals in chunks already loaded at enable are never restored**~~ — **fixed 2026-11-07**: `FactionListener.onEntitiesLoad` only saw chunks whose entities loaded after the listener was registered, so a force-loaded chunk's crystal stayed a stub (and an orphan entity stayed in the world). `Atlas.onEnable` now calls `AtlasCrystalManager.restoreLoadedEntities()` after registering listeners; the listener and the scan share `restoreIfNeeded()`.
 
 ---
 
 ## 8. Milestones
 
-### M1 — In-game regression & end-to-end tests in CI (next milestone, status: **planned**, requested 2026-11-06)
+### M1 — In-game regression & end-to-end tests in CI (status: **on hold, redesign needed**, requested 2026-11-06)
 
-**Goal:** every feature in §4 has in-game scenarios run through MCP against a real Paper server. The scenarios cover regression (feature still works) and end-to-end (full player flows across features). They run **on the PR branch before merging to `main`**, and **only for the features the PR touches**, not the whole suite every time.
+**Decision (2026-11-07, Open Questions 13, 14, 16):** CI will **not** run an MCP server or a Minecraft server in Docker: too many tokens and too much CI time. The docker-compose stack, the VitaminMCP runner in CI and the required status check are dropped.
 
-**Rules (agreed with the user):**
-- **All tests are in-game**, driven through MCP (VitaminMCP: real offline bots + server-side events/state/logs). There are no unit tests in this milestone.
-- **Selective runs:** a PR runs the scenarios of every feature whose code, config or resources it modifies. A new feature must ship with new scenarios, and a changed feature must have its scenarios updated or extended in the same PR.
-- **The server is deployed with `docker-compose` from files in this repo**, so CI and a developer machine run the same thing. The Windows test server (§2) stays a manual tool.
+**Kept:**
+- In-game scenarios in `src/test/ingame/<feature>/<case>.json` (faction, storage, orezone so far), replayed **locally** with the `paper-ingame-test` skill on the test server (§2) before merging a feature.
+- A **dedicated test world**, copied into the repo in the next PR (Open Question 15). Scenarios will then rely on its fixtures instead of the real world.
+- A new or changed feature ships with its scenarios in the same PR.
 
-**Deliverables:**
-1. **`docker/` + `docker-compose.yml`:** a Paper 1.21.11 server (e.g. `itzg/minecraft-server`, `TYPE=PAPER`, pinned version and build) with:
-   - `online-mode=false`, `enforce-secure-profile=false`, RCON on, a fixed `LEVEL_SEED` and a flat or void world for deterministic tests;
-   - plugins: the freshly built `atlas` jar (`./gradlew build` output mounted or copied), packetevents 2.14.0, VitaminMCP (`read-only: false`, a fixed CI token), all pinned by version and checksum;
-   - test config overrides for `plugins/atlas/*.yml` (higher AFK timeout, short cooldowns/timers so tests run fast);
-   - a healthcheck on "Done (" or RCON so CI waits until the server is ready. No world or player data is committed (only config).
-2. **Scenario layout:** `src/test/ingame/<feature>/<case>.json` (already started with `faction/create-disband.json`). Each scenario is self-contained: setup through `console` steps, its own area (one area per feature, e.g. x = 1000 × feature index), cleanup at the end, bots `Tester1…n`.
-3. **Feature → path map** (`src/test/ingame/features.yml`): for each feature, the globs that trigger its tests, e.g. `faction: [src/main/java/**/faction/**, **/FactionCommand.java, **/FactionListener.java, src/main/resources/factions.yml]`. Shared code (`util/`, `gui/GuiUtil`, `Atlas.java`, `paper-plugin.yml`, `build.gradle*`) triggers **all** suites.
-4. **Runner:** a script/CI step that diffs the PR against `main`, resolves the affected features from the map, starts the compose stack, replays each scenario through VitaminMCP's `bot_run_scenario`, collects `exceptions_recent` (any new exception in `org.minecraft.atlas` = fail) and writes a report (JUnit XML + markdown summary as a PR comment/artifact).
-5. **CI:** a GitHub Actions workflow on `pull_request` → `main`: build the jar → `docker compose up -d --wait` → run the affected suites → upload `logs/latest.log` and the report → `docker compose down -v`. Required status check before merge.
-6. **Coverage:** at least one nominal + one refusal/edge + one persistence (restart) scenario per feature of §4: factions, crystal & skills, jobs/quests, Jokeyrini, donjons, ore zones, safe zones, auction, shops, ruby/custom blocks, trade, teleports, combat log, golems, locator bar, tags/AFK/item-clear. Plus E2E flows, e.g. "create faction → do a job quest → gain faction XP → buy a crystal skill", "mine ruby in ore zone → buy in shop", "run donjon → raid enemy claim with Raider's Pickaxe".
-7. **Workflow change for Claude:** when modifying a feature, update or add its scenarios in the same change and run them (locally with the compose stack) before declaring the change done. `paper-ingame-test` skill + §2 get updated to point at the compose stack.
-
-**Known first fixes the suite should catch:** Known issue §7.10 (orphan crystals, fixed 2026-11-06, needs a restart scenario), crash-loss of unsaved data (Open Question 11).
+**Still open:** what CI should check instead (Open Question 20).
 
 ---
 
@@ -319,23 +306,24 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 1. ~~Exp multiplier key~~ — ✔ answered 2026-11-05: user asked to fix; code now reads `multiplier_exp`.
 2. ~~Structures~~ — ✔ answered 2026-11-05: archives of arena/donjon builds for manual import; not loaded by code.
-3. **Donjon types:** the old docs said "TRIAL only", but `donjons.yml` defines 6 types. Are all 6 meant to be live? Is a `COOLDOWN` status still planned?
-4. **Faction max level:** 99 or 100?
-5. **Crystal immunity escalation** (`immunity_base_seconds` / `multiplier`): remove it from config, or bring it back?
+3. ~~**Donjon types**~~ — ✔ answered 2026-11-07: all 6 types in `donjons.yml` are live. There is no `COOLDOWN` status: it was only written in the old CLAUDE.md (commit c9d9685, `DonjonStatus — IDLE, ACTIVE, COOLDOWN`) and never existed in code. `DonjonStatus` stays IDLE / ACTIVE.
+4. ~~**Faction max level**~~ — ✔ answered 2026-11-07: **99** (known issue §7.4 fixed).
+5. **Crystal immunity escalation** — answered 2026-11-07: "configurable, with default values that match the current code". **Needs clarification (asked 2026-11-07):** the old escalation keys (`immunity_base_seconds` / `immunity_multiplier`) are loaded but used nowhere, and their defaults disagree (code 18000 s, `factions.yml` 180 s). The only escalation-like value in the current protection system is hard-coded: the watch window `2 × duration` (`AtlasCrystalManager`, ~line 931). Option A: make that watch-window factor configurable (default 2) and delete the dead keys. Option B: bring the old escalation back on top of protections with the code defaults (18000 s, ×2).
 6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
 7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
 8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
 9. **"Rubis Ruins" safe zone** (mentioned in WIKI): is it planned content with its own mechanics?
 10. **Map/world:** is there a production world save or a schematic of spawn that should live in the repo or be documented?
 11. ~~**Persistence:** autosave?~~ — ✔ answered 2026-11-06: storage adapter with async saves after mutations + autosave every `storage.autosave_minutes` (5) + sync save at shutdown.
-12. **WIKI maintenance:** should `WIKI.md` / `WIKI-FR.md` be updated together with this file on each change?
-13. **M1 — who drives the tests in CI?** (a) a deterministic script that calls VitaminMCP's MCP tools directly (`bot_run_scenario` with the JSON files; no LLM, cheap, reproducible), or (b) headless Claude Code (`claude -p` + the `paper-ingame-test` skill; can write/adapt scenarios and diagnose failures, but needs an API key secret, costs per run, less deterministic). Suggested: (a) in CI, (b) locally for writing scenarios.
-14. **M1 — VitaminMCP in CI:** where does the CI get `VitaminMCP.jar` and the bot runner (release URL, pinned version, license OK for CI use)?
-15. **M1 — test world:** a generated flat/void world with a fixed seed (nothing committed), or a small committed test map with prebuilt fixtures (donjon arena from `structures/*.nbt`, spawn safe zone, ore zone)?
-16. **M1 — CI host:** GitHub-hosted runners (Docker available, ~2 GB heap for Paper is fine) or a self-hosted runner?
-17. **M1 — "part of a feature" granularity:** is path-based selection (file globs per feature) enough, or should some changes (e.g. a GUI-only tweak) select only specific scenarios inside a feature?
+12. ~~**WIKI maintenance**~~ — ✔ answered 2026-11-07: a dedicated **wiki-writer agent + skill**, started by a **hook** each time a feature is finished, writes player-facing docs (features, commands, what players can do) in `WIKI.md` / `WIKI-FR.md`. Built on its own branch (`feat/wiki-agent`).
+13. ~~**M1 — who drives the tests in CI?**~~ — ✔ answered 2026-11-07: nobody; no MCP in CI (see M1).
+14. ~~**M1 — VitaminMCP in CI**~~ — ✔ answered 2026-11-07: not needed, no MCP in CI.
+15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR.
+16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
+17. **M1 — "part of a feature" granularity** (moot while M1 is on hold): is path-based selection (file globs per feature) enough, or should some changes (e.g. a GUI-only tweak) select only specific scenarios inside a feature?
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. Add a `postgres` service to the M1 docker-compose stack to cover it? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
+19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
+20. **M1 — what should CI check instead?** e.g. only `./gradlew build` on each PR, plus unit tests (MockBukkit) for pure logic (XP curve, quest amounts, rarity rolls, storage round-trip YAML ↔ SQLite)? Or no CI at all, local in-game runs only?
 
 ---
 

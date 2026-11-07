@@ -404,15 +404,7 @@ public class FactionListener implements Listener {
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
         for (Entity entity : event.getEntities()) {
-            if (!(entity instanceof EnderCrystal crystal)) continue;
-            if (!crystal.getPersistentDataContainer()
-                    .has(AtlasCrystalManager.getKeyFaction(), PersistentDataType.STRING)) continue;
-            // Restore if not registered at all, or registered only as an unloaded stub
-            org.minecraft.atlas.crystal.AtlasCrystal existing =
-                    AtlasCrystalManager.getCrystal(crystal.getUniqueId());
-            if (existing == null || !existing.isLoaded()) {
-                AtlasCrystalManager.restore(crystal);
-            }
+            if (entity instanceof EnderCrystal crystal) AtlasCrystalManager.restoreIfNeeded(crystal);
         }
     }
 }

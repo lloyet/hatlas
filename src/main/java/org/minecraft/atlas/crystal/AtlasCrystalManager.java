@@ -314,6 +314,34 @@ public class AtlasCrystalManager {
 
     // ── Restore (called when entity chunk loads) ──────────────────────────────
 
+    /**
+     * Restores an atlas crystal entity unless it is already registered as a loaded crystal.
+     * Orphan entities (unknown faction) are removed. No-op for non-atlas ender crystals.
+     */
+    public static void restoreIfNeeded(EnderCrystal entity) {
+        if (!entity.getPersistentDataContainer().has(getKeyFaction(), PersistentDataType.STRING)) return;
+        AtlasCrystal existing = crystals.get(entity.getUniqueId());
+        if (existing == null || !existing.isLoaded()) restore(entity);
+    }
+
+    /**
+     * Restores the atlas crystals whose entities were already loaded when the plugin enabled
+     * (force-loaded chunks): their EntitiesLoadEvent fired before the listener was registered.
+     * Call once in onEnable, after the crystal data is restored.
+     *
+     * @return number of crystal entities checked
+     */
+    public static int restoreLoadedEntities() {
+        int checked = 0;
+        for (World world : Bukkit.getWorlds()) {
+            for (EnderCrystal entity : world.getEntitiesByClass(EnderCrystal.class)) {
+                restoreIfNeeded(entity);
+                checked++;
+            }
+        }
+        return checked;
+    }
+
     /** Restores an atlas crystal from PDC when its chunk is loaded. */
     public static AtlasCrystal restore(EnderCrystal entity) {
         UUID uuid = entity.getUniqueId();

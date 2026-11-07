@@ -28,7 +28,7 @@ XP to reach level 1  = 100
 XP to reach level N  = ceil(XP(N-1) × 1.09)
 ```
 
-The maximum faction level is **100**.
+The maximum faction level is **99**.
 
 XP is earned by completing job quests (via the daily quest system) or clearing dungeons. It is added to the faction pool automatically — no player action required.
 
