@@ -8,6 +8,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
+import io.papermc.paper.command.brigadier.argument.resolvers.BlockPositionResolver;
+import io.papermc.paper.math.BlockPosition;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -22,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings("UnstableApiUsage")
 public class OreZoneCommand {
 
     private static final String PERM = "atlas.orezone.admin";
@@ -45,8 +49,8 @@ public class OreZoneCommand {
                 .executes(ctx -> {
                     ctx.getSource().getSender().sendMessage(
                             Component.text("--- Ore Zone Commands ---", NamedTextColor.GOLD)
-                                    .append(Component.newline()).append(entry("pos1",   "",        "Mark the block you're looking at as corner 1"))
-                                    .append(Component.newline()).append(entry("pos2",   "",        "Mark the block you're looking at as corner 2"))
+                                    .append(Component.newline()).append(entry("pos1",   "[x y z]", "Mark corner 1: the block you're looking at, or x y z"))
+                                    .append(Component.newline()).append(entry("pos2",   "[x y z]", "Mark corner 2: the block you're looking at, or x y z"))
                                     .append(Component.newline()).append(entry("add",    "<name>",  "Create an ore zone from pos1 and pos2"))
                                     .append(Component.newline()).append(entry("remove", "<name>",  "Delete an ore zone"))
                                     .append(Component.newline()).append(entry("reset",  "<name>",  "Re-fill an ore zone with random ores now"))
@@ -55,13 +59,17 @@ public class OreZoneCommand {
                     return Command.SINGLE_SUCCESS;
                 })
 
-                // /orezone pos1
+                // /orezone pos1 [x y z]
                 .then(Commands.literal("pos1")
-                        .executes(ctx -> selectPos(ctx, 1)))
+                        .executes(ctx -> selectPos(ctx, 1, null))
+                        .then(Commands.argument("pos", ArgumentTypes.blockPosition())
+                                .executes(ctx -> selectPos(ctx, 1, resolvePos(ctx)))))
 
-                // /orezone pos2
+                // /orezone pos2 [x y z]
                 .then(Commands.literal("pos2")
-                        .executes(ctx -> selectPos(ctx, 2)))
+                        .executes(ctx -> selectPos(ctx, 2, null))
+                        .then(Commands.argument("pos", ArgumentTypes.blockPosition())
+                                .executes(ctx -> selectPos(ctx, 2, resolvePos(ctx)))))
 
                 // /orezone add <name>
                 .then(Commands.literal("add")
@@ -162,18 +170,35 @@ public class OreZoneCommand {
                 .build();
     }
 
-    private static int selectPos(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx, int which) {
+    private static BlockPosition resolvePos(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        return ctx.getArgument("pos", BlockPositionResolver.class).resolve(ctx.getSource());
+    }
+
+    /**
+     * Stores corner {@code which} for the executing player: the given block position (in the
+     * player's world), or, when {@code pos} is null, the block the player is looking at.
+     * Coordinates make underground corners possible (and scripted setups).
+     */
+    private static int selectPos(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx, int which,
+                                 BlockPosition pos) {
         Entity exec = ctx.getSource().getExecutor();
         if (!(exec instanceof Player player)) {
             ctx.getSource().getSender().sendMessage(error("Only players can run this command."));
             return Command.SINGLE_SUCCESS;
         }
-        Block target = player.getTargetBlockExact(LOOK_DISTANCE);
-        if (target == null) {
-            player.sendMessage(error("No block in sight (look at a block within " + LOOK_DISTANCE + " blocks)."));
-            return Command.SINGLE_SUCCESS;
+        Location loc;
+        if (pos != null) {
+            loc = new Location(player.getWorld(), pos.blockX(), pos.blockY(), pos.blockZ());
+        } else {
+            Block target = player.getTargetBlockExact(LOOK_DISTANCE);
+            if (target == null) {
+                player.sendMessage(error("No block in sight (look at a block within " + LOOK_DISTANCE
+                        + " blocks, or give x y z)."));
+                return Command.SINGLE_SUCCESS;
+            }
+            loc = target.getLocation();
         }
-        Location loc = target.getLocation();
         if (which == 1) pos1.put(player.getUniqueId(), loc);
         else            pos2.put(player.getUniqueId(), loc);
         player.sendMessage(success("pos" + which + " set to "

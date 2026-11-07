@@ -1,5 +1,6 @@
 package org.minecraft.atlas.orezone;
 
+import org.bukkit.Location;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -80,6 +81,14 @@ public final class OreZoneManager {
     public static boolean remove(String name) {
         if (name == null) return false;
         return zones.remove(name.toLowerCase()) != null;
+    }
+
+    /** True if {@code loc} is inside any ore zone. */
+    public static boolean isInOreZone(Location loc) {
+        for (OreZone zone : getAll()) {
+            if (zone.contains(loc)) return true;
+        }
+        return false;
     }
 
     public static Collection<OreZone> getAll() {

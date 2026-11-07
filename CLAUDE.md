@@ -178,12 +178,12 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### 4.6 Ore Zones (`orezone/`, `OreZoneCommand`)
 - Cuboid regions refilled every `interval_reset_hours` with a weighted roll per block over `OreType` (diamond, gold, emerald, iron, copper, coal, **stone**, **ruby**). Ruby is placed through `RubyBlockManager`.
-- Admin: `/orezone pos1|pos2` (the block you look at, up to 100 blocks), `add <name>`, `remove`, `reset`, `list`. New zones copy `default_ore_weights`. Weights per zone are saved in `orezones-data.yml`.
+- Admin: `/orezone pos1|pos2 [x y z]` (the given block, or the block you look at, up to 100 blocks), `add <name>`, `remove`, `reset`, `list`. New zones copy `default_ore_weights`. Weights per zone are saved in `orezones-data.yml`.
 - Status: compiles, but has **not been verified in game**. The current uncommitted change adds `STONE` and rebalances the weights (stone 75%).
 
 ### 4.7 Safe Zones (`safezone/`, `SafeZoneCommand`, `SpawnCommand`, `SafeZoneListener`, `SafeZoneGui`)
 - Named sets of chunks with an optional spawn point and description.
-- **Inside a safe zone:** players take no damage, players inside cannot hit players outside, blocks cannot be broken or interacted with, and explosions skip safe-zone blocks. Factions cannot be created, claimed or outposted there.
+- **Inside a safe zone:** players take no damage, players inside cannot hit players outside, blocks cannot be broken (**except inside an ore zone**: ore zones win over safe zones, so an ore zone can sit in a city; ✔ decided 2026-11-07) or interacted with, and explosions skip safe-zone blocks. Factions cannot be created, claimed or outposted there.
 - Entering a zone records a visit. The **Explorer** NPC (Illusioner on a Camel, `/safezone npc summon`) opens `SafeZoneGui`, which teleports you to zones you have visited.
 - `/safezone tp <name>` and `/spawn` (= `/safezone tp spawn`) use a countdown that is cancelled if you move, followed by a cooldown. Ops bypass both. `/spawn <zone>` works if you have visited the zone (or are admin). `/spawn set` writes the legacy `SpawnManager` spawn to config.yml.
 

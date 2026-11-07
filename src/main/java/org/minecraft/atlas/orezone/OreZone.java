@@ -65,6 +65,14 @@ public class OreZone {
         this.maxX = maxX; this.maxY = maxY; this.maxZ = maxZ;
     }
 
+    /** True if {@code loc} is a block inside this zone's cuboid (bounds inclusive). */
+    public boolean contains(Location loc) {
+        if (!hasBounds() || loc == null || loc.getWorld() == null) return false;
+        if (!loc.getWorld().getName().equals(worldName)) return false;
+        int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
+        return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
+    }
+
     public boolean hasBounds() {
         return worldName != null;
     }
