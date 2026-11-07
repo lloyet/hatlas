@@ -6,6 +6,7 @@
 |---|---|
 | [Faction](#faction) | Créer et gérer une faction : niveaux, points de compétence, cristal, claims, alliés |
 | [Métier](#métier) | Choisir une profession (après avoir rejoint une faction), faire des quêtes quotidiennes |
+| [Boutiques de métier](#boutiques-de-métier) | Acheter équipement et fournitures aux PNJ de métier avec les rubis de votre faction |
 | [Donjon](#donjon) | Raider des donjons par vagues, vaincre un boss, partager le butin, gagner des récompenses spéciales |
 | [Combat & PvP](#combat--pvp) | PvP 1.8, règles d'anti-déconnexion (combat log) |
 | [Zones Sûres](#zones-sûres) | Hubs protégés et comportement de `/spawn` |
@@ -241,6 +242,33 @@ La progression des quêtes Jokeyrini est affichée dans la barre d'action avec l
 Interagissez directement avec les PNJ de métier pour accéder à l'interface du métier. Il n'y a pas de commandes de chat pour la gestion des quêtes quotidiennes — tout se fait via l'interface en jeu.
 
 ---
+
+## Boutiques de métier
+
+### Qu'est-ce qu'une boutique de métier ?
+
+Chaque métier a sa boutique : un PNJ villageois près du spawn (Mineur, Bûcheron, Chasseur, Fermier, Alchimiste). Les boutiques vendent outils, fournitures et objets rares enchantés, payés en **rubis du coffre de votre faction**.
+
+### Qui peut acheter ?
+
+| Condition | Objets communs | Objets rares |
+|---|---|---|
+| Être dans une faction | ✔ | ✔ |
+| Avoir un métier | n'importe lequel | **le métier de la boutique** (ex. seuls les Mineurs achètent les objets rares du Mineur) |
+
+Tout membre qui remplit ces conditions peut dépenser le coffre de la faction. Il n'y a pas de restriction de rôle.
+
+### Comment acheter
+
+1. Faites un clic droit sur le PNJ de la boutique.
+2. Choisissez **Objets communs** ou **Objets rares**. Le menu affiche le solde du **coffre de faction** et le temps avant le prochain réassort.
+3. Cliquez sur un objet pour l'acheter. Son prix est retiré du coffre de faction et l'objet arrive dans votre inventaire (au sol à vos pieds s'il est plein).
+
+Si le coffre ne contient pas assez de rubis, l'achat est refusé : déposez d'abord des rubis dans le coffre de faction (Cristal d'Atlas → Coffre).
+
+### Réassort
+
+Tous les **7 jours**, chaque boutique tire une nouvelle sélection : jusqu'à **12 objets communs** et **12 objets rares**, choisis au hasard dans la liste de la boutique (certains objets sont plus rares que d'autres).
 
 ## Donjon
 

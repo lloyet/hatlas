@@ -179,7 +179,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - The Auctioneer NPC (librarian villager, `/auction npc spawn`) opens `AuctionMainGui`, which leads to market and sales lists (paged, 45 per page) and `AuctionConfirmGui` (BUY/REMOVE).
 
 ### 4.9 Job Shops (`shop/`, `ShopCommand`, `Shop*Gui`), newest feature on branch `feat/add-shop-manager`
-- Each shop is a villager NPC tied to a job and has two weighted pools: **common** (any faction member with a job) and **rare** (members whose job matches the shop). Prices are **ruby gems taken from the player's inventory** (not the vault).
+- Each shop is a villager NPC tied to a job and has two weighted pools: **common** (any faction member with a job) and **rare** (members whose job matches the shop). Prices are **ruby gems taken from the buyer's faction vault**, like the auction house (✔ decided 2026-11-07, Open Question 6); any member with access to the tier can spend it.
 - Every `reset_interval_hours` (168 h) up to `items_per_shop.<tier>` (max 28) items are drawn. Shops (job, NPC, pools), the rotation and the last reset time are stored in the **SHOPS** storage domain (✔ decided 2026-11-06).
 - `shops.yml` keeps only tuning and `job_defaults.<JOB>` (templates copied into a new shop by `/shop create`; entries are `material/amount/potion/enchantments` or a serialized `item:`). A shop still hand-written under `shops.yml > shops` is **imported once** at startup, then that section is emptied.
 - Admin: `/shop create <name> <job>`, `delete`, `list`, `additem <name> <common|rare> <weight> <price>`, `reset [name]`. Shop NPCs are immune to all damage and transformations.
@@ -309,7 +309,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 3. ~~**Donjon types**~~ — ✔ answered 2026-11-07: all 6 types in `donjons.yml` are live. There is no `COOLDOWN` status: it was only written in the old CLAUDE.md (commit c9d9685, `DonjonStatus — IDLE, ACTIVE, COOLDOWN`) and never existed in code. `DonjonStatus` stays IDLE / ACTIVE.
 4. ~~**Faction max level**~~ — ✔ answered 2026-11-07: **99** (known issue §7.4 fixed).
 5. **Crystal immunity escalation** — answered 2026-11-07: "configurable, with default values that match the current code". **Needs clarification (asked 2026-11-07):** the old escalation keys (`immunity_base_seconds` / `immunity_multiplier`) are loaded but used nowhere, and their defaults disagree (code 18000 s, `factions.yml` 180 s). The only escalation-like value in the current protection system is hard-coded: the watch window `2 × duration` (`AtlasCrystalManager`, ~line 931). Option A: make that watch-window factor configurable (default 2) and delete the dead keys. Option B: bring the old escalation back on top of protections with the code defaults (18000 s, ×2).
-6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
+6. ~~**Shop payment**~~ — ✔ answered 2026-11-07: shops are paid from the **faction vault** like the auction house; **any member** with access to the tier (job / matching job for rare) can buy.
 7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
 8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
 9. **"Rubis Ruins" safe zone** (mentioned in WIKI): is it planned content with its own mechanics?
