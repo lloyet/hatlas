@@ -73,44 +73,6 @@ final class YamlJobs implements YamlDomain<JobsData> {
         return new JobsData(players, cooldowns, jokeyrini);
     }
 
-    @Override
-    public void write(YamlConfiguration cfg, JobsData data) {
-        cfg.set("job_cooldowns", null);
-        ConfigurationSection cd = cfg.createSection("job_cooldowns");
-        data.cooldowns().forEach((u, until) -> cd.set(u.toString(), until));
-
-        cfg.set("jobs", null);
-        ConfigurationSection jobs = cfg.createSection("jobs");
-        for (PlayerJob p : data.players()) {
-            ConfigurationSection s = jobs.createSection(p.uuid().toString());
-            s.set("job", p.job());
-            s.set("level", p.level());
-            s.set("progress", p.progress());
-            List<Map<String, Object>> active = new ArrayList<>();
-            for (Quest q : p.active()) active.add(writeQuest(q));
-            s.set("active_quests", active);
-            s.set("last_daily_reset_ms", p.lastDailyReset());
-            List<Map<String, Object>> offered = new ArrayList<>();
-            for (Quest q : p.offered()) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("quest_id", q.questId());
-                m.put("tasks", writeTasks(q.tasks()));
-                offered.add(m);
-            }
-            s.set("daily_offered_quests", offered);
-            s.set("daily_selected", new ArrayList<>(p.selected()));
-        }
-
-        cfg.set("jokeyrini_player_data", null);
-        ConfigurationSection jok = cfg.createSection("jokeyrini_player_data");
-        for (Jokeyrini j : data.jokeyrini()) {
-            ConfigurationSection s = jok.createSection(j.uuid().toString());
-            if (j.lastDailyReset() > 0) s.set("last_daily_reset_ms", j.lastDailyReset());
-            if (j.offer() != null && !j.offer().isEmpty()) s.set("daily_offer", writeTasks(j.offer()));
-            if (j.active() != null) s.set("active_quest", writeQuest(j.active()));
-        }
-    }
-
     // ── Quest / task maps (same keys as GeneratedTask.serialize) ─────────────
 
     /** A map saved as a value is reloaded as a section; turn it back into nested maps. */
@@ -134,15 +96,6 @@ final class YamlJobs implements YamlDomain<JobsData> {
             }
         }
         return new Quest(id.toString(), n.longValue(), readTasks(m.get("tasks")), progress);
-    }
-
-    private static Map<String, Object> writeQuest(Quest q) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("quest_id", q.questId());
-        m.put("tasks", writeTasks(q.tasks()));
-        m.put("expires_at", q.expiresAt());
-        m.put("task_progress", new HashMap<>(q.progress()));
-        return m;
     }
 
     static List<Task> readTasks(Object raw) {
@@ -175,29 +128,4 @@ final class YamlJobs implements YamlDomain<JobsData> {
         return out;
     }
 
-    private static List<Map<String, Object>> writeTasks(List<Task> tasks) {
-        List<Map<String, Object>> out = new ArrayList<>();
-        for (Task t : tasks) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("task_id", t.taskId());
-            m.put("name", t.name());
-            m.put("description", t.description());
-            m.put("action_type", t.actionType());
-            m.put("targets", new ArrayList<>(t.targets()));
-            m.put("difficulty", t.difficulty());
-            m.put("amount", t.amount());
-            m.put("time_limit_ms", t.timeLimitMs());
-            m.put("exp_multiplier", t.expMultiplier());
-            List<Map<String, Object>> rewards = new ArrayList<>();
-            for (Reward r : t.rewards()) {
-                Map<String, Object> rm = new LinkedHashMap<>();
-                rm.put("material", r.material());
-                rm.put("amount", r.amount());
-                rewards.add(rm);
-            }
-            m.put("rewards", rewards);
-            out.add(m);
-        }
-        return out;
-    }
 }

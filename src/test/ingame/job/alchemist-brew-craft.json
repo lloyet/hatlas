@@ -16,7 +16,8 @@
   {"action": "wait_for", "condition": "ticks", "count": 20},
   {"action": "look_at", "bot": "Tester1", "x": 1002.5, "y": 67.3, "z": 1000.5},
   {"action": "attack_entity", "bot": "Tester1", "x": 1002.5, "y": 67, "z": 1000.5},
-  {"action": "wait_for", "condition": "event", "eventType": "EntityDeathEvent"},
+  {"action": "wait_for", "condition": "ticks", "count": 10},
+  {"action": "assert_event", "eventType": "EntityDeathEvent"},
   {"action": "command", "bot": "Tester1", "command": "job level"},
   {"action": "assert_message", "bot": "Tester1", "contains": "0/128 XP"},
 
@@ -41,6 +42,7 @@
   {"action": "console", "command": "clear Tester1"},
   {"action": "command", "bot": "Tester1", "command": "f leave"},
   {"action": "console", "command": "setblock 1000 67 1002 air"},
+  {"action": "console", "command": "kill @e[type=item,x=1000,y=67,z=1000,distance=..8]"},
   {"action": "console", "command": "forceload remove 1000 1000"},
   {"action": "despawn", "bot": "Tester1"}
 ]

@@ -42,15 +42,6 @@ final class YamlWorld {
         return out;
     }
 
-    private static void writeVisits(YamlConfiguration cfg, String key, Map<UUID, Set<String>> visits) {
-        cfg.set(key, null);
-        if (visits.isEmpty()) return;
-        ConfigurationSection sec = cfg.createSection(key);
-        visits.forEach((u, ids) -> {
-            if (!ids.isEmpty()) sec.set(u.toString(), new ArrayList<>(ids));
-        });
-    }
-
     // ── DONJONS ───────────────────────────────────────────────────────────────
 
     static final class Donjons implements YamlDomain<DonjonsData> {
@@ -110,54 +101,6 @@ final class YamlWorld {
                     cfg.getLong("last_activation_time", 0L));
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, DonjonsData data) {
-            cfg.set("last_activation_time", data.lastActivation());
-            writeVisits(cfg, "visited_donjons", data.visits());
-            cfg.set("instances", null);
-            if (data.donjons().isEmpty()) return;
-            ConfigurationSection inst = cfg.createSection("instances");
-            for (DonjonRow d : data.donjons()) {
-                ConfigurationSection s = inst.createSection(d.id());
-                s.set("type", d.type());
-                s.set("name", d.name());
-                s.set("level", d.level());
-                s.set("rarity", d.rarity());
-                s.set("status", d.status());
-                s.set("activation_time", d.activationTime());
-                s.set("timeout_warned", d.timeoutWarned());
-                s.set("world", d.world());
-                if (d.nametag() != null) {
-                    s.set("nametag_x", d.nametag().x());
-                    s.set("nametag_y", d.nametag().y());
-                    s.set("nametag_z", d.nametag().z());
-                }
-                if (!d.spawnPoints().isEmpty()) {
-                    List<String> enc = new ArrayList<>();
-                    d.spawnPoints().forEach((id, p) -> enc.add(id + "," + p.x() + "," + p.y() + "," + p.z()));
-                    s.set("spawn_points", enc);
-                }
-                if (!d.protectedChunks().isEmpty()) {
-                    List<String> keys = new ArrayList<>();
-                    for (long k : d.protectedChunks()) keys.add(String.valueOf(k));
-                    s.set("protected_chunks", keys);
-                }
-                if (d.textDisplay() != null) s.set("text_display_uuid", d.textDisplay().toString());
-                if (d.vault() != null) {
-                    s.set("vault_x", d.vault().x());
-                    s.set("vault_y", d.vault().y());
-                    s.set("vault_z", d.vault().z());
-                }
-                LocationData tp = d.teleportSpawn();
-                if (tp != null) {
-                    s.set("teleport_spawn_x", tp.x());
-                    s.set("teleport_spawn_y", tp.y());
-                    s.set("teleport_spawn_z", tp.z());
-                    s.set("teleport_spawn_yaw", (double) tp.yaw());
-                    s.set("teleport_spawn_pitch", (double) tp.pitch());
-                }
-            }
-        }
     }
 
     // ── HOMES ─────────────────────────────────────────────────────────────────
@@ -190,18 +133,6 @@ final class YamlWorld {
             return new HomesData(homes);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, HomesData data) {
-            cfg.set("player_homes", null);
-            if (data.homes().isEmpty()) return;
-            ConfigurationSection sec = cfg.createSection("player_homes");
-            for (HomesData.Home h : data.homes()) {
-                if (h.location() == null) continue;
-                ConfigurationSection ps = sec.getConfigurationSection(h.player().toString());
-                if (ps == null) ps = sec.createSection(h.player().toString());
-                YamlUtil.writeLocation(ps.createSection(h.name()), h.location());
-            }
-        }
     }
 
     // ── SAFEZONES ─────────────────────────────────────────────────────────────
@@ -229,20 +160,6 @@ final class YamlWorld {
             return new SafeZonesData(zones, readVisits(cfg.getConfigurationSection("safezone_visits")));
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, SafeZonesData data) {
-            cfg.set("safezones", null);
-            if (!data.zones().isEmpty()) {
-                ConfigurationSection root = cfg.createSection("safezones");
-                for (Zone z : data.zones()) {
-                    ConfigurationSection s = root.createSection(z.name());
-                    YamlUtil.writeChunks(s, "chunks", z.chunks());
-                    if (z.spawn() != null) s.set("spawn_point", z.spawn().encode(':'));
-                    if (z.description() != null && !z.description().isEmpty()) s.set("description", z.description());
-                }
-            }
-            writeVisits(cfg, "safezone_visits", data.visits());
-        }
     }
 
     // ── COMBAT ────────────────────────────────────────────────────────────────
@@ -265,11 +182,6 @@ final class YamlWorld {
             return new CombatData(out);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, CombatData data) {
-            cfg.set("combat_log.in_combat", null);
-            data.inCombatUntil().forEach((u, until) -> cfg.set("combat_log.in_combat." + u, until));
-        }
     }
 
     // ── BLOCKS ────────────────────────────────────────────────────────────────
@@ -293,19 +205,6 @@ final class YamlWorld {
             return new BlocksData(out);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, BlocksData data) {
-            cfg.set("custom-blocks", null);
-            int i = 0;
-            for (CustomBlock b : data.blocks()) {
-                String path = "custom-blocks." + (i++);
-                cfg.set(path + ".id", b.blockId());
-                cfg.set(path + ".world", b.pos().world());
-                cfg.set(path + ".x", b.pos().x());
-                cfg.set(path + ".y", b.pos().y());
-                cfg.set(path + ".z", b.pos().z());
-            }
-        }
     }
 
     // ── TAGS ──────────────────────────────────────────────────────────────────
@@ -329,21 +228,6 @@ final class YamlWorld {
             return new TagsData(out);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, TagsData data) {
-            cfg.set("tags", null);
-            if (data.tags().isEmpty()) return;
-            ConfigurationSection sec = cfg.createSection("tags");
-            for (TagRow t : data.tags()) {
-                ConfigurationSection s = sec.createSection(t.name());
-                s.set("world", t.location().world());
-                s.set("x", t.location().x());
-                s.set("y", t.location().y());
-                s.set("z", t.location().z());
-                s.set("lines", new ArrayList<>(t.lines()));
-                if (t.textDisplay() != null) s.set("text_display_uuid", t.textDisplay().toString());
-            }
-        }
     }
 
     // ── SPAWN ─────────────────────────────────────────────────────────────────
@@ -369,10 +253,5 @@ final class YamlWorld {
             return new SpawnData(spawn);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, SpawnData data) {
-            cfg.set("spawn", null);
-            if (data.spawn() != null) YamlUtil.writeLocation(cfg.createSection("spawn"), data.spawn());
-        }
     }
 }

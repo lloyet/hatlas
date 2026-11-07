@@ -39,6 +39,7 @@ features:
   storage:
     - src/main/java/org/minecraft/atlas/storage/**
     - src/main/resources/db/**
+    - src/main/java/org/minecraft/atlas/command/AtlasCommand.java
   job:
     - src/main/java/org/minecraft/atlas/job/**
     - src/main/java/org/minecraft/atlas/quest/**

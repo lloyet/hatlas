@@ -59,7 +59,6 @@ public final class Storage {
         File folder = owner.getDataFolder();
 
         store = switch (config.type()) {
-            case YAML -> new YamlDataStore(folder);
             case SQLITE -> new SqlDataStore(new SqliteDialect(config.sqliteFile()), log);
             case POSTGRESQL -> new SqlDataStore(new PostgresDialect(config.pgHost(), config.pgPort(),
                     config.pgDatabase(), config.pgUser(), config.pgPassword(), config.pgSsl()), log);
@@ -78,7 +77,10 @@ public final class Storage {
         return data;
     }
 
-    /** One-time import of the *-data.yml files into a fresh database, then renames them. */
+    /**
+     * One-time import of the legacy *-data.yml files into a fresh database, then renames them.
+     * This is the only use of YAML data: it is not a storage backend any more.
+     */
     private static void importYaml(File folder) throws StorageException {
         YamlDataStore yaml = new YamlDataStore(folder);
         if (!yaml.hasData()) {
@@ -177,6 +179,54 @@ public final class Storage {
             } catch (StorageException | RuntimeException e) {
                 log.log(Level.SEVERE, "Storage: save failed, will retry at next autosave", e);
             }
+        });
+    }
+
+    // ── Export ────────────────────────────────────────────────────────────────
+
+    /**
+     * Writes a full backup of the current data to a new, portable SQLite file (whatever the
+     * backend). Snapshots are taken now on the main thread (so the export includes changes
+     * not saved yet); the file is written on the storage thread, after any pending save.
+     * {@code done} runs on the main thread with null on success or the error message.
+     * Restoring = stop the server and use the file as {@code atlas.db} (SQLite backend).
+     */
+    public static void export(File target, java.util.function.Consumer<String> done) {
+        if (!ready) {
+            done.accept("storage is not ready");
+            return;
+        }
+        if (target.exists()) {
+            done.accept("file already exists: " + target.getName());
+            return;
+        }
+        DataSet set;
+        try {
+            set = snapshot(DataDomain.values());
+        } catch (RuntimeException e) {
+            log.log(Level.SEVERE, "Storage: cannot snapshot for export", e);
+            done.accept("snapshot failed: " + e.getMessage());
+            return;
+        }
+        writer.execute(() -> {
+            String error = null;
+            SqlDataStore out = new SqlDataStore(SqliteDialect.portable(target), log);
+            try {
+                out.open();
+                out.write(set);
+                out.markInitialized("export from " + store.describe());
+            } catch (StorageException | RuntimeException e) {
+                log.log(Level.SEVERE, "Storage: export to " + target + " failed", e);
+                error = e.getMessage();
+            } finally {
+                out.close();
+            }
+            if (error != null && target.exists() && !target.delete()) {
+                log.warning("Storage: could not delete incomplete export " + target);
+            }
+            String result = error;
+            if (result == null) log.info("Storage: exported all data to " + target.getPath());
+            Bukkit.getScheduler().runTask(plugin, () -> done.accept(result));
         });
     }
 

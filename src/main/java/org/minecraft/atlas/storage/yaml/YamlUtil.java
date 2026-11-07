@@ -72,16 +72,6 @@ final class YamlUtil {
         return out;
     }
 
-    static void writeChunks(ConfigurationSection parent, String key, List<ChunkPos> chunks) {
-        if (chunks.isEmpty()) return;
-        Map<String, List<String>> byWorld = new LinkedHashMap<>();
-        for (ChunkPos p : chunks) {
-            byWorld.computeIfAbsent(p.world(), w -> new ArrayList<>()).add(String.valueOf(ChunkPos.packKey(p.x(), p.z())));
-        }
-        ConfigurationSection sec = parent.createSection(key);
-        byWorld.forEach(sec::set);
-    }
-
     /** Reads {@code world, x, y, z, yaw, pitch} keys of a section; null if no world. */
     static LocationData readLocation(ConfigurationSection s) {
         if (s == null) return null;
@@ -91,12 +81,4 @@ final class YamlUtil {
                 (float) s.getDouble("yaw"), (float) s.getDouble("pitch"));
     }
 
-    static void writeLocation(ConfigurationSection s, LocationData loc) {
-        s.set("world", loc.world());
-        s.set("x", loc.x());
-        s.set("y", loc.y());
-        s.set("z", loc.z());
-        s.set("yaw", (double) loc.yaw());
-        s.set("pitch", (double) loc.pitch());
-    }
 }

@@ -14,7 +14,7 @@ import java.io.File;
  * Builds the plugin classpath before Atlas loads. SQLite needs nothing (Paper ships
  * sqlite-jdbc). The PostgreSQL driver is resolved from Maven Central (through Paper's
  * mirror) only when {@code config.yml > storage.type} is {@code postgresql}, so servers on
- * SQLite/YAML never download it.
+ * SQLite never downloads it.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class AtlasLoader implements PluginLoader {
