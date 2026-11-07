@@ -101,7 +101,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - **Nametag:** a TextDisplay showing `name [Faction]` / `LvL.x` / `hp/max ♥` / `IMMUNITY - [ready/total]` (aqua while immune, yellow while reloading).
 - **Damage:** only enemy-faction players can damage a crystal, at most 1 hit/s per attacker. Non-entity damage is cancelled. Members are alerted. Regen is `regen_per_second + regenBonus` per second after `regen_timeout_seconds` without being hit.
 - **When HP reaches 0:**
-  - If a protection is available, the **longest** one is consumed: HP is refilled, the crystal becomes immune for that duration, a small explosion plays and vault rubies drop. Broken protections regenerate **one at a time, shortest first**. Each one's watch window is `2 × duration` after it broke. If the crystal was hit during that window, the protection is **lost forever**.
+  - If a protection is available, the **longest** one is consumed: HP is refilled, the crystal becomes immune for that duration, a small explosion plays and vault rubies drop. Broken protections regenerate **one at a time, shortest first**. Each one's watch window is `crystal.protection_watch_multiplier × duration` after it broke (default 2: immunity + a regen window as long as the protection). If the crystal was hit during that window, the protection is **lost forever**.
   - If no protection is left, a big explosion plays and `destroyCrystal()` runs: the crystal's claims are removed, its chests drop, the faction loses `spentSkillPoints / skill_points_per_level` levels (an outpost also refunds the outpost cost) and its exp resets to 0. If the main crystal died, the outpost becomes main. If it was the last crystal, all vault gems drop and the faction is disbanded with a global broadcast.
 - **Skills** (`CrystalSkillListGui` → `CrystalSkillConfirmGui`, tiers from `factions.yml > skills`):
   | Skill | Scope | Effect |
@@ -275,7 +275,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 2. ~~`TagCommand` `delete`/`edit` saved tags to `config.yml`~~ — **fixed 2026-11-05**: all `/tag` subcommands now save to `tags-data.yml`.
 3. `ElectricalCreeperManager.OBSIDIAN_HITS_REQUIRED = 3`, but a listener comment says "4 hits". The WIKI also contradicts itself on creeper eggs.
 4. ~~Faction max level 99 in code, 100 in the WIKI and `/f level set` help~~ — **fixed 2026-11-07**: 99 is the max (Open Question 4); help text and both WIKIs say 99.
-5. `factions.yml` `crystal.immunity_base_seconds` / `immunity_multiplier` are loaded but no longer used (the protection-stockpile system replaced them). The `Faction` downgrade fields are also unused.
+5. ~~`factions.yml` `crystal.immunity_base_seconds` / `immunity_multiplier` loaded but unused~~ — **fixed 2026-11-07** (Open Question 5): removed; the watch-window factor is now `crystal.protection_watch_multiplier` (default 2, min 1). The `Faction` downgrade fields are still unused.
 6. The `config.yml` comment says "/air tp" for random teleport. The WIKI values (tpa cooldown 30 s, 5 s countdowns) differ from the configs (tpa 60 s, 10 s countdowns).
 7. The `structures/*.nbt` files are unused by the code **by design** (see §4.5).
 8. Typo `maxActiveDonjonons` in `DonjonManager`.
@@ -296,7 +296,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - A **dedicated test world**, copied into the repo in the next PR (Open Question 15). Scenarios will then rely on its fixtures instead of the real world.
 - A new or changed feature ships with its scenarios in the same PR.
 
-**Still open:** what CI should check instead (Open Question 20).
+**New plan (Open Question 20, 2026-11-07):** a GitHub Actions workflow on `pull_request` → `main` that runs `./gradlew build` and **unit tests** (JUnit 5 + MockBukkit) for pure logic: faction XP curve and level-ups, quest amounts / time limits / rewards, donjon XP and rarity rolls, ore-zone weighted roll, storage round-trip (YAML ↔ SQLite on a temp folder). Required status check before merge. Not started yet.
 
 ---
 
@@ -308,7 +308,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 2. ~~Structures~~ — ✔ answered 2026-11-05: archives of arena/donjon builds for manual import; not loaded by code.
 3. ~~**Donjon types**~~ — ✔ answered 2026-11-07: all 6 types in `donjons.yml` are live. There is no `COOLDOWN` status: it was only written in the old CLAUDE.md (commit c9d9685, `DonjonStatus — IDLE, ACTIVE, COOLDOWN`) and never existed in code. `DonjonStatus` stays IDLE / ACTIVE.
 4. ~~**Faction max level**~~ — ✔ answered 2026-11-07: **99** (known issue §7.4 fixed).
-5. **Crystal immunity escalation** — answered 2026-11-07: "configurable, with default values that match the current code". **Needs clarification (asked 2026-11-07):** the old escalation keys (`immunity_base_seconds` / `immunity_multiplier`) are loaded but used nowhere, and their defaults disagree (code 18000 s, `factions.yml` 180 s). The only escalation-like value in the current protection system is hard-coded: the watch window `2 × duration` (`AtlasCrystalManager`, ~line 931). Option A: make that watch-window factor configurable (default 2) and delete the dead keys. Option B: bring the old escalation back on top of protections with the code defaults (18000 s, ×2).
+5. ~~**Crystal immunity escalation**~~ — ✔ answered 2026-11-07: the dead `immunity_base_seconds` / `immunity_multiplier` keys are removed; the protection watch window (hard-coded `2 × duration` before) is configurable as `crystal.protection_watch_multiplier`, default 2 = previous behaviour.
 6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
 7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
 8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
@@ -323,7 +323,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 17. **M1 — "part of a feature" granularity** (moot while M1 is on hold): is path-based selection (file globs per feature) enough, or should some changes (e.g. a GUI-only tweak) select only specific scenarios inside a feature?
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
 19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
-20. **M1 — what should CI check instead?** e.g. only `./gradlew build` on each PR, plus unit tests (MockBukkit) for pure logic (XP curve, quest amounts, rarity rolls, storage round-trip YAML ↔ SQLite)? Or no CI at all, local in-game runs only?
+20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
 
 ---
 
