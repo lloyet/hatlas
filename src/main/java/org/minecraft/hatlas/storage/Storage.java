@@ -219,6 +219,56 @@ public final class Storage {
         });
     }
 
+    /**
+     * Appends ruby-ledger rows on the writer thread (after any pending save). Call from the main
+     * thread. On failure the rows are handed to {@code onFailure} (to be retried), never dropped
+     * silently.
+     */
+    public static void appendLedger(java.util.List<org.minecraft.hatlas.storage.model.LedgerRow> rows,
+                                    java.util.function.Consumer<java.util.List<org.minecraft.hatlas.storage.model.LedgerRow>> onFailure) {
+        if (rows.isEmpty()) return;
+        if (!ready || writer == null || writer.isShutdown()) {
+            onFailure.accept(rows);
+            return;
+        }
+        writer.execute(() -> {
+            try {
+                store.appendLedger(rows);
+            } catch (StorageException | RuntimeException e) {
+                log.log(Level.SEVERE, "Storage: ruby ledger append failed, will retry", e);
+                onFailure.accept(rows);
+            }
+        });
+    }
+
+    /**
+     * Runs a read on the storage writer thread, after every save and ledger append queued
+     * before it, and hands the result (or the error) to {@code reply} on the main thread.
+     */
+    public static <T> void readAsync(StoreReader<T> read, java.util.function.BiConsumer<T, String> reply) {
+        if (!ready || writer == null || writer.isShutdown()) {
+            reply.accept(null, "storage is not ready");
+            return;
+        }
+        writer.execute(() -> {
+            T value = null;
+            String error = null;
+            try {
+                value = read.read(store);
+            } catch (StorageException | RuntimeException e) {
+                error = e.getMessage();
+            }
+            T v = value;
+            String err = error;
+            Bukkit.getScheduler().runTask(plugin, () -> reply.accept(v, err));
+        });
+    }
+
+    @FunctionalInterface
+    public interface StoreReader<T> {
+        T read(DataStore store) throws StorageException;
+    }
+
     public static void saveAll() {
         save(DataDomain.values());
     }

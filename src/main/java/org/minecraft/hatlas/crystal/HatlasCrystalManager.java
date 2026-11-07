@@ -686,7 +686,7 @@ public class HatlasCrystalManager {
             // still live to read vault contents from; the explosion already fired upstream so
             // items spawned now survive.
             if (faction != null && dropLoc != null && dropLoc.getWorld() != null) {
-                org.minecraft.hatlas.faction.FactionVault.dropAll(faction, dropLoc);
+                org.minecraft.hatlas.faction.FactionVault.dropAll(faction, dropLoc, "DISBAND");
             }
             FactionManager.disbandFaction(factionName);
         } else {

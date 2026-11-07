@@ -76,6 +76,17 @@ public final class BlockListener implements Listener {
             return;
         }
         RubyBlockManager.placeAt(event.getBlockPlaced(), customId);
+        recordPlace(player, inHand, event.getBlockPlaced().getLocation());
+    }
+
+    /** Ruby ledger: a placed ruby block takes its 9 gems out of the economy until it is broken. */
+    private static void recordPlace(Player player, ItemStack hand, Location at) {
+        if (player.getGameMode() == GameMode.CREATIVE) return; // nothing is consumed
+        ItemStack one = hand.clone();
+        one.setAmount(1);
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.BLOCK_PLACE,
+                org.minecraft.hatlas.economy.RubyLedger.gemValue(one),
+                org.minecraft.hatlas.economy.Party.player(player), null, player, null, at);
     }
 
     /**
@@ -143,8 +154,15 @@ public final class BlockListener implements Listener {
         }
         if (!ACCEPTED_PICKAXES.contains(tool.getType())) return;
 
-        block.getWorld().dropItemNaturally(loc.toCenterLocation(),
-                RubyBlockManager.dropFor(id));
+        // Ruby ledger: an ore creates 1 gem (MINE), a placed ruby block gives its 9 back.
+        boolean ore = !"ruby_block".equals(id);
+        org.minecraft.hatlas.economy.Party owner = org.minecraft.hatlas.economy.Party.player(breaker);
+        ItemStack drop = RubyBlockManager.dropFor(id);
+        org.minecraft.hatlas.economy.RubyLedger.record(
+                ore ? org.minecraft.hatlas.economy.LedgerKind.MINE : org.minecraft.hatlas.economy.LedgerKind.BLOCK_BREAK,
+                org.minecraft.hatlas.economy.RubyLedger.gemValue(drop), null, owner, breaker,
+                ore ? org.minecraft.hatlas.orezone.OreZoneManager.zoneNameAt(loc) : null, loc);
+        org.minecraft.hatlas.economy.RubyLedger.drop(loc.toCenterLocation(), drop, owner, ore ? "MINE" : "BLOCK_BREAK");
     }
 
     private static Material breakEffectMaterial(String id) {
@@ -229,6 +247,7 @@ public final class BlockListener implements Listener {
                 return;
             }
             RubyBlockManager.placeAt(target, heldId);
+            recordPlace(player, hand, target.getLocation());
             target.getWorld().playSound(target.getLocation().toCenterLocation(),
                     Sound.BLOCK_STONE_PLACE, 1.0f, 1.0f);
         } else {

@@ -41,6 +41,17 @@ features:
     - src/main/java/org/minecraft/hatlas/access/**
     - src/main/java/org/minecraft/hatlas/command/HatlasCommand.java
     - scripts/test-world/web-tickets.sql
+  economy:
+    - src/main/java/org/minecraft/hatlas/economy/**
+    - src/main/java/org/minecraft/hatlas/storage/sql/LedgerTable.java
+    - src/main/java/org/minecraft/hatlas/storage/model/LedgerRow.java
+    - src/main/resources/db/V3__ruby_ledger.sql
+    - src/main/java/org/minecraft/hatlas/command/HatlasCommand.java
+    - src/main/java/org/minecraft/hatlas/command/ItemCommand.java
+    - src/main/java/org/minecraft/hatlas/listener/BlockListener.java
+    - src/main/java/org/minecraft/hatlas/gui/CrystalVaultGui.java
+    - src/main/java/org/minecraft/hatlas/faction/FactionVault.java
+    - src/main/java/org/minecraft/hatlas/combat/CombatLogManager.java
   storage:
     - src/main/java/org/minecraft/hatlas/storage/**
     - src/main/resources/db/**

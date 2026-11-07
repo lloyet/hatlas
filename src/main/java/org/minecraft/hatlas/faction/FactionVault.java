@@ -36,7 +36,7 @@ public final class FactionVault {
      * they survive any crystal explosion that already happened before this call. Non-gem
      * vault slots are skipped. Returns the number of gems actually dropped.
      */
-    public static int drop(Faction faction, Location loc, int requested) {
+    public static int drop(Faction faction, Location loc, int requested, String origin) {
         if (loc == null || loc.getWorld() == null || requested <= 0) return 0;
         CrystalVaultGui.pullLive(faction);
         ItemStack[] vault = faction.getVaultContents();
@@ -48,7 +48,9 @@ public final class FactionVault {
             int take = Math.min(stack.getAmount(), remaining);
             ItemStack drop = stack.clone();
             drop.setAmount(take);
-            loc.getWorld().dropItemNaturally(loc, drop);
+            // Ruby ledger: the gems stay the faction's until someone picks them up.
+            org.minecraft.hatlas.economy.RubyLedger.drop(loc, drop,
+                    org.minecraft.hatlas.economy.Party.faction(faction), origin);
             int left = stack.getAmount() - take;
             if (left <= 0) vault[i] = null;
             else stack.setAmount(left);
@@ -60,8 +62,8 @@ public final class FactionVault {
     }
 
     /** Drops every ruby gem in the vault at {@code loc} and clears those slots. */
-    public static int dropAll(Faction faction, Location loc) {
-        return drop(faction, loc, Integer.MAX_VALUE);
+    public static int dropAll(Faction faction, Location loc, String origin) {
+        return drop(faction, loc, Integer.MAX_VALUE, origin);
     }
 
     /**

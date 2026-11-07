@@ -307,7 +307,7 @@ public class FactionListener implements Listener {
             if (faction != null) {
                 int dropCount = org.minecraft.hatlas.faction.FactionVault.computeProtectionBreakDrop(faction);
                 if (dropCount > 0) {
-                    org.minecraft.hatlas.faction.FactionVault.drop(faction, crystal.getLocation(), dropCount);
+                    org.minecraft.hatlas.faction.FactionVault.drop(faction, crystal.getLocation(), dropCount, "PROTECTION_BREAK");
                     Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
                 }
             }

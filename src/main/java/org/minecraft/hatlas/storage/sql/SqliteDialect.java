@@ -51,4 +51,9 @@ public final class SqliteDialect implements SqlDialect {
     public String blobType() {
         return "BLOB";
     }
+
+    @Override
+    public String autoIdColumn() {
+        return "INTEGER PRIMARY KEY AUTOINCREMENT";
+    }
 }
