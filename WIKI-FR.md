@@ -184,6 +184,7 @@ La progression du métier (niveau + XP) est personnelle ; l'XP de faction gagné
 | **Bûcheron** | Hache en Fer | Couper des arbres |
 | **Chasseur** | Arc | Tuer des mobs |
 | **Fermier** | Graines de Blé | Récolter des cultures |
+| **Alchimiste** | Poudre de Blaze | Brasser des potions et fabriquer (ingrédients, matériel d'alchimie, flèches à effet…). Tuer des mobs ne donne pas d'XP d'Alchimiste |
 
 Attribuez ou changez votre métier en interagissant avec le PNJ correspondant dans le monde.
 
