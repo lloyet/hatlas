@@ -9,3 +9,7 @@
 
 # Binary files should be left untouched
 *.jar           binary
+
+# Run on the Linux production server: always LF
+/scripts/backup/**  text eol=lf
+*.sh            text eol=lf

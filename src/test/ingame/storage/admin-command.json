@@ -4,6 +4,8 @@
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": false},
   {"action": "command", "bot": "Tester2", "command": "hatlas storage info"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Unknown or incomplete command"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas storage save"},
+  {"action": "assert_message", "bot": "Tester2", "contains": "Unknown or incomplete command"},
 
   {"action": "console", "command": "op Tester2"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": true},
@@ -11,6 +13,9 @@
   {"action": "assert_message", "bot": "Tester2", "contains": "Storage: PostgreSQL ("},
   {"action": "command", "bot": "Tester2", "command": "hatlas"},
   {"action": "assert_message", "bot": "Tester2", "contains": "/hatlas storage info"},
+  {"action": "assert_message", "bot": "Tester2", "contains": "/hatlas storage save"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas storage save"},
+  {"action": "assert_message", "bot": "Tester2", "contains": "Storage saved to PostgreSQL ("},
   {"action": "command", "bot": "Tester2", "command": "hatlas storage export"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Incorrect argument for command"},
   {"action": "console", "command": "deop Tester2"},

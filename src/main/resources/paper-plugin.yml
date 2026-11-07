@@ -17,7 +17,7 @@ dependencies:
 
 permissions:
   hatlas.storage.admin:
-    description: /hatlas storage info (active storage backend)
+    description: /hatlas storage info|save (active backend; write all data now, before a backup)
     default: op
   hatlas.quest:
     description: Access to /quest

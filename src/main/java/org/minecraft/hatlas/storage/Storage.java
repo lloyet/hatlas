@@ -213,6 +213,41 @@ public final class Storage {
         save(DataDomain.values());
     }
 
+    /**
+     * Writes every domain now and waits until it is stored (main thread only). The write is
+     * queued after any pending async save, so the database is complete when this returns.
+     * Used by the backup script ({@code /hatlas storage save}) so a database dump taken right
+     * after matches the world saved by {@code save-all flush}. Returns null on success, else the error.
+     */
+    public static String flush() {
+        if (!Bukkit.isPrimaryThread()) throw new IllegalStateException("Storage.flush must run on the main thread");
+        if (!ready) return "storage is not ready";
+        DataSet set;
+        try {
+            set = snapshot(DataDomain.values());
+        } catch (RuntimeException e) {
+            log.log(Level.SEVERE, "Storage: cannot snapshot for flush", e);
+            return "snapshot failed: " + e.getMessage();
+        }
+        java.util.concurrent.Future<?> done = writer.submit(() -> {
+            store.write(set);
+            return null;
+        });
+        try {
+            done.get(60, TimeUnit.SECONDS);
+            log.info("Storage: all data flushed to " + store.describe());
+            return null;
+        } catch (java.util.concurrent.ExecutionException e) {
+            log.log(Level.SEVERE, "Storage: flush failed", e.getCause());
+            return "write failed: " + e.getCause().getMessage();
+        } catch (java.util.concurrent.TimeoutException e) {
+            return "write did not finish within 60 s";
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "interrupted";
+        }
+    }
+
     private static DataSet snapshot(DataDomain... domains) {
         DataSet set = new DataSet();
         for (DataDomain d : domains) set.put(d, snapshotters.get(d).get());

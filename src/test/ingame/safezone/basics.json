@@ -7,6 +7,7 @@
   {"action": "console", "command": "setblock {{spawn}} stone"},
   {"action": "console", "command": "execute positioned {{spawn}} run tp Tester1 ~ ~1 ~"},
   {"action": "wait_for", "condition": "player_near", "name": "Tester1", "x": {{spawn.x}}, "y": {{spawn.y}}, "z": {{spawn.z}}, "distance": 3},
+  {"action": "wait_for", "condition": "ticks", "count": 40},
 
   {"action": "console", "command": "damage Tester1 6 minecraft:generic"},
   {"action": "console", "command": "damage Tester1 6 minecraft:player_attack by Tester1"},
