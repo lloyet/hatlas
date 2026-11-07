@@ -17,6 +17,7 @@ shared:
   - src/main/java/org/minecraft/atlas/listener/GuiListener.java
   - src/main/resources/paper-plugin.yml
   - src/main/resources/config.yml
+  - src/test/ingame/fixtures.json
   - build.gradle*
   - settings.gradle*
 
