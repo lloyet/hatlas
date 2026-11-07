@@ -468,6 +468,14 @@ Safe Zones are admin-defined areas (e.g. spawn) that are protected from PvP and 
 
 `/spawn` is a strict alias of `/safezone tp spawn`.
 
+### Mining inside a safe zone
+
+You cannot break blocks in a safe zone. The one exception is an **ore zone** (a mine set up by the admins, e.g. inside a city): blocks inside the ore zone can be mined even when it lies in a safe zone. Everything else stays protected, inside the ore zone too:
+
+- you cannot place blocks or right-click blocks;
+- explosions do not break any block;
+- PvP stays disabled.
+
 ---
 
 ## Basic Commands
