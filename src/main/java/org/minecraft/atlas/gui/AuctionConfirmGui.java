@@ -137,9 +137,9 @@ public class AuctionConfirmGui implements AtlasGui {
                     NamedTextColor.RED));
             return false;
         }
-        if (!AuctionCommand.isLeaderOrOwner(buyerFaction, player.getUniqueId())) {
+        if (!FactionManager.canSpendVault(buyerFaction, player.getUniqueId())) {
             player.sendMessage(Component.text(
-                    "Only the faction owner or a leader can spend from the vault.",
+                    "Only the faction owner or a banker (or higher) can spend from the vault.",
                     NamedTextColor.RED));
             return false;
         }

@@ -8,6 +8,7 @@
 |---|---|
 | [Faction](#faction) | Create and manage a faction: levels, skill points, crystal, claims, allies |
 | [Job](#job) | Choose a profession (after joining a faction), complete daily quests, earn faction XP |
+| [Job Shops](#job-shops) | Buy gear and supplies from job NPCs with your faction's rubies |
 | [Dungeon](#dungeon) | Raid wave-based dungeons, fight a boss, share loot, earn special rewards |
 | [Combat & PvP](#combat--pvp) | 1.8-style PvP, anti-disconnect (combat log) rules |
 | [Safe Zones](#safe-zones) | Protected hubs and `/spawn` behavior |
@@ -236,6 +237,33 @@ Progress on Jokeyrini quests is tracked via the action bar with the `[Jokeyrini]
 Interact directly with the job NPCs to access the job GUI. There are no chat commands for daily quest management — everything is done through the in-game interface.
 
 ---
+
+## Job Shops
+
+### What is a Job Shop?
+
+Each job has its own shop: a villager NPC near spawn (Miner, Lumberjack, Hunter, Farmer, Alchemist). Shops sell tools, supplies and rare enchanted items, paid in **rubies from your faction vault**.
+
+### Who can buy?
+
+| Requirement | Common items | Rare items |
+|---|---|---|
+| Be in a faction | ✔ | ✔ |
+| Have a job | any job | **the shop's job** (e.g. only Miners buy rare Miner items) |
+
+Any member who meets these requirements can spend the faction vault. There is no role restriction.
+
+### How to buy
+
+1. Right-click the shop NPC.
+2. Pick **Common Items** or **Rare Items**. The menu shows your **faction vault** balance and the time until the next restock.
+3. Click an item to buy it. Its price is taken from the faction vault and the item goes to your inventory (dropped at your feet if it is full).
+
+If the vault does not hold enough rubies, the purchase is refused: deposit rubies in the faction vault first (Atlas Crystal → Vault).
+
+### Restock
+
+Every **7 days** each shop draws a new selection: up to **12 common** and **12 rare** items, picked at random from the shop's list (some items are rarer than others).
 
 ## Dungeon
 

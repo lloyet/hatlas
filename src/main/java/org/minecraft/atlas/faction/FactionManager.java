@@ -157,7 +157,7 @@ public class FactionManager {
         if (!faction.getMembers().contains(targetUUID)) return false;
         FactionRole targetRole = faction.getRole(targetUUID);
         if (!requesterIsOwner) {
-            if (requesterRole == FactionRole.MODERATOR && targetRole != FactionRole.MEMBER) return false;
+            if (requesterRole == FactionRole.MODERATOR && targetRole.isAtLeast(FactionRole.MODERATOR)) return false;
             if (requesterRole == FactionRole.LEADER && targetRole == FactionRole.LEADER) return false;
         }
         List<UUID> affected = getFactionPlayers(factionName);
@@ -182,7 +182,7 @@ public class FactionManager {
         return true;
     }
 
-    /** Promotes a member to the next role (MEMBER → MODERATOR → LEADER). Only the owner can promote. */
+    /** Promotes a member to the next role (MEMBER → BANKER → MODERATOR → LEADER). Only the owner can promote. */
     public static boolean promotePlayer(UUID ownerUUID, UUID targetUUID) {
         String factionName = playerFaction.get(ownerUUID);
         if (factionName == null) return false;
@@ -212,7 +212,7 @@ public class FactionManager {
         return true;
     }
 
-    /** Demotes a member to the previous role (LEADER → MODERATOR → MEMBER). Only the owner can demote. */
+    /** Demotes a member to the previous role (LEADER → MODERATOR → BANKER → MEMBER). Only the owner can demote. */
     public static boolean demotePlayer(UUID ownerUUID, UUID targetUUID) {
         String factionName = playerFaction.get(ownerUUID);
         if (factionName == null) return false;
@@ -225,6 +225,15 @@ public class FactionManager {
         FactionRole[] values = FactionRole.values();
         faction.setRole(targetUUID, values[current.ordinal() - 1]);
         return true;
+    }
+
+    /**
+     * True when the player may spend the faction vault's rubies (take gems out of the vault,
+     * buy in a job shop or on the auction house): the owner, or a BANKER or higher.
+     */
+    public static boolean canSpendVault(Faction faction, UUID uuid) {
+        return faction != null && (faction.getOwner().equals(uuid)
+                || faction.getRole(uuid).isAtLeast(FactionRole.BANKER));
     }
 
     /** Returns the role of a player in their faction, or null if they are the owner or not in any faction. */

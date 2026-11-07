@@ -99,7 +99,7 @@ public abstract class ShopItemsGui implements AtlasGui {
                 .decoration(TextDecoration.ITALIC, false));
         List<Component> lore = new ArrayList<>();
         lore.add(Component.empty());
-        lore.add(GuiUtil.loreLine("Your rubies", String.valueOf(ShopManager.countRubies(player)), NamedTextColor.RED));
+        lore.add(GuiUtil.loreLine("Faction vault", ShopManager.vaultBalance(player) + " rubies", NamedTextColor.RED));
         lore.add(GuiUtil.loreLine("Restock in",
                 GuiUtil.formatTime(ShopManager.getNextResetMs() - System.currentTimeMillis()), NamedTextColor.YELLOW));
         meta.lore(lore);
