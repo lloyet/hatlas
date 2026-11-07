@@ -20,9 +20,17 @@ public record StorageSettings(Type type, int autosaveMinutes, File sqliteFile,
      */
     public enum Type { SQLITE, POSTGRESQL }
 
+    /** Backend used when {@code storage.type} is missing. Must match {@code HatlasLoader}. */
+    public static final String DEFAULT_TYPE = "postgresql";
+
+    /** True when the PostgreSQL password comes from neither the environment nor config.yml. */
+    public boolean pgPasswordMissing() {
+        return pgPassword == null || pgPassword.isEmpty();
+    }
+
     public static StorageSettings from(ConfigurationSection root, File dataFolder, Logger log) throws StorageException {
         ConfigurationSection s = root.getConfigurationSection("storage");
-        String rawType = s == null ? "sqlite" : s.getString("type", "sqlite");
+        String rawType = s == null ? DEFAULT_TYPE : s.getString("type", DEFAULT_TYPE);
         Type type;
         if (rawType.trim().equalsIgnoreCase("yaml")) {
             // Old setting from before YAML storage was removed: use SQLite, which imports the

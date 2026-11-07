@@ -1,7 +1,7 @@
 name: hatlas
 version: '$version'
 main: org.minecraft.hatlas.Hatlas
-# Adds the PostgreSQL JDBC driver to the classpath when config.yml storage.type is postgresql.
+# Adds the PostgreSQL JDBC driver to the classpath when config.yml storage.type is postgresql (default).
 loader: org.minecraft.hatlas.HatlasLoader
 api-version: '1.21'
 load: POSTWORLD
@@ -17,7 +17,7 @@ dependencies:
 
 permissions:
   hatlas.storage.admin:
-    description: /hatlas storage info|export (full data backup to a portable SQLite file)
+    description: /hatlas storage info (active storage backend)
     default: op
   hatlas.quest:
     description: Access to /quest

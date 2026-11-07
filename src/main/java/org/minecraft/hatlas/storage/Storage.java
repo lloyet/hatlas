@@ -63,7 +63,12 @@ public final class Storage {
             case POSTGRESQL -> new SqlDataStore(new PostgresDialect(config.pgHost(), config.pgPort(),
                     config.pgDatabase(), config.pgUser(), config.pgPassword(), config.pgSsl()), log);
         };
-        store.open();
+        try {
+            store.open();
+        } catch (StorageException e) {
+            if (config.type() != StorageSettings.Type.POSTGRESQL) throw e;
+            throw new StorageException(postgresHelp(config, e), e);
+        }
         log.info("Storage: using " + store.describe());
 
         if (store.isFresh()) importYaml(folder);
@@ -75,6 +80,28 @@ public final class Storage {
             return t;
         });
         return data;
+    }
+
+    /** What an admin needs to know when the PostgreSQL database cannot be opened. */
+    private static String postgresHelp(StorageSettings c, StorageException e) {
+        String where = c.pgUser() + "@" + c.pgHost() + ":" + c.pgPort() + "/" + c.pgDatabase();
+        StringBuilder msg = new StringBuilder("Cannot open the PostgreSQL database " + where + ".\n")
+                .append("  Cause: ").append(rootMessage(e)).append('\n')
+                .append("  Hatlas needs its database to start. Check that:\n")
+                .append("   - PostgreSQL is running and reachable at ").append(c.pgHost()).append(':').append(c.pgPort()).append(";\n")
+                .append("   - database '").append(c.pgDatabase()).append("' and user '").append(c.pgUser())
+                .append("' exist (config.yml > storage.postgresql);\n")
+                .append("   - the password is set in the HATLAS_DB_PASSWORD environment variable or storage.postgresql.password");
+        if (c.pgPasswordMissing()) msg.append(" (currently: NOT SET)");
+        msg.append(".\n  For a local development server without PostgreSQL, set storage.type: sqlite in config.yml.");
+        return msg.toString();
+    }
+
+    private static String rootMessage(Throwable t) {
+        Throwable root = t;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        String m = root.getMessage();
+        return root.getClass().getSimpleName() + (m == null ? "" : ": " + m);
     }
 
     /**
@@ -179,54 +206,6 @@ public final class Storage {
             } catch (StorageException | RuntimeException e) {
                 log.log(Level.SEVERE, "Storage: save failed, will retry at next autosave", e);
             }
-        });
-    }
-
-    // ── Export ────────────────────────────────────────────────────────────────
-
-    /**
-     * Writes a full backup of the current data to a new, portable SQLite file (whatever the
-     * backend). Snapshots are taken now on the main thread (so the export includes changes
-     * not saved yet); the file is written on the storage thread, after any pending save.
-     * {@code done} runs on the main thread with null on success or the error message.
-     * Restoring = stop the server and use the file as {@code hatlas.db} (SQLite backend).
-     */
-    public static void export(File target, java.util.function.Consumer<String> done) {
-        if (!ready) {
-            done.accept("storage is not ready");
-            return;
-        }
-        if (target.exists()) {
-            done.accept("file already exists: " + target.getName());
-            return;
-        }
-        DataSet set;
-        try {
-            set = snapshot(DataDomain.values());
-        } catch (RuntimeException e) {
-            log.log(Level.SEVERE, "Storage: cannot snapshot for export", e);
-            done.accept("snapshot failed: " + e.getMessage());
-            return;
-        }
-        writer.execute(() -> {
-            String error = null;
-            SqlDataStore out = new SqlDataStore(SqliteDialect.portable(target), log);
-            try {
-                out.open();
-                out.write(set);
-                out.markInitialized("export from " + store.describe());
-            } catch (StorageException | RuntimeException e) {
-                log.log(Level.SEVERE, "Storage: export to " + target + " failed", e);
-                error = e.getMessage();
-            } finally {
-                out.close();
-            }
-            if (error != null && target.exists() && !target.delete()) {
-                log.warning("Storage: could not delete incomplete export " + target);
-            }
-            String result = error;
-            if (result == null) log.info("Storage: exported all data to " + target.getPath());
-            Bukkit.getScheduler().runTask(plugin, () -> done.accept(result));
         });
     }
 
