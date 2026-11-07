@@ -1,0 +1,8 @@
+[
+  {"action": "spawn", "bot": "Tester4"},
+  {"action": "console", "command": "deop Tester4"},
+  {"action": "console", "command": "clear Tester4"},
+  {"action": "console", "command": "item give Tester4 ruby 3"},
+  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester4", "material": "EMERALD", "which": "player"},
+  {"action": "despawn", "bot": "Tester4"}
+]
