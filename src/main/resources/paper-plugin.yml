@@ -1,8 +1,8 @@
-name: atlas
+name: hatlas
 version: '$version'
-main: org.minecraft.atlas.Atlas
+main: org.minecraft.hatlas.Hatlas
 # Adds the PostgreSQL JDBC driver to the classpath when config.yml storage.type is postgresql.
-loader: org.minecraft.atlas.AtlasLoader
+loader: org.minecraft.hatlas.HatlasLoader
 api-version: '1.21'
 load: POSTWORLD
 
@@ -16,159 +16,159 @@ dependencies:
       join-classpath: true
 
 permissions:
-  atlas.storage.admin:
-    description: /atlas storage info|export (full data backup to a portable SQLite file)
+  hatlas.storage.admin:
+    description: /hatlas storage info|export (full data backup to a portable SQLite file)
     default: op
-  atlas.quest:
+  hatlas.quest:
     description: Access to /quest
     default: true
-  atlas.job:
+  hatlas.job:
     description: Access to /job
     default: true
-  atlas.job.admin:
+  hatlas.job.admin:
     description: Admin access to /job remove, /job set, and /job level management
     default: op
-  atlas.faction:
+  hatlas.faction:
     description: Access to /faction help
     default: true
-  atlas.faction.create:
+  hatlas.faction.create:
     description: Create a faction
     default: true
-  atlas.faction.invite:
+  hatlas.faction.invite:
     description: Invite players to a faction
     default: true
-  atlas.faction.accept:
+  hatlas.faction.accept:
     description: Accept faction invitations
     default: true
-  atlas.faction.decline:
+  hatlas.faction.decline:
     description: Decline faction invitations
     default: true
-  atlas.faction.rename:
+  hatlas.faction.rename:
     description: Rename a faction
     default: true
-  atlas.faction.kick:
+  hatlas.faction.kick:
     description: Kick members from a faction
     default: true
-  atlas.faction.disband:
+  hatlas.faction.disband:
     description: Disband a faction
     default: true
-  atlas.faction.transfer:
+  hatlas.faction.transfer:
     description: Transfer faction ownership
     default: true
-  atlas.faction.info:
+  hatlas.faction.info:
     description: View faction information
     default: true
-  atlas.faction.color:
+  hatlas.faction.color:
     description: Change faction color
     default: true
-  atlas.faction.leave:
+  hatlas.faction.leave:
     description: Leave a faction
     default: true
-  atlas.faction.list:
+  hatlas.faction.list:
     description: List all factions
     default: true
-  atlas.faction.members:
+  hatlas.faction.members:
     description: List members of your faction
     default: true
-  atlas.faction.description:
+  hatlas.faction.description:
     description: View or set the faction description
     default: true
-  atlas.faction.promote:
+  hatlas.faction.promote:
     description: Promote a faction member to the next role
     default: true
-  atlas.faction.demote:
+  hatlas.faction.demote:
     description: Demote a faction member to the previous role
     default: true
-  atlas.faction.home:
+  hatlas.faction.home:
     description: Teleport to the faction home
     default: true
-  atlas.faction.sethome:
+  hatlas.faction.sethome:
     description: Set the home location for a faction crystal (leader/owner only)
     default: true
-  atlas.faction.upgrade:
-    description: Apply upgrade bonuses to Atlas Crystals (owner/leader)
+  hatlas.faction.upgrade:
+    description: Apply upgrade bonuses to Hatlas Crystals (owner/leader)
     default: true
-  atlas.faction.debug:
+  hatlas.faction.debug:
     description: Debug commands - /faction level set, /faction exp set/add
     default: op
-  atlas.faction.admin.disband:
+  hatlas.faction.admin.disband:
     description: Administratively disband any faction by name
     default: op
-  atlas.faction.admin.join:
+  hatlas.faction.admin.join:
     description: Force-join any player into any faction without invitation
     default: op
-  atlas.crystal:
+  hatlas.crystal:
     description: Access to /crystal commands
     default: true
-  atlas.crystal.list:
+  hatlas.crystal.list:
     description: List faction crystals
     default: true
-  atlas.crystal.rename:
+  hatlas.crystal.rename:
     description: Rename a faction crystal
     default: true
-  atlas.donjon.admin:
+  hatlas.donjon.admin:
     description: Create, delete, activate, and reset donjons via /donjon
     default: op
-  atlas.tag.admin:
+  hatlas.tag.admin:
     description: Full access to /tag (create, delete, add, edit, list)
     default: op
-  atlas.rtp:
+  hatlas.rtp:
     description: Randomly teleport within the configured radius around spawn
     default: true
-  atlas.spawn:
+  hatlas.spawn:
     description: Teleport to world spawn with a 10-second countdown
     default: true
-  atlas.spawn.admin:
+  hatlas.spawn.admin:
     description: Teleport to any safe zone with /spawn <name>, and set the world spawn with /spawn set
     default: op
-  atlas.safezone.admin:
+  hatlas.safezone.admin:
     description: Create and manage safe zones via /safezone
     default: op
-  atlas.safezone.tp:
+  hatlas.safezone.tp:
     description: Teleport to a safe zone's spawn via /safezone tp <name>
     default: true
-  atlas.tpa:
+  hatlas.tpa:
     description: Send and respond to teleport-to-player requests
     default: true
-  atlas.home:
+  hatlas.home:
     description: Teleport to your personal home
     default: true
-  atlas.home.set:
+  hatlas.home.set:
     description: Set your personal home with /sethome
     default: true
-  atlas.home.delete:
+  hatlas.home.delete:
     description: Delete a named home with /delhome
     default: true
-  atlas.faction.msg:
+  hatlas.faction.msg:
     description: Send a message to all online faction members
     default: true
-  atlas.faction.ally:
+  hatlas.faction.ally:
     description: Manage faction alliances (leader/owner only)
     default: true
-  atlas.faction.outpost:
+  hatlas.faction.outpost:
     description: Create a faction outpost (leader/owner only)
     default: true
-  atlas.faction.claim:
+  hatlas.faction.claim:
     description: Claim the chunk you are standing in
     default: true
-  atlas.faction.unclaim:
+  hatlas.faction.unclaim:
     description: Unclaim a chunk (owner/leader only)
     default: true
-  atlas.faction.balance:
+  hatlas.faction.balance:
     description: Show the ruby-gem balance of your faction's vault
     default: true
-  atlas.item.admin:
-    description: Give Atlas custom items (ruby and amethyst) via /item give <player> <item> [amount]
+  hatlas.item.admin:
+    description: Give Hatlas custom items (ruby and amethyst) via /item give <player> <item> [amount]
     default: op
-  atlas.auction:
+  hatlas.auction:
     description: Use the auction system (sell, browse market, view own listings)
     default: true
-  atlas.auction.npc:
+  hatlas.auction.npc:
     description: Spawn the auctioneer NPC via /auction npc spawn
     default: op
-  atlas.orezone.admin:
+  hatlas.orezone.admin:
     description: Manage ore zones via /orezone (pos1, pos2, add, remove, reset, list)
     default: op
-  atlas.shop.admin:
+  hatlas.shop.admin:
     description: Manage job shops via /shop (create, delete, list, additem, reset)
     default: op

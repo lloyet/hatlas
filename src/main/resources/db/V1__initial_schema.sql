@@ -1,4 +1,4 @@
--- Atlas storage schema, version 1.
+-- Hatlas storage schema, version 1.
 -- Portable between SQLite and PostgreSQL: ${blob} is BLOB (SQLite) or BYTEA (PostgreSQL).
 -- UUIDs are stored as TEXT. Times are epoch milliseconds (BIGINT).
 -- Child tables reference their parent with ON DELETE CASCADE. There are no foreign keys

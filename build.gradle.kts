@@ -19,10 +19,16 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    // Java 25 (LTS), the same as hatlas-proxy (Velocity 4.x requires it). Paper 1.21.11 runs on 21+.
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
 tasks {
+    withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+        options.release = 25
+    }
+
     runServer {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.

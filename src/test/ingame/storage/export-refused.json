@@ -2,17 +2,17 @@
   {"action": "spawn", "bot": "Tester2"},
   {"action": "console", "command": "deop Tester2"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": false},
-  {"action": "command", "bot": "Tester2", "command": "atlas storage export"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas storage export"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Unknown or incomplete command"},
-  {"action": "command", "bot": "Tester2", "command": "atlas storage info"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas storage info"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Unknown or incomplete command"},
 
   {"action": "console", "command": "op Tester2"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": true},
-  {"action": "command", "bot": "Tester2", "command": "atlas storage info"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas storage info"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Storage: PostgreSQL ("},
-  {"action": "command", "bot": "Tester2", "command": "atlas"},
-  {"action": "assert_message", "bot": "Tester2", "contains": "/atlas storage export"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas"},
+  {"action": "assert_message", "bot": "Tester2", "contains": "/hatlas storage export"},
   {"action": "console", "command": "deop Tester2"},
   {"action": "despawn", "bot": "Tester2"}
 ]

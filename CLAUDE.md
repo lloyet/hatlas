@@ -14,11 +14,13 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 
 ## 1. Project Overview
 
-`play.mc.atlas` ("Atlas") is a **PaperMC 1.21.11 plugin (Java 21)** that turns a survival server into a **faction-war progression game**. Group `org.minecraft`, artifact `atlas`, version `1.0-SNAPSHOT`, root package `org.minecraft.atlas`.
+`hatlas` ("Hatlas") is a **PaperMC 1.21.11 plugin (Java 25)** that turns a survival server into a **faction-war progression game**. Group `org.minecraft`, artifact `hatlas`, version `1.0-SNAPSHOT`, root package `org.minecraft.hatlas`.
+
+> **Renamed 2026-11-07:** the project was called **Atlas** (`play.mc.atlas`, package `org.minecraft.atlas`, plugin `atlas`). Everything is now **Hatlas** (`org.minecraft.hatlas`, plugin `hatlas`, data folder `plugins/hatlas`, permissions `hatlas.*`, command `/hatlas`, persistent-data keys `hatlas:*`, database/user `hatlas`, `HATLAS_DB_PASSWORD`; the in-game **Hatlas Crystal**). `migration/LegacyAtlas` upgrades an old install on first start: it moves `plugins/atlas`, renames `atlas_schema_version`, renames `atlas:*` keys on entities (when they load), players (on join), opened containers and stored items, and still reads `ATLAS_DB_PASSWORD`. Not migrated: permission nodes in a permission plugin, items inside shulker boxes/bundles. Checked in game on the old test baseline (folder, table, keys, NPC menus). The local folder is to be renamed `../hatlas` by the user after the merge. Minecraft's *block atlas* (resource-pack textures) is unrelated and keeps its name.
 
 ### Gameplay goals
-- **Factions are the core.** Every progression system feeds into a faction's shared XP pool. The faction levels up (0 → 99), earns **Skill Points**, and spends them in the **Atlas Crystal** GUI (HP, claims, chests, protections, homes, vault, outpost).
-- **Territory is defended by Atlas Crystals** (ender crystals with custom HP). Destroying an enemy's last crystal disbands that faction.
+- **Factions are the core.** Every progression system feeds into a faction's shared XP pool. The faction levels up (0 → 99), earns **Skill Points**, and spends them in the **Hatlas Crystal** GUI (HP, claims, chests, protections, homes, vault, outpost).
+- **Territory is defended by Hatlas Crystals** (ender crystals with custom HP). Destroying an enemy's last crystal disbands that faction.
 - **Rubies are the economy.** Ruby gems are mined in Ore Zones, kept in a ruby-only faction vault, used to pay at Shops and on the Auction House, and dropped when a crystal's protection breaks.
 - **PvE progression** goes through Jobs (daily quests), Jokeyrini (hard quests that give Donjon Keys) and Donjons (wave dungeons with a boss that give big faction XP and siege items).
 - **PvP/raiding** goes through siege items from donjons (Raider's Pickaxe, creeper eggs, TNT), the combat-log penalty, faction golems and a locator bar that shows faction members only.
@@ -37,20 +39,21 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 ```
 
 - **No automated tests.** Check changes with `compileJava`, then manually on `runServer` (or the `paper-ingame-test` skill with offline bots).
+- **Java 25** (LTS) toolchain and **Gradle 9.9.0**, the same as `../hatlas-proxy`; the foojay resolver downloads a JDK 25 if none is installed (IntelliJ's are in `~/.jdks`). Paper 1.21.11 runs on Java 21+, but the jar now needs **Java 25 at runtime**.
 - Gradle plugins: `java-library`, `xyz.jpenilla.run-paper 3.0.2`. Repos: Maven Central, PaperMC, CodeMC.
 - Dependencies (both `compileOnly`): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT` and `com.github.retrooper:packetevents-spigot:2.14.0`. **packetevents must be installed on the server as its own plugin.** It is declared as a required `server` dependency (`load: BEFORE`, `join-classpath: true`) in `paper-plugin.yml`.
-- Descriptor: **`src/main/resources/paper-plugin.yml`** (Paper plugin, not `plugin.yml`), `load: POSTWORLD`, `api-version: '1.21'`, `loader: org.minecraft.atlas.AtlasLoader`. All permission nodes are declared there.
-- Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `AtlasLoader` (Paper `MavenLibraryResolver`) **only when `storage.type: postgresql`**.
+- Descriptor: **`src/main/resources/paper-plugin.yml`** (Paper plugin, not `plugin.yml`), `load: POSTWORLD`, `api-version: '1.21'`, `loader: org.minecraft.hatlas.HatlasLoader`. All permission nodes are declared there.
+- Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `HatlasLoader` (Paper `MavenLibraryResolver`) **only when `storage.type: postgresql`**.
 - **Local PostgreSQL:** `docker compose -f docker/postgres/docker-compose.yml up -d --wait` (password in the git-ignored `docker/postgres/.env`, see `.env.example`). Usage and test recipe: `docs/storage.md` §4.
 - `run/` (test server and world) is git-ignored. **No world or map save is committed.**
 - MCP: `.mcp.json` declares `papermc-docs` → `https://gitmcp.io/PaperMC/docs` (GitMCP view of the PaperMC docs repo) and `vitaminmcp` (`cmd /c npx -y vitaminmcp@3.2.2`, pinned; bots + server observation for in-game tests).
 
 ### In-game test server (used by the `paper-ingame-test` skill)
-- `TEST_SERVER_DIR=C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11` (outside the repo, not in git). `PLUGIN_NAME=atlas`. **Disposable: test world only, no real data, no real players** (✔ 2026-11-07), so tests never back up or restore anything. Runs `online-mode=false`: anyone who reaches the port can join under any name.
-- Atlas there runs on **PostgreSQL** (`docker/postgres`, database `atlas_test`), like production will (M2). Its Atlas config is `scripts/test-world/atlas-config.yml` (PostgreSQL + AFK kick off).
-- Control script (Windows, PowerShell 5.1): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-server.ps1 <action>`. Reads `MC_RCON_PASSWORD`, `ATLAS_DB_PASSWORD`… from `.env` / `docker/postgres/.env`.
-  - `start|stop|restart|status|console "<cmd>"`, `deploy` (gradle build → replace `plugins/atlas-*.jar` → restart). Stop goes through RCON so `onDisable` saves data; the script never kills the process. `start` also starts the database.
-  - **`reset`**: restores the **baseline** (worlds + `plugins/atlas` + a `pg_dump` of `atlas_test`, kept in `<TEST_SERVER_DIR>\baseline`) and starts (~25 s). Run before every test campaign or after a run left a mess.
+- `TEST_SERVER_DIR=C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11` (outside the repo, not in git). `PLUGIN_NAME=hatlas`. **Disposable: test world only, no real data, no real players** (✔ 2026-11-07), so tests never back up or restore anything. Runs `online-mode=false`: anyone who reaches the port can join under any name.
+- Hatlas there runs on **PostgreSQL** (`docker/postgres`, database `hatlas_test`), like production will (M2). Its Hatlas config is `scripts/test-world/hatlas-config.yml` (PostgreSQL + AFK kick off).
+- Control script (Windows, PowerShell 5.1): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-server.ps1 <action>`. Reads `MC_RCON_PASSWORD`, `HATLAS_DB_PASSWORD`… from `.env` / `docker/postgres/.env`.
+  - `start|stop|restart|status|console "<cmd>"`, `deploy` (gradle build → replace `plugins/hatlas-*.jar` → restart). Stop goes through RCON so `onDisable` saves data; the script never kills the process. `start` also starts the database.
+  - **`reset`**: restores the **baseline** (worlds + `plugins/hatlas` + a `pg_dump` of `hatlas_test`, kept in `<TEST_SERVER_DIR>\baseline`) and starts (~25 s). Run before every test campaign or after a run left a mess.
   - Building the baseline (only when the map, `fixtures.json` or the setup change): `rebuild-from-map` (raw map from `run/world`, empty DB, structures installed), `node scripts/test-world/build-setup.mjs`, connect bot `Builder`, `run-console src/test/ingame/_setup/build-baseline.json`, check, `baseline`. Also `db-up`, `install-structures`.
 - **Test world** (✔ Open Questions 10/15): the user's map (`run/world`, git-ignored) + the setup, named in **`src/test/ingame/fixtures.json`**:
   - safe zones `spawn` (world spawn -4956 80 -3044; 9 job/quest/smuggler/explorer/auction NPCs) and `city` (210 chunks, shop house `miner_shop`, ore zone `city_mine` inside it, mineable because ore zones win over safe zones);
@@ -58,8 +61,9 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
   - `sandbox` (x 1000, z 1000) for scenarios that build their own setup. Gamerules: no mob/patrol/trader spawning, fixed day and weather.
 - Scenarios use `{{fixture.path}}` placeholders, rendered by `node scripts/test-world/render.mjs <file>` before `bot_run_scenario`.
 - **Never `/reload`.** Always restart.
-- Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics.
-- Bots: offline names `Tester1`, `Tester2`… (`Builder` for the setup). Atlas gotchas: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); disconnecting within `combat_log.timeout_seconds` of PvP kills the bot.
+- The server runs on **JDK 25**: `test-server.ps1` uses `TEST_SERVER_JAVA`, else the newest JDK 25 in `~/.jdks` (the `java` on PATH is 21). `deploy` also removes a leftover `atlas-*.jar`.
+- Server plugins: hatlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics.
+- Bots: offline names `Tester1`, `Tester2`… (`Builder` for the setup). Hatlas gotchas: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); disconnecting within `combat_log.timeout_seconds` of PvP kills the bot.
 
 ### Wiki automation (Open Question 12)
 - **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
@@ -68,7 +72,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
 
 ### In-game test gate (Open Question 20)
-- **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
+- **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Hatlas".
 - **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
 - **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
 - **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for the PR's head (`--head/-H` branch, else the checked-out HEAD) or for an ancestor of it with identical `src/main/`, and (for the checked-out branch) no uncommitted `src/main/` change. `--base origin/main` and `main` are the same. Both hooks judge the `--head` branch's own content (feature map, suites, diff), so a PR from a worktree or another branch is checked correctly (fixed 2026-11-07). Else the call is denied with the exact agent prompt to run.
@@ -77,8 +81,8 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ## 3. Architecture
 
-### 3.1 Entry point: `Atlas.java`
-`Atlas extends JavaPlugin`, singleton `Atlas.instance`. Its `onEnable()` runs these steps in order:
+### 3.1 Entry point: `Hatlas.java`
+`Hatlas extends JavaPlugin`, singleton `Hatlas.instance`. Its `onEnable()` runs these steps in order:
 1. Registers `LocatorBarListener` with the packetevents API.
 2. Loads the tuning YAML files (see §5) into `public static YamlConfiguration xxxConfig` fields (`loadTuning`), copies new `config.yml` defaults (e.g. `storage`), and calls the managers' `loadConfig(...)` and `init()` methods (keys, item registries, recipes).
 3. **Storage** (`storage/`, see [`docs/storage.md`](docs/storage.md)): `Storage.start()` opens the backend chosen in `config.yml > storage` (sqlite | postgresql), imports the `*-data.yml` files once into a fresh database, and loads every domain. If this fails, the plugin disables itself (nothing is written).
@@ -98,7 +102,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - **PDC** (`NamespacedKey`) tags custom entities and items. Keys are lazily created static fields on the owning manager.
 - **Custom items** use data components (`ITEM_MODEL` = `hatlas:<id>`, `ITEM_NAME`, `LORE`, `EQUIPPABLE`) on a vanilla base material. Identity is checked through the `ITEM_MODEL` key (e.g. `RubyItem.isRubyGem`).
 - **NPCs** are vanilla entities with `setAI(false)`, invulnerable and persistent, tagged in PDC. They persist with the world and are not saved to YAML (except shop NPCs). `NpcLookHelper` turns Smugglers and Explorers toward the nearest player.
-- **GUIs** implement `AtlasGui extends InventoryHolder`. `GuiListener` routes click, close and drag to the holder. `GuiNavigator` keeps a per-player back stack (`push`/`back`/`pop`). The last slot is always the "Back" barrier (`finishGui()`). `GuiUtil` has the layout, format and pane helpers. Paper `Dialog` is used for text input (crystal rename).
+- **GUIs** implement `HatlasGui extends InventoryHolder`. `GuiListener` routes click, close and drag to the holder. `GuiNavigator` keeps a per-player back stack (`push`/`back`/`pop`). The last slot is always the "Back" barrier (`finishGui()`). `GuiUtil` has the layout, format and pane helpers. Paper `Dialog` is used for text input (crystal rename).
 - **Titles:** use `TitleUtil` (word-wraps to title and subtitle, never embeds `\n`).
 - Use `ConcurrentHashMap` for state touched from async events (chat, AFK, combat).
 
@@ -117,10 +121,10 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - **Faction chat formatting** (`ChatListener`): ops show in dark red, faction tag in the faction color. `/f msg` sends to online members only.
 - **Leaving or losing faction membership** removes the player's job, removes secondary homes (main home is kept) and refreshes the locator bar.
 - **Vault** (`FactionVault`, `CrystalVaultGui`): a **ruby-gem-only** shared inventory per faction. While a vault GUI is open, its inventory is the live vault: every `FactionVault` helper (payments, drops) and the FACTIONS snapshot pull from it first and push their change back (`CrystalVaultGui.pullLive/pushLive/pullAllLive`), so a purchase made while someone has the vault open is not undone on close (ruby duplication, fixed 2026-11-07). Non-ruby items are refused too. Members can deposit by click, shift-click, number key onto an empty slot or drag; only owner/BANKER+ can take items out. Default size from `vault.default_size`, can be expanded with the Vault skill. When a crystal protection breaks, `max(ceil(total × protection_break_drop_percent), protection_break_drop_min)` gems drop. All gems drop when the faction is disbanded through crystal loss. `/f balance` shows the gem count.
-- **Admin/debug:** `/f level set`, `/f exp set|add`, `/f skillpoints set` (`atlas.faction.debug`), `/f disband <faction>` (`atlas.faction.admin.disband`), `/f join <player> <faction>` (`atlas.faction.admin.join`).
+- **Admin/debug:** `/f level set`, `/f exp set|add`, `/f skillpoints set` (`hatlas.faction.debug`), `/f disband <faction>` (`hatlas.faction.admin.disband`), `/f join <player> <faction>` (`hatlas.faction.admin.join`).
 
-### 4.2 Atlas Crystal: core, skills, chests, outpost (`crystal/`, `Crystal*Gui`, `FactionListener`, `CrystalListener`)
-- `AtlasCrystal` wraps an `EnderCrystal` with its own HP (`BASE_MAX_HP = 50`). State is split between entity PDC (hp, max_hp, immunity, bonuses, protections) and `factions-data.yml` → `crystals.<entityUUID>` (faction, name, hp, home, outpost flag, claimed chunks per world as chunk-key longs, chest sizes and contents, purchased and broken protections). Crystals in unloaded chunks stay as **stubs** (`isLoaded()==false`) and get reattached on `EntitiesLoadEvent`.
+### 4.2 Hatlas Crystal: core, skills, chests, outpost (`crystal/`, `Crystal*Gui`, `FactionListener`, `CrystalListener`)
+- `HatlasCrystal` wraps an `EnderCrystal` with its own HP (`BASE_MAX_HP = 50`). State is split between entity PDC (hp, max_hp, immunity, bonuses, protections) and `factions-data.yml` → `crystals.<entityUUID>` (faction, name, hp, home, outpost flag, claimed chunks per world as chunk-key longs, chest sizes and contents, purchased and broken protections). Crystals in unloaded chunks stay as **stubs** (`isLoaded()==false`) and get reattached on `EntitiesLoadEvent`.
 - **Nametag:** a TextDisplay showing `name [Faction]` / `LvL.x` / `hp/max ♥` / `IMMUNITY - [ready/total]` (aqua while immune, yellow while reloading).
 - **Damage:** only enemy-faction players can damage a crystal, at most 1 hit/s per attacker. Non-entity damage is cancelled. Members are alerted. Regen is `regen_per_second + regenBonus` per second after `regen_timeout_seconds` without being hit.
 - **When HP reaches 0:**
@@ -222,7 +226,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
   - Only gems are allowed in the faction vault.
   - Everything else (chests, shulkers, hoppers, crystal chests…) rejects all ruby items.
 - `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards. Stats are the base item's **+`config.yml > amethyst.stat_bonus_percent`** (default 15 %): attack damage (total, fist included), armor, toughness, knockback resistance, correct-tool mining speed (huge speeds such as the sword's instant-mine rule are kept, else the item cannot be saved) and durability; attack speed and default mining speed unchanged. No ruby-style restrictions (✔ answered 2026-11-07, Open Question 8).
-- `/item give <player> <id> [amount]` (`atlas.item.admin`).
+- `/item give <player> <id> [amount]` (`hatlas.item.admin`).
 
 ### 4.11 Trade (`trade/`, `TradeCommand`, `TradeListener`, `TradeGui`)
 - Right-clicking a player sends a trade request (clickable accept/decline, expires after 60 s). `/trade accept|decline [player]`.
@@ -236,7 +240,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### 4.13 Combat (`combat/`, `CombatLogListener`)
 - Any PvP hit (melee or projectile) marks both players as in combat for `combat_log.timeout_seconds`. Quitting while marked drops your inventory and armor, kills you and broadcasts it. Timers survive a restart (`combats-data.yml`) and are not applied during shutdown.
-- 1.8-style PvP comes from an **external plugin** (per WIKI), not from Atlas.
+- 1.8-style PvP comes from an **external plugin** (per WIKI), not from Hatlas.
 
 ### 4.14 Golems (`golem/`, `GolemListener`)
 - Building the T-pattern with a carved pumpkin on top of a body block creates a faction-tagged Iron Golem with stats from `GolemType`:
@@ -262,7 +266,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ---
 
-## 5. Configuration & data files (`plugins/atlas/`)
+## 5. Configuration & data files (`plugins/hatlas/`)
 
 | Config (shipped) | Content |
 |---|---|
@@ -277,8 +281,8 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 | `orezones.yml` | `interval_reset_hours`, `default_ore_weights` |
 | `shops.yml` | `reset_interval_hours`, `items_per_shop`, `job_defaults` (+ `shops`: import-only, emptied after import) |
 
-**Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **sqlite** → `plugins/atlas/atlas.db`). Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
-- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/atlas storage export` (`atlas.storage.admin`) writes a full backup to a portable SQLite file in `plugins/atlas/backups/` (✔ answered 2026-11-07, Open Question 19).
+**Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **sqlite** → `plugins/hatlas/hatlas.db`). Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
+- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/hatlas storage export` (`hatlas.storage.admin`) writes a full backup to a portable SQLite file in `plugins/hatlas/backups/` (✔ answered 2026-11-07, Open Question 19).
 - On the first start with a database, the `*-data.yml` files are imported and renamed `*.yml.migrated` (backup).
 - Saves happen right after important mutations, then every `autosave_minutes` (5) for all domains, and at shutdown. **A crash loses at most the last autosave interval** for data without an immediate save (job XP, quest progress, custom blocks, combat timers).
 
@@ -304,7 +308,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 8. Typo `maxActiveDonjonons` in `DonjonManager`.
 9. ~~`FactionClaimManager.saveClaims/loadClaims` are legacy~~ — **removed 2026-11-06**: claims are persisted per crystal (CRYSTALS domain, `crystal_claims`).
 10. ~~**Orphan crystals keep claims**~~ — **fixed 2026-11-06**: `FactionManager.persist()` saves factions + crystals right after create/delete/disband; `loadCrystalData` drops crystals of unknown factions (WARN log + file rewrite); `restore()` removes orphan crystal entities when their chunk loads.
-11. ~~**Crystals in chunks already loaded at enable are never restored**~~ — **fixed 2026-11-07**: `FactionListener.onEntitiesLoad` only saw chunks whose entities loaded after the listener was registered, so a force-loaded chunk's crystal stayed a stub (and an orphan entity stayed in the world). `Atlas.onEnable` now calls `AtlasCrystalManager.restoreLoadedEntities()` after registering listeners; the listener and the scan share `restoreIfNeeded()`.
+11. ~~**Crystals in chunks already loaded at enable are never restored**~~ — **fixed 2026-11-07**: `FactionListener.onEntitiesLoad` only saw chunks whose entities loaded after the listener was registered, so a force-loaded chunk's crystal stayed a stub (and an orphan entity stayed in the world). `Hatlas.onEnable` now calls `HatlasCrystalManager.restoreLoadedEntities()` after registering listeners; the listener and the scan share `restoreIfNeeded()`.
 
 ---
 
@@ -325,26 +329,28 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 **Architecture**
 ```
 player ─▶ Velocity proxy (online-mode, only public port)
-            ├─ hub (default server, no Atlas) ── /link
-            └─ faction server (Atlas, bound to localhost, Velocity modern forwarding)
-SvelteKit SSR ─▶ PostgreSQL ◀─ Atlas (schema atlas) / hatlas-proxy (schema web: read tickets, write link codes + presence)
+            ├─ hub (default server, no Hatlas) ── /link
+            └─ faction server (Hatlas, bound to localhost, Velocity modern forwarding)
+SvelteKit SSR ─▶ PostgreSQL ◀─ Hatlas (schema hatlas) / hatlas-proxy (schema web: read tickets, write link codes + presence)
 Stripe ─webhook▶ SvelteKit (writes web.tickets)
 ```
-- **PostgreSQL is the production backend and becomes the default `storage.type`** (SQLite kept as an option for `runServer`/dev). A missing database disables Atlas with a clear message.
-- **Two schemas, enforced by roles:** `atlas` (owned by the plugin; the website reads only **views**, never internal tables) and `web` (owned by SvelteKit: accounts, links, tickets, payments). The plugin writes readable columns for the website (e.g. faction `vault_gems`, shop item material/name/amount) because vault and item contents are Paper item bytes.
+- **PostgreSQL is the production backend and becomes the default `storage.type`** (SQLite kept as an option for `runServer`/dev). A missing database disables Hatlas with a clear message.
+- **Two schemas, enforced by roles:** `hatlas` (owned by the plugin; the website reads only **views**, never internal tables) and `web` (owned by SvelteKit: accounts, links, tickets, payments). The plugin writes readable columns for the website (e.g. faction `vault_gems`, shop item material/name/amount) because vault and item contents are Paper item bytes.
 - **No HTTP API in the plugin** (Open Question 22). Reads go through views; **online players** through a presence table written by `hatlas-proxy` on join/quit/server switch (`LISTEN/NOTIFY` for live updates if needed). An API is only added later for live game state the DB cannot hold.
 - **Writes happen only on the website side** (Open Question 21): ticket purchase = Stripe Checkout → webhook → SvelteKit writes `web.tickets`; link = `/link` writes a single-use code (5–10 min) to `web.link_codes`, the player (logged in on the site) enters it, SvelteKit records the link. Payments never depend on the game server being up.
-- **`hatlas-proxy` (Velocity plugin)** owns `/link`, the ticket check when moving hub → faction server ("access expired, renew at <url>"), the mid-session expiry (warn, then **send back to the hub**), and the presence table. Atlas also refuses a login without a valid ticket (defence in depth), switchable for the test server (`access.require_ticket: false`, bots connect directly).
+- **`hatlas-proxy` (Velocity plugin)** owns `/link`, the ticket check when moving hub → faction server ("access expired, renew at <url>"), the mid-session expiry (warn, then **send back to the hub**), and the presence table. Hatlas also refuses a login without a valid ticket (defence in depth), switchable for the test server (`access.require_ticket: false`, bots connect directly).
 - **A ticket belongs to a Minecraft UUID** (Open Question 24), not to the web account.
 - **Backups** (Open Question 25): daily `pg_dump -Fc` + world copy taken together (`save-off` → `save-all flush` → dump → copy → `save-on`), restored together by one script, kept **on the same machine in a dedicated folder** for now (rotation e.g. 7 daily + 4 weekly). Data loss ≤ 24 h accepted.
-- **`/atlas storage export` is removed** (replaced by the backups above); `/atlas storage info` stays.
+- **`/hatlas storage export` is removed** (replaced by the backups above); `/hatlas storage info` stays.
 
 **Planned PRs (in order)**
-1. `feat/postgres-default`: default `storage.type: postgresql`, clear startup error, remove `/atlas storage export` + portable SQLite mode, docs.
+1. `feat/postgres-default`: default `storage.type: postgresql`, clear startup error, remove `/hatlas storage export` + portable SQLite mode, docs.
 2. `feat/backup-script`: daily world + DB backup/restore script, rotation, scheduled task; reuses the test server's `baseline`/`reset` logic.
-3. `feat/web-read-model`: readable columns (`vault_gems`, item display fields) + `atlas.web_*` views + a read-only DB role.
-4. `feat/hatlas-proxy`: multi-module Gradle (`atlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Atlas login check behind `access.require_ticket`.
+3. `feat/web-read-model`: readable columns (`vault_gems`, item display fields) + `hatlas.web_*` views + a read-only DB role.
+4. `feat/hatlas-proxy`: multi-module Gradle (`hatlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Hatlas login check behind `access.require_ticket`.
 5. Website (separate repo): SvelteKit + Drizzle/postgres.js on schema `web`, Stripe Checkout + webhook, link page, dashboard.
+
+**Shared code with `../hatlas-proxy`** (✔ decided 2026-11-07): for now the small ticket check is **duplicated** in each plugin. If more code has to be shared later (config models, link-code logic, constants), extract a library `../hatlas-common` and include it with a **Gradle composite build** (`includeBuild("../hatlas-common")`, built from source, no publishing); publish it (e.g. GitHub Packages) only when CI needs it.
 
 **Before launch:** check Mojang's Minecraft Usage Guidelines for paid server access, EU VAT on digital services (e.g. Stripe Tax), refunds/chargebacks (webhook revokes the ticket).
 
@@ -372,13 +378,13 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
 17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5) — *superseded 2026-11-07 by Open Question 25: export to be removed, PostgreSQL default, daily dumps (M2).*
+19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/hatlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5) — *superseded 2026-11-07 by Open Question 25: export to be removed, PostgreSQL default, daily dumps (M2).*
 20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
 21. ~~**Website writes**~~ — ✔ answered 2026-11-07: link and ticket purchase are handled by **SvelteKit + PostgreSQL**; nothing writes through the plugin. See M2.
 22. ~~**HTTP API in the plugin**~~ — ✔ answered 2026-11-07: **not needed** for now; DB views + a presence table + a Velocity plugin instead. See M2.
 23. ~~**Proxy**~~ — ✔ answered 2026-11-07: **Velocity** in front (hub + faction server) with a small **`hatlas-proxy`** plugin owning `/link` and the ticket check. See M2.
 24. ~~**Ticket expiry / ownership**~~ — ✔ answered 2026-11-07: expiry mid-session **sends the player back to the hub**; a ticket is **tied to the Minecraft UUID**.
-25. ~~**Backups**~~ — ✔ answered 2026-11-07: **daily dump** (≤ 24 h loss), stored **on the same machine in a dedicated folder** for now; `/atlas storage export` will be removed. PostgreSQL becomes the default backend.
+25. ~~**Backups**~~ — ✔ answered 2026-11-07: **daily dump** (≤ 24 h loss), stored **on the same machine in a dedicated folder** for now; `/hatlas storage export` will be removed. PostgreSQL becomes the default backend.
 
 ---
 

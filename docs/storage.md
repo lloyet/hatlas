@@ -1,6 +1,6 @@
 # Storage: data audit and adapter
 
-Written 2026-11-06. Code: `src/main/java/org/minecraft/atlas/storage/`. Schema: `src/main/resources/db/`.
+Written 2026-11-06. Code: `src/main/java/org/minecraft/hatlas/storage/`. Schema: `src/main/resources/db/`.
 
 ## 1. Audit: what is configuration, what is data
 
@@ -53,14 +53,14 @@ managers (in memory, unchanged API)
 Storage (facade) ──▶ DataStore (adapter interface)
                        └─ SqlDataStore ──▶ SqlDialect
                                              ├─ SqliteDialect   (Paper ships sqlite-jdbc)
-                                             └─ PostgresDialect (driver via AtlasLoader)
+                                             └─ PostgresDialect (driver via HatlasLoader)
 YamlDataStore: read-only reader of the legacy *-data.yml, used once by Storage.importYaml
 ```
 YAML is **not** a backend any more (decided 2026-11-07, Open Question 19). `storage.type: yaml` in an old `config.yml` is read as `sqlite` with a warning, so the `*-data.yml` files are imported on the first start.
 
 - **Domains are written whole.** `write(DataSet)` replaces every domain in the set inside **one transaction**: SQL `DELETE` + batched `INSERT … ON CONFLICT DO NOTHING`. FACTIONS and CRYSTALS are always saved together (lesson from known issue §7.10).
 - **When data is saved:** right after important actions (`Storage.save(...)` at the old save call sites), every `storage.autosave_minutes` (default 5) for all domains, and synchronously in `onDisable`.
-- **Threading:** snapshots are taken on the main thread (items are serialized to Paper bytes there). Writes run on a single `Atlas-Storage` thread. `shutdown()` waits for that thread, then writes everything once more.
+- **Threading:** snapshots are taken on the main thread (items are serialized to Paper bytes there). Writes run on a single `Hatlas-Storage` thread. `shutdown()` waits for that thread, then writes everything once more.
 - **Safety:** nothing is written before `Storage.markReady()`, i.e. before every manager has restored its data. If the backend can't open or load, the plugin disables itself instead of running with empty state that would later overwrite the database.
 - **Unresolved rows:** donjons, homes, tags, custom blocks, the spawn and safe-zone spawns whose world is not loaded (or whose donjon type was removed) are kept as raw rows and written back unchanged, instead of being silently dropped as the YAML loaders did.
 - **Items** (vault, crystal chests, auctions, shop items) use `ItemStack.serializeAsBytes` / `serializeItemsAsBytes`. These embed the data version, so the DataFixer upgrades items after a Minecraft update. They are stored as `BLOB`/`BYTEA` (the legacy YAML files had them as Base64 `*_b64` keys, still read by the import).
@@ -72,18 +72,18 @@ YAML is **not** a backend any more (decided 2026-11-07, Open Question 19). `stor
 storage:
   type: sqlite          # sqlite | postgresql (choose once, no migration between them)
   autosave_minutes: 5
-  sqlite: { file: atlas.db }
-  postgresql: { host: localhost, port: 5432, database: atlas, username: atlas, password: '', ssl: false }
+  sqlite: { file: hatlas.db }
+  postgresql: { host: localhost, port: 5432, database: hatlas, username: hatlas, password: '', ssl: false }
 ```
-- The password can come from the `ATLAS_DB_PASSWORD` environment variable, which overrides the file.
+- The password can come from the `HATLAS_DB_PASSWORD` environment variable, which overrides the file.
 - **First start on a database:** if the DB has never been initialized (`server_state[storage.initialized]`), every `*-data.yml` is imported in one transaction and then renamed to `*.yml.migrated`. Those files are a backup and are never read again.
 - **No way back to YAML**, and **no migration between SQLite and PostgreSQL**: the backend is chosen once.
-- **Backup:** `/atlas storage export` (permission `atlas.storage.admin`, console or op) writes the whole data set to a new, portable SQLite file `plugins/atlas/backups/atlas-<yyyyMMdd-HHmmss>.db` (journal mode DELETE, so no `-wal`/`-shm` files). It works from either backend: the in-memory snapshots are taken on the main thread (so unsaved changes are included), then written on the storage thread after any pending save. **Restore** (SQLite): stop the server, replace `atlas.db` (and delete `atlas.db-wal`/`-shm`) with the export, start. A restore brings back the **data only**, not world entities: a crystal whose entity was removed after the export comes back as a stub (no entity). Exports are named to the second, so two exports in the same second fail with "file already exists".
-- **Inspecting SQLite:** `plugins/atlas/atlas.db` (WAL mode, so `-wal`/`-shm` files sit next to it). Open it read-only, or with the server stopped.
+- **Backup:** `/hatlas storage export` (permission `hatlas.storage.admin`, console or op) writes the whole data set to a new, portable SQLite file `plugins/hatlas/backups/hatlas-<yyyyMMdd-HHmmss>.db` (journal mode DELETE, so no `-wal`/`-shm` files). It works from either backend: the in-memory snapshots are taken on the main thread (so unsaved changes are included), then written on the storage thread after any pending save. **Restore** (SQLite): stop the server, replace `hatlas.db` (and delete `hatlas.db-wal`/`-shm`) with the export, start. A restore brings back the **data only**, not world entities: a crystal whose entity was removed after the export comes back as a stub (no entity). Exports are named to the second, so two exports in the same second fail with "file already exists".
+- **Inspecting SQLite:** `plugins/hatlas/hatlas.db` (WAL mode, so `-wal`/`-shm` files sit next to it). Open it read-only, or with the server stopped.
 
 ## 4. Moving to PostgreSQL later
 
-1. Create the database and user; set `storage.type: postgresql` and the connection settings, then restart. `AtlasLoader` downloads `org.postgresql:postgresql` through Paper's Maven mirror (only for this type), and the schema is created by `SchemaMigrator`.
+1. Create the database and user; set `storage.type: postgresql` and the connection settings, then restart. `HatlasLoader` downloads `org.postgresql:postgresql` through Paper's Maven mirror (only for this type), and the schema is created by `SchemaMigrator`.
 2. There is **no SQLite → PostgreSQL copy** by design (Open Question 19): choose PostgreSQL before the server goes live. A fresh PostgreSQL database only imports legacy `*-data.yml` files.
 3. ✔ **Tested 2026-11-07** against PostgreSQL 16.10 (local docker-compose below): schema creation, driver download, `*-data.yml` import (same row counts as SQLite), immediate save after a mutation, save at shutdown, reload on the next start without re-import.
 
@@ -92,17 +92,17 @@ storage:
 `docker/postgres/docker-compose.yml` runs `postgres:16.10-alpine`, bound to `127.0.0.1` only, with a named volume and a `pg_isready` healthcheck.
 
 ```bash
-cp docker/postgres/.env.example docker/postgres/.env    # set ATLAS_DB_PASSWORD (file is git-ignored)
+cp docker/postgres/.env.example docker/postgres/.env    # set HATLAS_DB_PASSWORD (file is git-ignored)
 docker compose -f docker/postgres/docker-compose.yml up -d --wait
-# plugins/atlas/config.yml: storage.type: postgresql, host localhost, port 5432,
-# database atlas, username atlas; password via the ATLAS_DB_PASSWORD env variable
+# plugins/hatlas/config.yml: storage.type: postgresql, host localhost, port 5432,
+# database hatlas, username hatlas; password via the HATLAS_DB_PASSWORD env variable
 docker compose -f docker/postgres/docker-compose.yml down      # stop, keep data
 docker compose -f docker/postgres/docker-compose.yml down -v   # stop and wipe data
 ```
 
-To test without touching the shared test server, use the isolated `./gradlew runServer` instance (`./run`, git-ignored): put `eula=true`, a `server.properties` on another port (e.g. 25566, RCON on), packetevents in `run/plugins/`, and a `run/plugins/atlas/config.yml` with `type: postgresql`. Inspect rows with `docker compose -f docker/postgres/docker-compose.yml exec postgres psql -U atlas -d atlas`.
+To test without touching the shared test server, use the isolated `./gradlew runServer` instance (`./run`, git-ignored): put `eula=true`, a `server.properties` on another port (e.g. 25566, RCON on), packetevents in `run/plugins/`, and a `run/plugins/hatlas/config.yml` with `type: postgresql`. Inspect rows with `docker compose -f docker/postgres/docker-compose.yml exec postgres psql -U hatlas -d hatlas`.
 
 ## 5. Changing the schema or adding a domain
 
 - **Schema change:** add `db/V2__<name>.sql` and append it to `SchemaMigrator.MIGRATIONS`. Never edit an applied file. Use `${blob}` for binary columns.
-- **New domain:** add a record in `storage/model`, a constant in `DataDomain`, a mapper in `sql/*Tables` (the store refuses to start if one is missing; `yaml/*` readers are only needed for data that existed in the legacy files), `snapshot()`/`restore()` in the manager, then `Storage.register` and the restore call in `Atlas.onEnable`.
+- **New domain:** add a record in `storage/model`, a constant in `DataDomain`, a mapper in `sql/*Tables` (the store refuses to start if one is missing; `yaml/*` readers are only needed for data that existed in the legacy files), `snapshot()`/`restore()` in the manager, then `Storage.register` and the restore call in `Hatlas.onEnable`.

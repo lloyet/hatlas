@@ -1,4 +1,4 @@
-# Atlas — Player Wiki
+# Hatlas — Player Wiki
 
 > **Current update: Ruby Ruins** — rubies (the faction currency), amethyst gear, ore zones, the auction house and job shops.
 
@@ -22,7 +22,7 @@
 
 ### What is a Faction?
 
-A faction is a persistent group of players that fight, progress, and earn rewards together. Every member's contributions (job quests, dungeon clears) flow into the faction's shared XP pool, which raises the faction's level and grants **Skill Points**. Skill Points are spent inside the Atlas Crystal GUI to grow your faction the way *you* want — claims, chests, protection, HP, or homes.
+A faction is a persistent group of players that fight, progress, and earn rewards together. Every member's contributions (job quests, dungeon clears) flow into the faction's shared XP pool, which raises the faction's level and grants **Skill Points**. Skill Points are spent inside the Hatlas Crystal GUI to grow your faction the way *you* want — claims, chests, protection, HP, or homes.
 
 ### Levels and XP
 
@@ -41,13 +41,13 @@ Each level-up grants **Skill Points**. Levelling up no longer auto-applies claim
 
 ### Skill Points
 
-The Skill Points shop is accessible inside the Atlas Crystal inventory (right-click on a faction crystal). Skills can be purchased independently:
+The Skill Points shop is accessible inside the Hatlas Crystal inventory (right-click on a faction crystal). Skills can be purchased independently:
 
 | Skill | Effect | Repeatable? |
 |---|---|---|
 | **Claims** | Grants additional chunks you can manually claim | Yes |
 | **Faction Chest** | Unlocks an additional virtual double-chest accessible by all members | Yes |
-| **HP** | Increases the maximum HP of your faction's Atlas Crystals | Yes |
+| **HP** | Increases the maximum HP of your faction's Hatlas Crystals | Yes |
 | **Home** | Adds a personal home slot to every member | Yes |
 | **Protection** | Adds a stockpiled protection slot triggered when the Crystal is destroyed | Yes |
 
@@ -55,13 +55,13 @@ You decide your faction's growth path. There is no fixed upgrade tree — every 
 
 ### Faction Chest
 
-The faction chest is a virtual double-chest storage shared between all members. Available chests come from the **Faction Chest** skill — buy more slots with Skill Points to expand storage. Access them through the Atlas Crystal GUI.
+The faction chest is a virtual double-chest storage shared between all members. Available chests come from the **Faction Chest** skill — buy more slots with Skill Points to expand storage. Access them through the Hatlas Crystal GUI.
 
 If a level downgrade ever drops the chest count below the number you've used, the excess chests are destroyed and their contents drop on the ground at the crystal location.
 
 ### Faction Vault (rubies)
 
-The faction vault is a shared storage that holds **ruby gems only**. Open it from the Atlas Crystal GUI (**Faction Vault** button); `/faction balance` shows how many rubies it holds. The vault pays for job shop and auction house purchases, and receives the money when your faction sells on the auction house.
+The faction vault is a shared storage that holds **ruby gems only**. Open it from the Hatlas Crystal GUI (**Faction Vault** button); `/faction balance` shows how many rubies it holds. The vault pays for job shop and auction house purchases, and receives the money when your faction sells on the auction house.
 
 | Action | Who can do it |
 |---|---|
@@ -95,13 +95,13 @@ Claims protect chunks against enemy mining and building. They are no longer gran
 /faction showclaim — render particles along the borders of your claimed chunks
 ```
 
-**Adjacency rule:** new claims must touch an existing claim (chunk-side adjacency). Your first claim must be adjacent to your Atlas Crystal.
+**Adjacency rule:** new claims must touch an existing claim (chunk-side adjacency). Your first claim must be adjacent to your Hatlas Crystal.
 
 `/faction info` shows your current `[Free Claims / Total Claims]` count and remaining protection time.
 
 ### Crystal Home & Outpost Promotion
 
-Creating an Atlas Crystal **no longer auto-sets your faction home**. Instead a chat prompt invites you to set it manually:
+Creating a Hatlas Crystal **no longer auto-sets your faction home**. Instead a chat prompt invites you to set it manually:
 
 ```
 /faction sethome              — set the home of your main Crystal at your current location
@@ -134,33 +134,33 @@ When a faction is **disbanded** by another faction destroying its last Crystal, 
 
 | Command | Description | Permission |
 |---|---|---|
-| `/faction` | Show the help menu | `atlas.faction` |
-| `/faction create <name>` | Create a new faction | `atlas.faction.create` |
-| `/faction disband` | Disband your faction (owner only) | `atlas.faction.disband` |
-| `/faction rename <name>` | Rename your faction | `atlas.faction.rename` |
-| `/faction description <text>` | Set the faction description | `atlas.faction.description` |
-| `/faction color <color>` | Change the faction chat color | `atlas.faction.color` |
-| `/faction invite <player>` | Invite a player to your faction | `atlas.faction.invite` |
-| `/faction accept` | Accept a faction invitation | `atlas.faction.accept` |
-| `/faction decline` | Decline a faction invitation | `atlas.faction.decline` |
-| `/faction leave` | Leave your current faction | `atlas.faction.leave` |
-| `/faction kick <player>` | Kick a member from the faction | `atlas.faction.kick` |
-| `/faction promote <player>` | Promote a member to the next role | `atlas.faction.promote` |
-| `/faction demote <player>` | Demote a member to the previous role | `atlas.faction.demote` |
-| `/faction transfer <player>` | Transfer faction ownership | `atlas.faction.transfer` |
-| `/faction info [faction]` | View faction info (claims, protection, HP) | `atlas.faction.info` |
-| `/faction list` | List all factions | `atlas.faction.list` |
-| `/faction members` | List your faction's members and roles | `atlas.faction.members` |
-| `/faction home` | Teleport to the main Crystal's home | `atlas.faction.home` |
-| `/faction sethome [crystal]` | Set the home of a Crystal at your location (Owner/Leader) | `atlas.faction.sethome` |
-| `/faction claim` | Claim the chunk you stand on | `atlas.faction.claim` |
-| `/faction unclaim` | Release the chunk you stand on | `atlas.faction.claim` |
-| `/faction showclaim` | Render particles along your claim borders | `atlas.faction.claim` |
+| `/faction` | Show the help menu | `hatlas.faction` |
+| `/faction create <name>` | Create a new faction | `hatlas.faction.create` |
+| `/faction disband` | Disband your faction (owner only) | `hatlas.faction.disband` |
+| `/faction rename <name>` | Rename your faction | `hatlas.faction.rename` |
+| `/faction description <text>` | Set the faction description | `hatlas.faction.description` |
+| `/faction color <color>` | Change the faction chat color | `hatlas.faction.color` |
+| `/faction invite <player>` | Invite a player to your faction | `hatlas.faction.invite` |
+| `/faction accept` | Accept a faction invitation | `hatlas.faction.accept` |
+| `/faction decline` | Decline a faction invitation | `hatlas.faction.decline` |
+| `/faction leave` | Leave your current faction | `hatlas.faction.leave` |
+| `/faction kick <player>` | Kick a member from the faction | `hatlas.faction.kick` |
+| `/faction promote <player>` | Promote a member to the next role | `hatlas.faction.promote` |
+| `/faction demote <player>` | Demote a member to the previous role | `hatlas.faction.demote` |
+| `/faction transfer <player>` | Transfer faction ownership | `hatlas.faction.transfer` |
+| `/faction info [faction]` | View faction info (claims, protection, HP) | `hatlas.faction.info` |
+| `/faction list` | List all factions | `hatlas.faction.list` |
+| `/faction members` | List your faction's members and roles | `hatlas.faction.members` |
+| `/faction home` | Teleport to the main Crystal's home | `hatlas.faction.home` |
+| `/faction sethome [crystal]` | Set the home of a Crystal at your location (Owner/Leader) | `hatlas.faction.sethome` |
+| `/faction claim` | Claim the chunk you stand on | `hatlas.faction.claim` |
+| `/faction unclaim` | Release the chunk you stand on | `hatlas.faction.claim` |
+| `/faction showclaim` | Render particles along your claim borders | `hatlas.faction.claim` |
 | `/faction ally <faction>` | Send an ally request | — |
 | `/faction allyaccept <faction>` | Accept an ally request | — |
 | `/faction allydeny <faction>` | Deny an ally request | — |
 | `/faction unally <faction>` | Remove an alliance | — |
-| `/faction msg <text>` | Send a message to online faction members only | `atlas.faction.msg` |
+| `/faction msg <text>` | Send a message to online faction members only | `hatlas.faction.msg` |
 
 ### Member Roles
 
@@ -297,7 +297,7 @@ An ore zone can sit inside a safe zone, like the city mine. You can still mine i
 ### From the mine to the shop
 
 1. Mine ruby ore in an ore zone and collect the gems.
-2. Deposit the gems in your [faction vault](#faction-vault-rubies) (Atlas Crystal → Faction Vault).
+2. Deposit the gems in your [faction vault](#faction-vault-rubies) (Hatlas Crystal → Faction Vault).
 3. Your faction spends them in the [job shops](#job-shops) and on the auction house.
 
 ---
@@ -324,7 +324,7 @@ Plain Members cannot buy: ask your owner to promote you to **Banker** (see [Memb
 2. Pick **Common Items** or **Rare Items**. The menu shows your **faction vault** balance and the time until the next restock.
 3. Click an item to buy it. Its price is taken from the faction vault and the item goes to your inventory (dropped at your feet if it is full).
 
-If the vault does not hold enough rubies, the purchase is refused: deposit rubies in the faction vault first (Atlas Crystal → Vault).
+If the vault does not hold enough rubies, the purchase is refused: deposit rubies in the faction vault first (Hatlas Crystal → Vault).
 
 ### Restock
 

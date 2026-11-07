@@ -1,4 +1,4 @@
-# Atlas — Wiki Joueur
+# Hatlas — Wiki Joueur
 
 > **Mise à jour actuelle : Ruby Ruins** — les rubis (la monnaie des factions), l'équipement en améthyste, les zones de minerai, l'hôtel des ventes et les boutiques de métier.
 
@@ -24,7 +24,7 @@
 
 <img width="1919" height="1007" alt="{D4B06E27-339A-45A8-8628-242463FF7C36}" src="https://gist.github.com/user-attachments/assets/077a2bdb-233a-4adc-9ab7-8ace5940fd9c" />
 
-Une faction est un groupe persistant de joueurs qui combattent, progressent et gagnent des récompenses ensemble. Les contributions de chaque membre (quêtes de métier, donjons complétés) alimentent le pool d'XP partagé de la faction, ce qui fait monter son niveau et octroie des **Points de Compétence**. Les Points de Compétence se dépensent dans l'inventaire du Cristal d'Atlas pour faire grandir votre faction comme *vous* le voulez — claims, coffres, protection, PV ou homes.
+Une faction est un groupe persistant de joueurs qui combattent, progressent et gagnent des récompenses ensemble. Les contributions de chaque membre (quêtes de métier, donjons complétés) alimentent le pool d'XP partagé de la faction, ce qui fait monter son niveau et octroie des **Points de Compétence**. Les Points de Compétence se dépensent dans l'inventaire du Cristal d'Hatlas pour faire grandir votre faction comme *vous* le voulez — claims, coffres, protection, PV ou homes.
 
 ### Niveaux et XP
 
@@ -46,13 +46,13 @@ Chaque montée de niveau octroie des **Points de Compétence**. Monter de niveau
 
 ### Points de Compétence
 
-La boutique de Points de Compétence est accessible dans l'inventaire du Cristal d'Atlas (clic droit sur un cristal de faction). Chaque compétence s'achète indépendamment :
+La boutique de Points de Compétence est accessible dans l'inventaire du Cristal d'Hatlas (clic droit sur un cristal de faction). Chaque compétence s'achète indépendamment :
 
 | Compétence | Effet | Achetable plusieurs fois ? |
 |---|---|---|
 | **Claims** | Octroie des chunks supplémentaires à claim manuellement | Oui |
 | **Coffre de Faction** | Débloque un coffre double virtuel supplémentaire partagé entre tous les membres | Oui |
-| **PV** | Augmente les PV maximum des Cristaux d'Atlas de votre faction | Oui |
+| **PV** | Augmente les PV maximum des Cristaux d'Hatlas de votre faction | Oui |
 | **Home** | Ajoute un emplacement de home personnel à chaque membre | Oui |
 | **Protection** | Ajoute une protection en réserve, déclenchée à la destruction du Cristal | Oui |
 
@@ -62,13 +62,13 @@ Vous décidez de la trajectoire de votre faction. Il n'y a pas d'arbre d'amélio
 
 <img width="500" height="440" alt="{23DC93FF-E356-480D-816C-59D1B51E3005}" src="https://gist.github.com/user-attachments/assets/f06b2f82-e491-49ae-b105-8c6d802f1392" />
 
-Le coffre de faction est un espace de stockage virtuel (coffre double) partagé entre tous les membres. Le nombre de coffres disponibles dépend de la compétence **Coffre de Faction** — achetez-en plus avec des Points de Compétence pour étendre l'espace. L'accès se fait via l'interface du Cristal d'Atlas.
+Le coffre de faction est un espace de stockage virtuel (coffre double) partagé entre tous les membres. Le nombre de coffres disponibles dépend de la compétence **Coffre de Faction** — achetez-en plus avec des Points de Compétence pour étendre l'espace. L'accès se fait via l'interface du Cristal d'Hatlas.
 
 Si une rétrogradation de niveau réduit le nombre de coffres en dessous de ce que vous utilisez, les coffres en trop sont détruits et leur contenu est jeté au sol à l'emplacement du cristal.
 
 ### Coffre à rubis de la faction
 
-Le coffre à rubis est un stockage partagé qui n'accepte **que des rubis**. Ouvrez-le depuis l'interface du Cristal d'Atlas (bouton **Faction Vault**) ; `/faction balance` affiche le nombre de rubis qu'il contient. C'est lui qui paie les achats dans les boutiques de métier et à l'hôtel des ventes, et qui reçoit l'argent quand votre faction vend à l'hôtel des ventes.
+Le coffre à rubis est un stockage partagé qui n'accepte **que des rubis**. Ouvrez-le depuis l'interface du Cristal d'Hatlas (bouton **Faction Vault**) ; `/faction balance` affiche le nombre de rubis qu'il contient. C'est lui qui paie les achats dans les boutiques de métier et à l'hôtel des ventes, et qui reçoit l'argent quand votre faction vend à l'hôtel des ventes.
 
 | Action | Qui peut le faire |
 |---|---|
@@ -102,13 +102,13 @@ Les claims protègent les chunks contre le minage et la construction ennemis. Il
 /faction showclaim — affiche des particules sur les bordures de vos chunks claim
 ```
 
-**Règle d'adjacence :** un nouveau claim doit toucher un claim existant (par côté de chunk). Votre tout premier claim doit être adjacent à votre Cristal d'Atlas.
+**Règle d'adjacence :** un nouveau claim doit toucher un claim existant (par côté de chunk). Votre tout premier claim doit être adjacent à votre Cristal d'Hatlas.
 
 `/faction info` affiche votre compteur `[Claims Libres / Claims Totaux]` ainsi que la protection restante.
 
 ### Home du Cristal & Promotion d'Avant-poste
 
-Créer un Cristal d'Atlas **ne définit plus automatiquement le home de votre faction**. Un message dans le chat vous invite à le définir manuellement :
+Créer un Cristal d'Hatlas **ne définit plus automatiquement le home de votre faction**. Un message dans le chat vous invite à le définir manuellement :
 
 ```
 /faction sethome              — place le home du Cristal principal à votre position actuelle
@@ -141,33 +141,33 @@ Lorsqu'une faction est **dissoute** parce qu'une autre faction a détruit son de
 
 | Commande | Description | Permission |
 |---|---|---|
-| `/faction` | Afficher le menu d'aide | `atlas.faction` |
-| `/faction create <nom>` | Créer une nouvelle faction | `atlas.faction.create` |
-| `/faction disband` | Dissoudre votre faction (propriétaire uniquement) | `atlas.faction.disband` |
-| `/faction rename <nom>` | Renommer votre faction | `atlas.faction.rename` |
-| `/faction description <texte>` | Définir la description de la faction | `atlas.faction.description` |
-| `/faction color <couleur>` | Changer la couleur du chat de faction | `atlas.faction.color` |
-| `/faction invite <joueur>` | Inviter un joueur dans votre faction | `atlas.faction.invite` |
-| `/faction accept` | Accepter une invitation de faction | `atlas.faction.accept` |
-| `/faction decline` | Refuser une invitation de faction | `atlas.faction.decline` |
-| `/faction leave` | Quitter votre faction actuelle | `atlas.faction.leave` |
-| `/faction kick <joueur>` | Expulser un membre de la faction | `atlas.faction.kick` |
-| `/faction promote <joueur>` | Promouvoir un membre au rang supérieur | `atlas.faction.promote` |
-| `/faction demote <joueur>` | Rétrograder un membre au rang inférieur | `atlas.faction.demote` |
-| `/faction transfer <joueur>` | Transférer la propriété de la faction | `atlas.faction.transfer` |
-| `/faction info [faction]` | Afficher les infos d'une faction (claims, protection, PV) | `atlas.faction.info` |
-| `/faction list` | Lister toutes les factions | `atlas.faction.list` |
-| `/faction members` | Lister les membres et rôles de votre faction | `atlas.faction.members` |
-| `/faction home` | Se téléporter au home du Cristal principal | `atlas.faction.home` |
-| `/faction sethome [cristal]` | Définit le home d'un Cristal à votre position (Propriétaire/Chef) | `atlas.faction.sethome` |
-| `/faction claim` | Claim le chunk sur lequel vous vous trouvez | `atlas.faction.claim` |
-| `/faction unclaim` | Libère le chunk sur lequel vous vous trouvez | `atlas.faction.claim` |
-| `/faction showclaim` | Affiche des particules sur les bordures de vos claims | `atlas.faction.claim` |
+| `/faction` | Afficher le menu d'aide | `hatlas.faction` |
+| `/faction create <nom>` | Créer une nouvelle faction | `hatlas.faction.create` |
+| `/faction disband` | Dissoudre votre faction (propriétaire uniquement) | `hatlas.faction.disband` |
+| `/faction rename <nom>` | Renommer votre faction | `hatlas.faction.rename` |
+| `/faction description <texte>` | Définir la description de la faction | `hatlas.faction.description` |
+| `/faction color <couleur>` | Changer la couleur du chat de faction | `hatlas.faction.color` |
+| `/faction invite <joueur>` | Inviter un joueur dans votre faction | `hatlas.faction.invite` |
+| `/faction accept` | Accepter une invitation de faction | `hatlas.faction.accept` |
+| `/faction decline` | Refuser une invitation de faction | `hatlas.faction.decline` |
+| `/faction leave` | Quitter votre faction actuelle | `hatlas.faction.leave` |
+| `/faction kick <joueur>` | Expulser un membre de la faction | `hatlas.faction.kick` |
+| `/faction promote <joueur>` | Promouvoir un membre au rang supérieur | `hatlas.faction.promote` |
+| `/faction demote <joueur>` | Rétrograder un membre au rang inférieur | `hatlas.faction.demote` |
+| `/faction transfer <joueur>` | Transférer la propriété de la faction | `hatlas.faction.transfer` |
+| `/faction info [faction]` | Afficher les infos d'une faction (claims, protection, PV) | `hatlas.faction.info` |
+| `/faction list` | Lister toutes les factions | `hatlas.faction.list` |
+| `/faction members` | Lister les membres et rôles de votre faction | `hatlas.faction.members` |
+| `/faction home` | Se téléporter au home du Cristal principal | `hatlas.faction.home` |
+| `/faction sethome [cristal]` | Définit le home d'un Cristal à votre position (Propriétaire/Chef) | `hatlas.faction.sethome` |
+| `/faction claim` | Claim le chunk sur lequel vous vous trouvez | `hatlas.faction.claim` |
+| `/faction unclaim` | Libère le chunk sur lequel vous vous trouvez | `hatlas.faction.claim` |
+| `/faction showclaim` | Affiche des particules sur les bordures de vos claims | `hatlas.faction.claim` |
 | `/faction ally <faction>` | Envoyer une demande d'alliance | — |
 | `/faction allyaccept <faction>` | Accepter une demande d'alliance | — |
 | `/faction allydeny <faction>` | Refuser une demande d'alliance | — |
 | `/faction unally <faction>` | Dissoudre une alliance | — |
-| `/faction msg <texte>` | Envoyer un message aux membres en ligne uniquement | `atlas.faction.msg` |
+| `/faction msg <texte>` | Envoyer un message aux membres en ligne uniquement | `hatlas.faction.msg` |
 
 ### Rôles des Membres
 
@@ -304,7 +304,7 @@ Une zone de minerai peut se trouver dans une zone sûre, comme la mine de la vil
 ### De la mine à la boutique
 
 1. Minez du minerai de rubis dans une zone de minerai et ramassez les gemmes.
-2. Déposez les gemmes dans le [coffre à rubis de votre faction](#coffre-à-rubis-de-la-faction) (Cristal d'Atlas → Faction Vault).
+2. Déposez les gemmes dans le [coffre à rubis de votre faction](#coffre-à-rubis-de-la-faction) (Cristal d'Hatlas → Faction Vault).
 3. Votre faction les dépense dans les [boutiques de métier](#boutiques-de-métier) et à l'hôtel des ventes.
 
 ---
@@ -331,7 +331,7 @@ Les simples Membres ne peuvent pas acheter : demandez à votre propriétaire de 
 2. Choisissez **Objets communs** ou **Objets rares**. Le menu affiche le solde du **coffre de faction** et le temps avant le prochain réassort.
 3. Cliquez sur un objet pour l'acheter. Son prix est retiré du coffre de faction et l'objet arrive dans votre inventaire (au sol à vos pieds s'il est plein).
 
-Si le coffre ne contient pas assez de rubis, l'achat est refusé : déposez d'abord des rubis dans le coffre de faction (Cristal d'Atlas → Coffre).
+Si le coffre ne contient pas assez de rubis, l'achat est refusé : déposez d'abord des rubis dans le coffre de faction (Cristal d'Hatlas → Coffre).
 
 ### Réassort
 

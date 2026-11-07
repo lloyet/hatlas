@@ -4,7 +4,7 @@
   {"action": "assert_message", "bot": "Tester1", "contains": "Claims: 1 / 1"},
   {"action": "console", "command": "op Tester1"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester1", "op": true},
-  {"action": "command", "bot": "Tester1", "command": "atlas storage info"},
+  {"action": "command", "bot": "Tester1", "command": "hatlas storage info"},
   {"action": "assert_message", "bot": "Tester1", "contains": "Storage: SQLite ("},
   {"action": "console", "command": "deop Tester1"},
   {"action": "command", "bot": "Tester1", "command": "f disband"},

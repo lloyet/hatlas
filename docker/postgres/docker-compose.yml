@@ -1,33 +1,33 @@
-# Local PostgreSQL for Atlas (storage.type: postgresql). Development / testing only.
+# Local PostgreSQL for Hatlas (storage.type: postgresql). Development / testing only.
 #
 #   cp docker/postgres/.env.example docker/postgres/.env   # then set a password
 #   docker compose -f docker/postgres/docker-compose.yml up -d --wait
 #   docker compose -f docker/postgres/docker-compose.yml down        # keep data
 #   docker compose -f docker/postgres/docker-compose.yml down -v     # wipe data
 #
-# Atlas side (plugins/atlas/config.yml):
-#   storage.type: postgresql, storage.postgresql.host: localhost, port: ${ATLAS_PG_PORT:-5432},
-#   database: atlas, username: atlas; password through the ATLAS_DB_PASSWORD env variable.
-name: atlas-postgres
+# Hatlas side (plugins/hatlas/config.yml):
+#   storage.type: postgresql, storage.postgresql.host: localhost, port: ${HATLAS_PG_PORT:-5432},
+#   database: hatlas, username: hatlas; password through the HATLAS_DB_PASSWORD env variable.
+name: hatlas-postgres
 
 services:
   postgres:
     image: postgres:16.10-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: atlas
-      POSTGRES_USER: atlas
-      POSTGRES_PASSWORD: ${ATLAS_DB_PASSWORD:?set ATLAS_DB_PASSWORD in docker/postgres/.env}
+      POSTGRES_DB: hatlas
+      POSTGRES_USER: hatlas
+      POSTGRES_PASSWORD: ${HATLAS_DB_PASSWORD:?set HATLAS_DB_PASSWORD in docker/postgres/.env}
     ports:
       # Bound to localhost only: never expose the database on the network.
-      - "127.0.0.1:${ATLAS_PG_PORT:-5432}:5432"
+      - "127.0.0.1:${HATLAS_PG_PORT:-5432}:5432"
     volumes:
-      - atlas-pgdata:/var/lib/postgresql/data
+      - hatlas-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas"]
+      test: ["CMD-SHELL", "pg_isready -U hatlas -d hatlas"]
       interval: 5s
       timeout: 3s
       retries: 20
 
 volumes:
-  atlas-pgdata:
+  hatlas-pgdata:
