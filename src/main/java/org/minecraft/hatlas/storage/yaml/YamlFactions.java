@@ -67,7 +67,7 @@ final class YamlFactions {
                         s.getInt("downgrade_mul", 1), s.getLong("downgrade_window_end", 0L),
                         List.copyOf(members.values()), s.getStringList("allies"),
                         s.getIntegerList("purchased_home_tiers"), s.getIntegerList("purchased_vault_tiers"),
-                        vault));
+                        vault, null));
             }
             return new FactionsData(rows);
         }

@@ -58,7 +58,7 @@ BACKUP_PATHS="${BACKUP_PATHS:-world world_nether world_the_end plugins/hatlas}"
 PG_SERVICE="${PG_SERVICE:-postgres}"
 PG_USER="${PG_USER:-hatlas}"
 PG_DATABASE="${PG_DATABASE:-hatlas}"
-GAME_SCHEMAS="${GAME_SCHEMAS:-public}"
+GAME_SCHEMAS="${GAME_SCHEMAS:-hatlas}"
 KEEP_DAILY="${KEEP_DAILY:-7}"
 KEEP_WEEKLY="${KEEP_WEEKLY:-4}"
 KEEP_PRE_RESTORE="${KEEP_PRE_RESTORE:-3}"
@@ -285,8 +285,9 @@ cmd_restore() {
         for s in $GAME_SCHEMAS; do
             log "replacing schema $s"
             psql_on "$PG_DATABASE" "SET client_min_messages = warning; DROP SCHEMA IF EXISTS \"$s\" CASCADE"
-            # pg_dump does not emit CREATE SCHEMA public: recreate it; other schemas come from the dump.
-            [[ "$s" != public ]] || psql_on "$PG_DATABASE" "CREATE SCHEMA public AUTHORIZATION \"$PG_USER\""
+            # pg_restore -n restores the objects of a schema but not the schema itself: recreate it.
+            # Schema-level grants (e.g. USAGE for the website role) are re-applied by Hatlas on start.
+            psql_on "$PG_DATABASE" "CREATE SCHEMA \"$s\" AUTHORIZATION \"$PG_USER\""
             restore_args+=(-n "$s")
         done
     fi

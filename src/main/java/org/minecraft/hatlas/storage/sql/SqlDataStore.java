@@ -56,6 +56,7 @@ public final class SqlDataStore implements DataStore {
         try {
             Connection c = connection();
             SchemaMigrator.migrate(c, dialect, log);
+            dialect.afterMigrate(c, log);
         } catch (SQLException e) {
             throw new StorageException("Cannot open " + describe() + ": " + e.getMessage(), e);
         }

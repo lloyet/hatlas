@@ -25,6 +25,11 @@ storage:
     # Prefer the HATLAS_DB_PASSWORD environment variable (it overrides this value).
     password: ''
     ssl: false
+    # Schema owned by Hatlas (tables of an older install in "public" are moved here on start).
+    schema: hatlas
+    # Read-only role of the website: if it exists, it may only SELECT the web_* views of the
+    # schema (granted on every start). Hatlas never creates it. Empty = no grants.
+    web_role: hatlas_web
 
 # Teleport-to-player settings for /tpa
 tpa:

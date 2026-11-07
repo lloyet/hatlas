@@ -116,7 +116,8 @@ final class EconomyTables {
             Sql.query(c, "SELECT * FROM shop_items ORDER BY shop, tier, position", rs ->
                     items.computeIfAbsent(rs.getString("shop"), k -> new ArrayList<>())
                             .add(new Item(rs.getString("tier"), rs.getString("item_id"), rs.getString("name"),
-                                    rs.getBytes("item"), rs.getInt("price"), rs.getInt("weight"))));
+                                    rs.getBytes("item"), rs.getInt("price"), rs.getInt("weight"),
+                                    rs.getString("material"), Sql.intOrNull(rs, "amount"))));
             Map<String, Map<String, List<String>>> rotation = new LinkedHashMap<>();
             Sql.query(c, "SELECT * FROM shop_rotation ORDER BY shop, tier, position", rs ->
                     rotation.computeIfAbsent(rs.getString("shop"), k -> new LinkedHashMap<>())
@@ -144,7 +145,7 @@ final class EconomyTables {
                 Map<String, Integer> pos = new HashMap<>();
                 for (Item it : s.items()) itemRows.add(new Object[]{s.name(), it, pos.merge(it.tier(), 1, Integer::sum) - 1});
             }
-            Sql.insert(c, "shop_items", "shop, tier, item_id, name, item, price, weight, position", 8, itemRows, (ps, r) -> {
+            Sql.insert(c, "shop_items", "shop, tier, item_id, name, item, price, weight, position, material, amount", 10, itemRows, (ps, r) -> {
                 Item it = (Item) r[1];
                 ps.setString(1, (String) r[0]);
                 ps.setString(2, it.tier());
@@ -154,6 +155,8 @@ final class EconomyTables {
                 ps.setInt(6, it.price());
                 ps.setInt(7, it.weight());
                 ps.setInt(8, (Integer) r[2]);
+                Sql.setString(ps, 9, it.material());
+                Sql.setInt(ps, 10, it.amount());
             });
             List<Object[]> rotationRows = new ArrayList<>();
             data.rotation().forEach((shop, tiers) -> tiers.forEach((tier, ids) -> {

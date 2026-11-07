@@ -74,7 +74,7 @@ hatlas-backup.sh restore 2026-11-08_043012 --stop --start --yes
    until RCON is gone and `STOP_GRACE_SECONDS` (15) more.
 2. Saves the current state into `pre-restore/<timestamp>` (cold backup), so a restore can be undone by restoring that one.
 3. Replaces the backed-up paths, then the database:
-   - **default**: only `GAME_SCHEMAS` (default `public`, later `hatlas`) are dropped and
+   - **default**: only `GAME_SCHEMAS` (default `hatlas`, the schema Hatlas owns since M2 `feat/web-read-model`) are dropped and
      restored from the dump. The website's data (accounts, links, **tickets and payments**
      in schema `web`) is left untouched, so a game rollback never undoes a purchase.
    - **`--full`**: drops and recreates the whole database (disaster recovery, e.g. a lost

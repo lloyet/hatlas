@@ -419,7 +419,7 @@ public class FactionManager {
                     List.copyOf(members), List.copyOf(f.getAllies()),
                     List.copyOf(new TreeSet<>(f.getPurchasedHomeTiers())),
                     List.copyOf(new TreeSet<>(f.getPurchasedVaultTiers())),
-                    ItemBytes.fromArray(f.getVaultContents())));
+                    ItemBytes.fromArray(f.getVaultContents()), FactionVault.countGems(f)));
         }
         return new FactionsData(List.copyOf(rows));
     }

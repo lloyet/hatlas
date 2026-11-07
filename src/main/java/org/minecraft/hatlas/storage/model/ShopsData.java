@@ -17,6 +17,12 @@ public record ShopsData(List<ShopRow> shops, Map<String, Map<String, List<String
     /** @param npc null if the shop has no NPC location; @param npcUuid null if no NPC spawned */
     public record ShopRow(String name, String job, LocationData npc, UUID npcUuid, List<Item> items) {}
 
-    /** @param item Paper item bytes ({@code ItemStack.serializeAsBytes}) */
-    public record Item(String tier, String id, String name, byte[] item, int price, int weight) {}
+    /**
+     * @param item     Paper item bytes ({@code ItemStack.serializeAsBytes})
+     * @param material item type key (e.g. {@code minecraft:diamond_pickaxe}) and {@code amount} the
+     *                 stack size, written for the website (read model only, never read back);
+     *                 null when unknown (rows loaded from storage or YAML)
+     */
+    public record Item(String tier, String id, String name, byte[] item, int price, int weight,
+                       String material, Integer amount) {}
 }
