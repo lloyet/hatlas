@@ -21,7 +21,8 @@ import java.util.logging.Logger;
 final class SchemaMigrator {
 
     static final List<String> MIGRATIONS = List.of(
-            "V1__initial_schema.sql"
+            "V1__initial_schema.sql",
+            "V2__web_read_model.sql"
     );
 
     private SchemaMigrator() {}

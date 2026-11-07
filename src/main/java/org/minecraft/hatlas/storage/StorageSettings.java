@@ -12,7 +12,9 @@ import java.util.logging.Logger;
  */
 public record StorageSettings(Type type, int autosaveMinutes, File sqliteFile,
                               String pgHost, int pgPort, String pgDatabase, String pgUser,
-                              String pgPassword, boolean pgSsl) {
+                              String pgPassword, boolean pgSsl, String pgSchema, String pgWebRole) {
+
+    private static final java.util.regex.Pattern IDENT = java.util.regex.Pattern.compile("[a-z_][a-z0-9_]{0,62}");
 
     /**
      * Runtime backends. YAML files are no longer a backend: legacy {@code *-data.yml} files are
@@ -52,12 +54,21 @@ public record StorageSettings(Type type, int autosaveMinutes, File sqliteFile,
         String envPassword = System.getenv("HATLAS_DB_PASSWORD");
         if (envPassword == null) envPassword = System.getenv("ATLAS_DB_PASSWORD"); // name before the rename
         String password = envPassword != null ? envPassword : (s == null ? "" : s.getString("postgresql.password", ""));
+        String schema = (s == null ? "hatlas" : s.getString("postgresql.schema", "hatlas")).trim();
+        String webRole = (s == null ? "hatlas_web" : s.getString("postgresql.web_role", "hatlas_web")).trim();
+        if (!IDENT.matcher(schema).matches()) {
+            throw new StorageException("config.yml storage.postgresql.schema '" + schema + "' must be a lowercase identifier");
+        }
+        if (!webRole.isEmpty() && !IDENT.matcher(webRole).matches()) {
+            throw new StorageException("config.yml storage.postgresql.web_role '" + webRole + "' must be a lowercase identifier (or empty)");
+        }
         return new StorageSettings(type, autosave, sqlite,
                 s == null ? "localhost" : s.getString("postgresql.host", "localhost"),
                 s == null ? 5432 : s.getInt("postgresql.port", 5432),
                 s == null ? "hatlas" : s.getString("postgresql.database", "hatlas"),
                 s == null ? "hatlas" : s.getString("postgresql.username", "hatlas"),
                 password,
-                s != null && s.getBoolean("postgresql.ssl", false));
+                s != null && s.getBoolean("postgresql.ssl", false),
+                schema, webRole);
     }
 }

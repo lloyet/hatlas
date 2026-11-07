@@ -42,6 +42,7 @@ final class FactionTables {
                 b.downgradeMul = rs.getInt("downgrade_mul");
                 b.downgradeEnd = rs.getLong("downgrade_window_end");
                 b.vault = rs.getBytes("vault_contents");
+                b.vaultGems = Sql.intOrNull(rs, "vault_gems");
                 if (b.owner != null) byName.put(b.name, b);
             });
             Sql.query(c, "SELECT * FROM faction_members ORDER BY faction, player_uuid", rs -> {
@@ -75,7 +76,7 @@ final class FactionTables {
             Sql.deleteAll(c, "faction_skill_tiers", "faction_allies", "faction_members", "factions");
             Sql.insert(c, "factions",
                     "name, owner_uuid, color, description, level, exp, skill_points, outpost_unlocked, "
-                            + "vault_size, downgrade_mul, downgrade_window_end, vault_contents", 12,
+                            + "vault_size, downgrade_mul, downgrade_window_end, vault_contents, vault_gems", 13,
                     data.factions(), (ps, f) -> {
                         ps.setString(1, f.name());
                         Sql.setUuid(ps, 2, f.owner());
@@ -89,6 +90,7 @@ final class FactionTables {
                         ps.setInt(10, f.downgradeMul());
                         ps.setLong(11, f.downgradeWindowEnd());
                         Sql.setBytes(ps, 12, f.vaultContents());
+                        Sql.setInt(ps, 13, f.vaultGems());
                     });
             List<SimpleEntry<String, Member>> members = new ArrayList<>();
             List<String[]> allies = new ArrayList<>();
@@ -121,7 +123,7 @@ final class FactionTables {
             UUID owner;
             int level, exp, skillPoints, downgradeMul;
             boolean outpost;
-            Integer vaultSize;
+            Integer vaultSize, vaultGems;
             long downgradeEnd;
             byte[] vault;
             final List<Member> members = new ArrayList<>();
@@ -132,7 +134,7 @@ final class FactionTables {
             FactionRow build() {
                 return new FactionRow(name, owner, color, description, level, exp, skillPoints, outpost,
                         vaultSize, downgradeMul, downgradeEnd, List.copyOf(members), List.copyOf(allies),
-                        List.copyOf(homeTiers), List.copyOf(vaultTiers), vault);
+                        List.copyOf(homeTiers), List.copyOf(vaultTiers), vault, vaultGems);
             }
         }
     }

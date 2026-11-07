@@ -61,7 +61,8 @@ public final class Storage {
         store = switch (config.type()) {
             case SQLITE -> new SqlDataStore(new SqliteDialect(config.sqliteFile()), log);
             case POSTGRESQL -> new SqlDataStore(new PostgresDialect(config.pgHost(), config.pgPort(),
-                    config.pgDatabase(), config.pgUser(), config.pgPassword(), config.pgSsl()), log);
+                    config.pgDatabase(), config.pgUser(), config.pgPassword(), config.pgSsl(),
+                    config.pgSchema(), config.pgWebRole()), log);
         };
         try {
             store.open();

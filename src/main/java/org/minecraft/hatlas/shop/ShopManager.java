@@ -213,7 +213,8 @@ public final class ShopManager {
                 for (ShopItem it : shop.getPool(tier).values()) {
                     byte[] bytes = ItemBytes.fromItem(it.item());
                     if (bytes != null) {
-                        items.add(new ShopsData.Item(tier.key(), it.id(), it.name(), bytes, it.price(), it.weight()));
+                        items.add(new ShopsData.Item(tier.key(), it.id(), it.name(), bytes, it.price(), it.weight(),
+                                it.item().getType().getKey().asString(), it.item().getAmount()));
                     }
                 }
                 tiers.put(tier.key(), List.copyOf(shop.getCurrentIds(tier)));

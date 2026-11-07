@@ -104,7 +104,34 @@ docker compose -f docker/postgres/docker-compose.yml down -v   # stop and wipe d
 
 To test without touching the shared test server, use the isolated `./gradlew runServer` instance (`./run`, git-ignored): put `eula=true`, a `server.properties` on another port (e.g. 25566, RCON on), packetevents in `run/plugins/`, and a `run/plugins/hatlas/config.yml` with `type: postgresql`. Inspect rows with `docker compose -f docker/postgres/docker-compose.yml exec postgres psql -U hatlas -d hatlas`.
 
-## 5. Changing the schema or adding a domain
+### Schema `hatlas` (since 2026-11-07, M2 `feat/web-read-model`)
 
-- **Schema change:** add `db/V2__<name>.sql` and append it to `SchemaMigrator.MIGRATIONS`. Never edit an applied file. Use `${blob}` for binary columns.
+Hatlas owns one PostgreSQL schema, `storage.postgresql.schema` (default `hatlas`). Every connection runs `CREATE SCHEMA IF NOT EXISTS hatlas` and `SET search_path TO hatlas`, so the mappers stay unqualified. **An older install** whose tables are in `public` is moved on its first start (`ALTER TABLE public.<t> SET SCHEMA hatlas` for every table named in the `db/V*.sql` files plus the version table, one transaction; log: `Storage: moved N tables from schema public to hatlas`). Nothing else in `public` and no other schema (the website's `web`) is touched. SQLite has no schemas and ignores this.
+
+## 5. Website read model
+
+The website (SvelteKit, M2) reads Hatlas data **only through the `web_*` views** of the `hatlas` schema, never the tables: tables can change between versions, the views are the contract (`db/V2__web_read_model.sql`).
+
+| View | Columns |
+|---|---|
+| `web_factions` | name, color, description, level, exp, skill_points, vault_gems, owner_uuid, outpost_unlocked, member_count, crystal_count, claim_count |
+| `web_faction_members` | faction, player_uuid, role (`OWNER`, `LEADER`, `MODERATOR`, `BANKER`, `MEMBER`) |
+| `web_faction_allies` | faction, ally (one row per side that listed the other) |
+| `web_crystals` | faction, name, hp, max_hp, outpost, claim_count |
+| `web_player_jobs` | player_uuid, job, level, progress, level_up_at (= `(level + 1) × 64`) |
+| `web_shops` | name, job |
+| `web_shop_items` | shop, tier (`common`/`rare`), item_id, name, material (`minecraft:diamond`), amount, price (ruby gems), on_sale (in the current rotation) |
+
+- **Readable columns:** vault and item contents are Paper item bytes the website cannot read, so the plugin also writes `factions.vault_gems` and `shop_items.material`/`amount`. They are computed in the main-thread snapshot and written with every save (NULL right after the V2 migration, filled by the next save; the shutdown save is enough).
+- **Read-only role** `storage.postgresql.web_role` (default `hatlas_web`, empty = off). Hatlas **never creates it** (it needs a password the website holds). If it exists, on every start Hatlas grants it `USAGE` on the schema, revokes everything on the schema's tables/views and grants `SELECT` on each `web_*` view, so a view recreated by a later migration keeps its grant (log: `Storage: role 'hatlas_web' may read N web_* views`). Create it once as an admin, then restart Hatlas:
+  ```sql
+  CREATE ROLE hatlas_web LOGIN PASSWORD '<secret for the website>';
+  ```
+  ✔ Checked on the test server: the role reads `hatlas.web_shop_items`, gets `permission denied` on `hatlas.factions` and on `DELETE FROM hatlas.web_shops`.
+- **Online players** are not here: `hatlas-proxy` will write a presence table (M2 PR 4). Player **names** are not stored by Hatlas either (UUIDs only): the website resolves them through the presence table or Mojang's profile API.
+- **Changing a view:** a later `V<n>` migration does `DROP VIEW` + `CREATE VIEW` (never alter a table a view depends on without recreating the view). Adding columns is backward compatible for the website; removing or renaming one is a breaking change to coordinate with the website.
+
+## 6. Changing the schema or adding a domain
+
+- **Schema change:** add `db/V<n>__<name>.sql` and append it to `SchemaMigrator.MIGRATIONS`. Never edit an applied file. Use `${blob}` for binary columns. PostgreSQL: a new table is created in the `hatlas` schema automatically (search_path). Views that depend on a changed table must be dropped and recreated in the same file.
 - **New domain:** add a record in `storage/model`, a constant in `DataDomain`, a mapper in `sql/*Tables` (the store refuses to start if one is missing; `yaml/*` readers are only needed for data that existed in the legacy files), `snapshot()`/`restore()` in the manager, then `Storage.register` and the restore call in `Hatlas.onEnable`.

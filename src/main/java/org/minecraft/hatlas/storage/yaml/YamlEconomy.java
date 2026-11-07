@@ -118,7 +118,7 @@ final class YamlEconomy {
                                 byte[] item = e == null ? null : ItemBytes.fromBase64(e.getString("item_b64"));
                                 if (item == null) continue;
                                 items.add(new Item(tier, id, e.getString("name", id), item,
-                                        e.getInt("price", 1), e.getInt("weight", 1)));
+                                        e.getInt("price", 1), e.getInt("weight", 1), null, null));
                             }
                         }
                     }

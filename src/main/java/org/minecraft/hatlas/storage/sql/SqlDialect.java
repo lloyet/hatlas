@@ -18,6 +18,9 @@ public interface SqlDialect {
     /** Per-connection settings (pragmas, session options). */
     default void configure(Connection connection) throws SQLException {}
 
+    /** Runs once after the schema migrations (e.g. grants for the website's read-only role). */
+    default void afterMigrate(Connection connection, java.util.logging.Logger log) throws SQLException {}
+
     /** Column type for binary data. */
     String blobType();
 }

@@ -11,13 +11,15 @@ public record FactionsData(List<FactionRow> factions) {
     /**
      * @param vaultSize     null = the default size from factions.yml
      * @param vaultContents Paper item bytes ({@code ItemStack.serializeItemsAsBytes}), null if empty
+     * @param vaultGems     ruby gems in the vault, written for the website (read model only, never
+     *                      read back); null when unknown (rows loaded from storage or YAML)
      */
     public record FactionRow(String name, UUID owner, String color, String description,
                              int level, int exp, int skillPoints, boolean outpostUnlocked,
                              Integer vaultSize, int downgradeMul, long downgradeWindowEnd,
                              List<Member> members, List<String> allies,
                              List<Integer> homeTiers, List<Integer> vaultTiers,
-                             byte[] vaultContents) {}
+                             byte[] vaultContents, Integer vaultGems) {}
 
     /**
      * A player linked to a faction. {@code member=false} keeps a role entry for a player
