@@ -1,4 +1,4 @@
-# Atlas plugin combat-log configuration
+# Hatlas plugin combat-log configuration
 # Active combat timers persist across restarts in combats-data.yml.
 
 combat_log:

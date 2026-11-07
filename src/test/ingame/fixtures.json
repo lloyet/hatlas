@@ -1,5 +1,5 @@
 {
-  "_doc": "Named places of the test world (Atlas test server, see CLAUDE.md \u00a72). Scenarios use {{path}} placeholders (e.g. {{npc.job_miner.x}}, {{donjon.dark_forest.vault}} = 'x y z'), rendered by scripts/test-world/render.mjs. The setup scenario _setup/build-baseline.json is generated from this file by scripts/test-world/build-setup.mjs. 'surface': true = y is the ground at (x, z), found at run time. Blocks are integer block coordinates.",
+  "_doc": "Named places of the test world (Hatlas test server, see CLAUDE.md \u00a72). Scenarios use {{path}} placeholders (e.g. {{npc.job_miner.x}}, {{donjon.dark_forest.vault}} = 'x y z'), rendered by scripts/test-world/render.mjs. The setup scenario _setup/build-baseline.json is generated from this file by scripts/test-world/build-setup.mjs. 'surface': true = y is the ground at (x, z), found at run time. Blocks are integer block coordinates.",
   "world": "world",
   "spawn": {
     "x": -4956,

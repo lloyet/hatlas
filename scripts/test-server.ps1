@@ -7,25 +7,25 @@
 
   - start   : rotates logs/latest.log, launches the server in its own minimized console window,
               waits for "Done (" in the log.
-  - stop    : sends "stop" over RCON (clean shutdown, so Atlas onDisable saves its data files),
+  - stop    : sends "stop" over RCON (clean shutdown, so Hatlas onDisable saves its data files),
               waits for the java process to exit. Never kills the process.
   - restart : stop then start.
-  - deploy  : gradlew build, replaces plugins/atlas-*.jar, then restart.
+  - deploy  : gradlew build, replaces plugins/hatlas-*.jar, then restart.
   - status  : running / stopped.
   - console : sends one console command over RCON and prints the reply.
   - db-up   : starts the local PostgreSQL (docker/postgres) and creates the test database if missing.
-  - baseline: (server stopped by the script) saves the current worlds + plugins/atlas + a dump of the
+  - baseline: (server stopped by the script) saves the current worlds + plugins/hatlas + a dump of the
               test database as the baseline in <TEST_SERVER_DIR>\baseline. Run once after the setup.
   - run-console <file>: runs the "console" steps of a scenario JSON over one RCON connection
               ("wait_for" ticks steps become a pause; other steps are skipped). Used for the
               baseline setup (_setup/build-baseline.json) once its bot is connected.
   - rebuild-from-map: stops the server, replaces the worlds with the raw test map (TEST_MAP_DIR,
-              default <repo>\run\world), empties the test database and plugins/atlas (config.yml from scripts/test-world/atlas-config.yml),
+              default <repo>\run\world), empties the test database and plugins/hatlas (config.yml from scripts/test-world/hatlas-config.yml),
               installs the structures and starts. Then run the setup (_setup/build-baseline.json)
               and 'baseline'. Only needed when the map or the setup changes.
   - install-structures: copies src/main/resources/structures/*.nbt into world/generated/hatlas/
               (so /place template hatlas:<name> works). Part of building the baseline.
-  - reset   : stops the server, restores the baseline (worlds, plugins/atlas, database), starts it.
+  - reset   : stops the server, restores the baseline (worlds, plugins/hatlas, database), starts it.
               Use before a test session or after a run left a mess. Nothing else to undo.
 
   The test server is disposable (test world only, no real data): scenarios do not need to clean up.
@@ -34,13 +34,15 @@
 
   Environment (all optional):
     TEST_SERVER_DIR   server folder   (default C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11)
-    PLUGIN_NAME       jar prefix      (default atlas)
+    PLUGIN_NAME       jar prefix      (default hatlas)
     TEST_SERVER_XMX   heap size       (default 2G)
+    TEST_SERVER_JAVA  java executable (default: newest JDK 25 in ~/.jdks, else 'java' on PATH).
+                      Hatlas is built for Java 25, so the server must run on a JDK 25+.
     MC_RCON_PASSWORD  RCON password   (required for stop/console; must match rcon.password in server.properties)
     MC_RCON_PORT      RCON port       (default 25575)
-    ATLAS_DB_PASSWORD PostgreSQL password (passed to the server; the plugin reads it)
-    ATLAS_PG_PORT     PostgreSQL port (default 5432)
-    TEST_DB_NAME      test database   (default atlas_test)
+    HATLAS_DB_PASSWORD PostgreSQL password (passed to the server; the plugin reads it)
+    HATLAS_PG_PORT     PostgreSQL port (default 5432)
+    TEST_DB_NAME      test database   (default hatlas_test)
     TEST_MAP_DIR      raw test map    (default <repo>\run\world)
   Missing values are read from <repo>\.env and <repo>\docker\postgres\.env (KEY=VALUE lines).
 #>
@@ -65,17 +67,23 @@ foreach ($envFile in @((Join-Path $ProjectDirEarly '.env'), (Join-Path $ProjectD
 }
 
 $ServerDir  = if ($env:TEST_SERVER_DIR) { $env:TEST_SERVER_DIR } else { 'C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11' }
-$PluginName = if ($env:PLUGIN_NAME) { $env:PLUGIN_NAME } else { 'atlas' }
+$PluginName = if ($env:PLUGIN_NAME) { $env:PLUGIN_NAME } else { 'hatlas' }
 $Xmx        = if ($env:TEST_SERVER_XMX) { $env:TEST_SERVER_XMX } else { '2G' }
 $RconPort   = if ($env:MC_RCON_PORT) { [int]$env:MC_RCON_PORT } else { 25575 }
 $ProjectDir = Split-Path -Parent $PSScriptRoot
 $PidFile    = Join-Path $ServerDir 'test-server.pid'
 $LatestLog  = Join-Path $ServerDir 'logs\latest.log'
-$DbName     = if ($env:TEST_DB_NAME) { $env:TEST_DB_NAME } else { 'atlas_test' }
+$JavaExe    = if ($env:TEST_SERVER_JAVA) { $env:TEST_SERVER_JAVA } else {
+    $jdk = Get-ChildItem (Join-Path $env:USERPROFILE '.jdks') -Directory -ErrorAction SilentlyContinue |
+           Where-Object { $_.Name -match '(^|[^0-9])25[.\-]' -and (Test-Path (Join-Path $_.FullName 'bin\java.exe')) } |
+           Sort-Object Name -Descending | Select-Object -First 1
+    if ($jdk) { Join-Path $jdk.FullName 'bin\java.exe' } else { 'java' }
+}
+$DbName     = if ($env:TEST_DB_NAME) { $env:TEST_DB_NAME } else { 'hatlas_test' }
 $Compose    = Join-Path $ProjectDir 'docker\postgres\docker-compose.yml'
 $BaselineDir = Join-Path $ServerDir 'baseline'
-# Folders that make up the test world state (worlds + Atlas config/data files).
-$StateDirs  = @('world', 'world_nether', 'world_the_end', 'plugins\atlas')
+# Folders that make up the test world state (worlds + Hatlas config/data files).
+$StateDirs  = @('world', 'world_nether', 'world_the_end', 'plugins\hatlas')
 
 function Get-ServerProcess {
     if (-not (Test-Path $PidFile)) { return $null }
@@ -160,7 +168,7 @@ function Start-TestServer {
     $jar = Join-Path $ServerDir 'server.jar'
     $javaArgs = @("-Xms$Xmx", "-Xmx$Xmx", '-Dlog4j2.formatMsgNoLookups=true', '-XX:+UseG1GC',
                   '-jar', "`"$jar`"", '--nojline', 'nogui')
-    $proc = Start-Process -FilePath 'java' -ArgumentList $javaArgs -WorkingDirectory $ServerDir `
+    $proc = Start-Process -FilePath $JavaExe -ArgumentList $javaArgs -WorkingDirectory $ServerDir `
                           -WindowStyle Minimized -PassThru
     Set-Content -Path $PidFile -Value $proc.Id
     for ($i = 0; $i -lt 180; $i++) {
@@ -186,7 +194,7 @@ function Stop-TestServer {
 
 # ── Test database (PostgreSQL in docker) ────────────────────────────────────
 function Invoke-Psql([string]$db, [string]$sql) {
-    $out = & docker compose -f $Compose exec -T postgres psql -U atlas -d $db -v ON_ERROR_STOP=1 -tAc $sql
+    $out = & docker compose -f $Compose exec -T postgres psql -U hatlas -d $db -v ON_ERROR_STOP=1 -tAc $sql
     if ($LASTEXITCODE -ne 0) { throw "psql failed: $sql" }
     return $out
 }
@@ -194,8 +202,8 @@ function Invoke-Psql([string]$db, [string]$sql) {
 function Start-Database {
     & docker compose -f $Compose up -d --wait | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'docker compose up failed (is Docker Desktop running?)' }
-    $exists = Invoke-Psql 'atlas' "SELECT 1 FROM pg_database WHERE datname = '$DbName'"
-    if (-not $exists) { Invoke-Psql 'atlas' "CREATE DATABASE $DbName OWNER atlas" | Out-Null; Write-Output "created database $DbName" }
+    $exists = Invoke-Psql 'hatlas' "SELECT 1 FROM pg_database WHERE datname = '$DbName'"
+    if (-not $exists) { Invoke-Psql 'hatlas' "CREATE DATABASE $DbName OWNER hatlas" | Out-Null; Write-Output "created database $DbName" }
     Write-Output "database ready ($DbName)"
 }
 
@@ -211,7 +219,7 @@ function Save-Baseline {
     Start-Database
     New-Item -ItemType Directory -Force $BaselineDir | Out-Null
     foreach ($d in $StateDirs) { Copy-Tree (Join-Path $ServerDir $d) (Join-Path $BaselineDir $d) }
-    & docker compose -f $Compose exec -T postgres pg_dump -U atlas -Fc -f /tmp/baseline.dump $DbName
+    & docker compose -f $Compose exec -T postgres pg_dump -U hatlas -Fc -f /tmp/baseline.dump $DbName
     if ($LASTEXITCODE -ne 0) { throw 'pg_dump failed' }
     $cid = (& docker compose -f $Compose ps -q postgres).Trim()
     & docker cp "${cid}:/tmp/baseline.dump" (Join-Path $BaselineDir 'database.dump') | Out-Null
@@ -230,11 +238,11 @@ function Restore-Baseline {
         if (Test-Path (Join-Path $BaselineDir $d)) { Copy-Tree (Join-Path $BaselineDir $d) $target }
         elseif (Test-Path $target) { Remove-Item $target -Recurse -Force }
     }
-    Invoke-Psql 'atlas' "DROP DATABASE IF EXISTS $DbName WITH (FORCE)" | Out-Null
-    Invoke-Psql 'atlas' "CREATE DATABASE $DbName OWNER atlas" | Out-Null
+    Invoke-Psql 'hatlas' "DROP DATABASE IF EXISTS $DbName WITH (FORCE)" | Out-Null
+    Invoke-Psql 'hatlas' "CREATE DATABASE $DbName OWNER hatlas" | Out-Null
     $cid = (& docker compose -f $Compose ps -q postgres).Trim()
     & docker cp (Join-Path $BaselineDir 'database.dump') "${cid}:/tmp/baseline.dump" | Out-Null
-    & docker compose -f $Compose exec -T postgres pg_restore -U atlas -d $DbName --no-owner /tmp/baseline.dump
+    & docker compose -f $Compose exec -T postgres pg_restore -U hatlas -d $DbName --no-owner /tmp/baseline.dump
     if ($LASTEXITCODE -ne 0) { throw 'pg_restore failed' }
     Write-Output 'baseline restored'
     Start-TestServer
@@ -271,12 +279,12 @@ function Rebuild-FromMap {
             Move-Item $from (Join-Path $ServerDir "$($pair[1])\$($pair[0])")
         }
     }
-    $atlas = Join-Path $ServerDir 'plugins\atlas'
-    if (Test-Path $atlas) { Remove-Item $atlas -Recurse -Force }
-    New-Item -ItemType Directory -Force $atlas | Out-Null
-    Copy-Item (Join-Path $ProjectDir 'scripts\test-world\atlas-config.yml') (Join-Path $atlas 'config.yml')
-    Invoke-Psql 'atlas' "DROP DATABASE IF EXISTS $DbName WITH (FORCE)" | Out-Null
-    Invoke-Psql 'atlas' "CREATE DATABASE $DbName OWNER atlas" | Out-Null
+    $hatlas = Join-Path $ServerDir 'plugins\hatlas'
+    if (Test-Path $hatlas) { Remove-Item $hatlas -Recurse -Force }
+    New-Item -ItemType Directory -Force $hatlas | Out-Null
+    Copy-Item (Join-Path $ProjectDir 'scripts\test-world\hatlas-config.yml') (Join-Path $hatlas 'config.yml')
+    Invoke-Psql 'hatlas' "DROP DATABASE IF EXISTS $DbName WITH (FORCE)" | Out-Null
+    Invoke-Psql 'hatlas' "CREATE DATABASE $DbName OWNER hatlas" | Out-Null
     Install-Structures
     Write-Output "rebuilt from $map"
     Start-TestServer
@@ -305,6 +313,8 @@ function Deploy-Plugin {
     if (-not $jar) { throw "no $PluginName-*.jar in build\libs" }
     Stop-TestServer
     Get-ChildItem (Join-Path $ServerDir 'plugins') -Filter "$PluginName-*.jar" | Remove-Item
+    # The plugin was called "atlas" before 2026-11-07: never leave both jars installed.
+    Get-ChildItem (Join-Path $ServerDir 'plugins') -Filter 'atlas-*.jar' | Remove-Item
     Copy-Item $jar.FullName (Join-Path $ServerDir 'plugins')
     Write-Output "deployed: $($jar.Name)"
     Start-TestServer

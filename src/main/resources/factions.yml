@@ -18,7 +18,7 @@ vault:
   protection_break_drop_min: 10
 
 # Skill upgrade prices — each entry is a purchasable tier that faction members
-# can buy via the Atlas Crystal skill GUI, spending faction skill points.
+# can buy via the Hatlas Crystal skill GUI, spending faction skill points.
 #
 # hp        — adds permanent HP to the crystal           (bonus: hearts, cost: SP)
 # claims    — increases the crystal's claim capacity     (amount: chunks, cost: SP)
@@ -91,7 +91,7 @@ skills:
     - size: 54
       cost: 9
 
-# Atlas Crystal settings
+# Hatlas Crystal settings
 crystal:
   # HP regenerated per second when the crystal has not been attacked for regen_timeout_seconds.
   regen_per_second: 1.5

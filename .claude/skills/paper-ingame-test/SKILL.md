@@ -119,7 +119,7 @@ Même démarche, avec ces équivalences :
 - Actions joueur : outils du bot (`move-to-position`, `dig-block`, `place-block`, `equip-item`, `send-chat` pour les commandes avec `/`).
 - Preuves : `read-chat` (messages reçus par le bot), `list-inventory`, `get-block-info`, `read_test_log` (lignes `[TEST]` loggées par le plugin en debug), `read_server_log` pour les exceptions.
 - Limites à signaler dans le rapport : pas de clic dans les GUI, pas d'événements Bukkit, et un seul bot par instance MCP.
-## Suites de scénarios du projet Atlas
+## Suites de scénarios du projet Hatlas
 
 Ce dépôt garde ses tests en jeu sous forme de **suites JSON rejouables**. Utilise-les avant d'écrire un nouveau test, et ajoute-y tout scénario validé.
 
@@ -129,7 +129,7 @@ Ce dépôt garde ses tests en jeu sous forme de **suites JSON rejouables**. Util
 - `src/test/ingame/fixtures.json` : les lieux nommés du monde de test (spawn, PNJ, boutique `miner_shop`, donjons `dark_forest` et `*_gallery`, zone de minerai `city_mine`, zones sûres `spawn`/`city`, `sandbox` en x = 1000). `{{npc.job_miner.x}}` donne un nombre, `{{donjon.dark_forest.vault}}` (tableau) ou `{{spawn}}` (objet x/y/z) donnent `"x y z"`. Un chemin inconnu fait échouer le rendu.
 - `src/test/ingame/_setup/build-baseline.json` : le scénario **généré** (`node scripts/test-world/build-setup.mjs`) qui construit la référence à partir de la carte brute. Ce n'est pas une suite de feature.
 - `src/test/ingame/features.yml` : la carte feature → globs de fichiers. `node .claude/hooks/affected-features.mjs --base <branche>` donne, pour le diff courant, les features touchées (`features`), les fichiers `src/main/` qu'aucune feature ne couvre (`uncovered`, à ajouter à la carte) et les features sans aucun scénario (`missingSuites`, à écrire).
-- Un changement d'un fichier `shared` (Atlas.java, util/, paper-plugin.yml, build.gradle…) lance **toutes** les suites.
+- Un changement d'un fichier `shared` (Hatlas.java, util/, paper-plugin.yml, build.gradle…) lance **toutes** les suites.
 
 ### Écrire un scénario
 
@@ -140,16 +140,16 @@ Ce dépôt garde ses tests en jeu sous forme de **suites JSON rejouables**. Util
 - **Pièges vus** :
   - après un `tp`, attends ~40 ticks avant `use_entity` (le client n'a pas encore les entités) ;
   - `wait_for log_matches` ne voit que les lignes écrites **pendant** l'attente ;
-  - les commandes Atlas réservées aux joueurs se lancent depuis la console avec `execute as TesterN run <cmd>` (ex. `job set`).
+  - les commandes Hatlas réservées aux joueurs se lancent depuis la console avec `execute as TesterN run <cmd>` (ex. `job set`).
 - Jamais de coordonnée en dur pour un lieu du monde : ajoute-le à `fixtures.json` (et à `build-setup.mjs` s'il doit exister dans la référence).
 - Les étapes `console` passent quel que soit le résultat de la commande : pour vérifier, fais `execute if … run tellraw TesterN "…"` puis `assert_message`.
 
 ### Serveur de test jetable et référence
 
-Le serveur de test (`CLAUDE.md` §2) ne contient **que le monde de test** : aucune donnée réelle, aucun joueur réel à protéger. Atlas y tourne sur **PostgreSQL** (docker, base `atlas_test`).
-- **Avant une campagne** : `scripts/test-server.ps1 reset` remet le monde, `plugins/atlas` et la base dans l'état de référence (~25 s), puis `deploy`. Refais un `reset` si un scénario a laissé un état gênant. Pas de sauvegarde, pas de restauration, pas de nettoyage.
+Le serveur de test (`CLAUDE.md` §2) ne contient **que le monde de test** : aucune donnée réelle, aucun joueur réel à protéger. Hatlas y tourne sur **PostgreSQL** (docker, base `hatlas_test`).
+- **Avant une campagne** : `scripts/test-server.ps1 reset` remet le monde, `plugins/hatlas` et la base dans l'état de référence (~25 s), puis `deploy`. Refais un `reset` si un scénario a laissé un état gênant. Pas de sauvegarde, pas de restauration, pas de nettoyage.
 - **La référence** (`<TEST_SERVER_DIR>\baseline`, hors git) = la carte brute (`run/world`) + `build-baseline.json`. Elle ne se reconstruit que si la carte, `fixtures.json` ou la mise en place changent :
-  1. `scripts/test-server.ps1 rebuild-from-map` (carte brute, base vide, `atlas-config.yml`, structures installées) ;
+  1. `scripts/test-server.ps1 rebuild-from-map` (carte brute, base vide, `hatlas-config.yml`, structures installées) ;
   2. `node scripts/test-world/build-setup.mjs`, connecte le bot `Builder` (`bot_spawn`), puis `scripts/test-server.ps1 run-console src/test/ingame/_setup/build-baseline.json` ;
   3. vérifie (base : `safezone_chunks`, `donjons`, `ore_zones`, `shops` ; PNJ près du spawn), puis `scripts/test-server.ps1 baseline`.
 
@@ -161,4 +161,4 @@ L'agent `ingame-tester` écrit `.claude/state/ingame/<sha HEAD complet>.json` (d
 {"head": "<sha>", "verdict": "PASS", "features": ["shop"], "scenarios": [{"file": "src/test/ingame/shop/vault-payment.json", "result": "PASS"}], "notes": "..."}
 ```
 
-`verdict` vaut `PASS` seulement si **tous** les scénarios des features listées passent et qu'aucune nouvelle exception `org.minecraft.atlas` n'apparaît. Sinon c'est `FAIL`. `WAIVED` est réservé au cas où l'utilisateur a demandé explicitement de sauter les tests (raison dans `notes`).
+`verdict` vaut `PASS` seulement si **tous** les scénarios des features listées passent et qu'aucune nouvelle exception `org.minecraft.hatlas` n'apparaît. Sinon c'est `FAIL`. `WAIVED` est réservé au cas où l'utilisateur a demandé explicitement de sauter les tests (raison dans `notes`).

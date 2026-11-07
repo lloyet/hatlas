@@ -8,14 +8,14 @@
   {"action": "command", "bot": "Tester1", "command": "f create ExpFac"},
   {"action": "assert_message", "bot": "Tester1", "contains": "created successfully"},
 
-  {"action": "console", "command": "atlas storage export"},
+  {"action": "console", "command": "hatlas storage export"},
   {"action": "wait_for", "condition": "ticks", "count": 30},
 
   {"action": "console", "command": "op Tester1"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester1", "op": true},
-  {"action": "command", "bot": "Tester1", "command": "atlas storage export"},
-  {"action": "assert_message", "bot": "Tester1", "contains": "Exporting all data to atlas-"},
-  {"action": "assert_message", "bot": "Tester1", "contains": "Export done: plugins/atlas/backups/atlas-"},
+  {"action": "command", "bot": "Tester1", "command": "hatlas storage export"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Exporting all data to hatlas-"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Export done: plugins/hatlas/backups/hatlas-"},
   {"action": "console", "command": "deop Tester1"},
 
   {"action": "command", "bot": "Tester1", "command": "f disband"},

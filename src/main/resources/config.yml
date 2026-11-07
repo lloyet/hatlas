@@ -1,4 +1,4 @@
-# Atlas plugin configuration
+# Hatlas plugin configuration
 # See also: homes.yml, safezones.yml, combats.yml, factions.yml, donjons.yml, jobs.yml, shops.yml
 
 # Where runtime data is stored (factions, crystals, jobs, donjons, homes, shops, …).
@@ -6,7 +6,7 @@
 storage:
   # sqlite     = one database file (recommended for a single server)
   # postgresql = external server (needed to share data with other servers or a website)
-  # Choose once: there is no migration between sqlite and postgresql. /atlas storage export
+  # Choose once: there is no migration between sqlite and postgresql. /hatlas storage export
   # writes a full backup to a portable SQLite file in backups/.
   # Legacy *-data.yml files (old yaml storage, no longer supported) are imported once on the
   # first start and renamed to *.yml.migrated (kept as backup).
@@ -14,14 +14,14 @@ storage:
   # Every domain is saved at this interval, in addition to saves right after important actions.
   autosave_minutes: 5
   sqlite:
-    # Relative to plugins/atlas/
-    file: atlas.db
+    # Relative to plugins/hatlas/
+    file: hatlas.db
   postgresql:
     host: localhost
     port: 5432
-    database: atlas
-    username: atlas
-    # Prefer the ATLAS_DB_PASSWORD environment variable (it overrides this value).
+    database: hatlas
+    username: hatlas
+    # Prefer the HATLAS_DB_PASSWORD environment variable (it overrides this value).
     password: ''
     ssl: false
 
@@ -70,4 +70,4 @@ resourcepack:
   # If true, the client is kicked when they decline or fail to download
   required: false
   # Prompt shown in the accept dialog (plain text)
-  prompt: "Please accept the Atlas resource pack to see custom items."
+  prompt: "Please accept the Hatlas resource pack to see custom items."
