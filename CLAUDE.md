@@ -187,7 +187,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 ### 4.6 Ore Zones (`orezone/`, `OreZoneCommand`)
 - Cuboid regions refilled every `interval_reset_hours` with a weighted roll per block over `OreType` (diamond, gold, emerald, iron, copper, coal, **stone**, **ruby**). Ruby is placed through `RubyBlockManager`.
 - Admin: `/orezone pos1|pos2 [x y z]` (the given block, or the block you look at, up to 100 blocks), `add <name>`, `remove`, `reset`, `list`. New zones copy `default_ore_weights`. Weights per zone are saved in `orezones-data.yml`.
-- Status: compiles, but has **not been verified in game**. The current uncommitted change adds `STONE` and rebalances the weights (stone 75%).
+- Status: verified in game (refill and STONE weights, PR #22; `city_mine` suites on the test world, PR #34). Default weights put stone at 75 %. Ore zones win over safe zones for mining (PR #33).
 
 ### 4.7 Safe Zones (`safezone/`, `SafeZoneCommand`, `SpawnCommand`, `SafeZoneListener`, `SafeZoneGui`)
 - Named sets of chunks with an optional spawn point and description.
