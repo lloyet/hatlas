@@ -350,6 +350,8 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 4. `feat/hatlas-proxy`: multi-module Gradle (`hatlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Hatlas login check behind `access.require_ticket`.
 5. Website (separate repo): SvelteKit + Drizzle/postgres.js on schema `web`, Stripe Checkout + webhook, link page, dashboard.
 
+**Shared code with `../hatlas-proxy`** (✔ decided 2026-11-07): for now the small ticket check is **duplicated** in each plugin. If more code has to be shared later (config models, link-code logic, constants), extract a library `../hatlas-common` and include it with a **Gradle composite build** (`includeBuild("../hatlas-common")`, built from source, no publishing); publish it (e.g. GitHub Packages) only when CI needs it.
+
 **Before launch:** check Mojang's Minecraft Usage Guidelines for paid server access, EU VAT on digital services (e.g. Stripe Tax), refunds/chargebacks (webhook revokes the ticket).
 
 ---
