@@ -282,7 +282,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 | `shops.yml` | `reset_interval_hours`, `items_per_shop`, `job_defaults` (+ `shops`: import-only, emptied after import) |
 
 **Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **postgresql** since 2026-11-07; `sqlite` → `plugins/hatlas/hatlas.db` for dev servers). An unreachable database disables Hatlas with a message naming the database, the cause and what to check. Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
-- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/hatlas storage info` (`hatlas.storage.admin`) shows the backend; `/hatlas storage export` was **removed** 2026-11-07 (Open Question 25): backups are a DB dump + world copy outside the game (M2).
+- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/hatlas storage info` (`hatlas.storage.admin`) shows the backend; `/hatlas storage save` writes every domain synchronously (used by the backup script); `/hatlas storage export` was **removed** 2026-11-07 (Open Question 25). **Backups:** `scripts/backup/hatlas-backup.sh` (DB dump + world copy taken together, daily systemd timer, restore), see [`docs/backup.md`](docs/backup.md).
 - On the first start with a database, the `*-data.yml` files are imported and renamed `*.yml.migrated` (backup).
 - Saves happen right after important mutations, then every `autosave_minutes` (5) for all domains, and at shutdown. **A crash loses at most the last autosave interval** for data without an immediate save (job XP, quest progress, custom blocks, combat timers).
 
@@ -344,8 +344,8 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 - **`/hatlas storage export` is removed** (replaced by the backups above); `/hatlas storage info` stays.
 
 **Planned PRs (in order)**
-1. `feat/postgres-default` (**PR opened 2026-11-07**): default `storage.type: postgresql` (driver loaded on a first start too), clear startup error, `/hatlas storage export` + portable SQLite mode removed, docs.
-2. `feat/backup-script`: daily world + DB backup/restore script, rotation, scheduled task; reuses the test server's `baseline`/`reset` logic.
+1. `feat/postgres-default` (**merged 2026-11-07**, PR #40): default `storage.type: postgresql` (driver loaded on a first start too), clear startup error, `/hatlas storage export` + portable SQLite mode removed, docs.
+2. `feat/backup-script` (**PR opened 2026-11-07**): `scripts/backup/hatlas-backup.sh` (Bash, Linux prod with PostgreSQL in docker compose, ✔ 2026-11-07) `backup|list|verify|restore|prune`, systemd timer (daily 04:30), rotation 7 daily + 4 weekly (+3 pre-restore), new `/hatlas storage save` (sync write before the dump). A restore replaces only `GAME_SCHEMAS` (website tickets kept) unless `--full`. Doc: [`docs/backup.md`](docs/backup.md).
 3. `feat/web-read-model`: readable columns (`vault_gems`, item display fields) + `hatlas.web_*` views + a read-only DB role.
 4. `feat/hatlas-proxy`: multi-module Gradle (`hatlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Hatlas login check behind `access.require_ticket`.
 5. Website (separate repo): SvelteKit + Drizzle/postgres.js on schema `web`, Stripe Checkout + webhook, link page, dashboard.

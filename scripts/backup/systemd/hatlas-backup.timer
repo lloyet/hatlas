@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Hatlas backup
+
+[Timer]
+# Low-traffic hour. Persistent: a run missed while the machine was off happens at boot.
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
