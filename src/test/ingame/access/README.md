@@ -17,4 +17,4 @@ login is checked by hand when the check changes, and end to end through Velocity
 5. Simulate a database problem: `ALTER TABLE web.tickets RENAME TO tickets_off;` (psql on
    `hatlas_test`), then Tester1 is refused with
    "The access check is unavailable right now" and the log names the error (fails closed).
-6. `reset` to restore the default config.
+6. `reset` to restore the default config, then `deop Tester3` (console): `reset` does not restore `ops.json`.
