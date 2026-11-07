@@ -274,14 +274,23 @@ public class FactionManager {
 
     /** Sends a chat message to every online member of a faction, optionally excluding one player. */
     public static void broadcastToFaction(String factionName, net.kyori.adventure.text.Component message, UUID exclude) {
+        broadcastToFaction(factionName, message, exclude, null);
+    }
+
+    /** Same as above, skipping two players (e.g. the promoter and the promoted, who get their own message). */
+    public static void broadcastToFaction(String factionName, net.kyori.adventure.text.Component message,
+                                          UUID exclude, UUID exclude2) {
         Faction faction = factions.get(factionName);
         if (faction == null) return;
-        if (!faction.getOwner().equals(exclude)) {
+        java.util.Set<UUID> skip = new java.util.HashSet<>();
+        skip.add(exclude);
+        skip.add(exclude2);
+        if (!skip.contains(faction.getOwner())) {
             Player owner = Bukkit.getPlayer(faction.getOwner());
             if (owner != null) owner.sendMessage(message);
         }
         for (UUID memberUUID : faction.getMembers()) {
-            if (memberUUID.equals(exclude)) continue;
+            if (skip.contains(memberUUID)) continue;
             Player member = Bukkit.getPlayer(memberUUID);
             if (member != null) member.sendMessage(message);
         }
@@ -386,6 +395,8 @@ public class FactionManager {
 
     /** Immutable copy of every faction, for storage. Main thread only. */
     public static FactionsData snapshot() {
+        // An open vault GUI holds the live contents: copy them in before serializing.
+        org.minecraft.atlas.gui.CrystalVaultGui.pullAllLive();
         List<FactionsData.FactionRow> rows = new ArrayList<>();
         int defaultVault = FactionLevelManager.getDefaultVaultSize();
         for (Faction f : factions.values()) {

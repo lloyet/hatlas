@@ -3,6 +3,7 @@ package org.minecraft.atlas.faction;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.minecraft.atlas.Item.RubyItem;
+import org.minecraft.atlas.gui.CrystalVaultGui;
 
 /**
  * Static helpers for the per-faction ruby vault: counting gems, and dropping some/all gems
@@ -10,6 +11,10 @@ import org.minecraft.atlas.Item.RubyItem;
  *
  * <p>Used by the crystal-damage flow to scatter rubies on protection-break and faction-disband,
  * and by the main GUI / {@code /faction balance} command to read the gem total.
+ *
+ * <p>Every helper first pulls the contents of an open vault GUI and pushes its change back
+ * to it ({@link CrystalVaultGui#pullLive}/{@link CrystalVaultGui#pushLive}), so a payment
+ * made while a member has the vault open is not undone when that GUI closes.
  */
 public final class FactionVault {
 
@@ -17,6 +22,7 @@ public final class FactionVault {
 
     /** Total ruby-gem count across all vault slots. */
     public static int countGems(Faction faction) {
+        CrystalVaultGui.pullLive(faction);
         int total = 0;
         for (ItemStack s : faction.getVaultContents()) {
             if (s != null && RubyItem.isRubyGem(s)) total += s.getAmount();
@@ -32,6 +38,7 @@ public final class FactionVault {
      */
     public static int drop(Faction faction, Location loc, int requested) {
         if (loc == null || loc.getWorld() == null || requested <= 0) return 0;
+        CrystalVaultGui.pullLive(faction);
         ItemStack[] vault = faction.getVaultContents();
         int dropped = 0;
         int remaining = requested;
@@ -48,6 +55,7 @@ public final class FactionVault {
             remaining -= take;
             dropped += take;
         }
+        CrystalVaultGui.pushLive(faction);
         return dropped;
     }
 
@@ -74,6 +82,7 @@ public final class FactionVault {
             else s.setAmount(left);
             remaining -= take;
         }
+        CrystalVaultGui.pushLive(faction);
         return true;
     }
 
@@ -83,6 +92,7 @@ public final class FactionVault {
      */
     public static int deposit(Faction faction, int count) {
         if (count <= 0) return 0;
+        CrystalVaultGui.pullLive(faction);
         ItemStack[] vault = faction.getVaultContents();
         ItemStack template = RubyItem.get("ruby");
         int maxStack = template.getMaxStackSize();
@@ -107,6 +117,7 @@ public final class FactionVault {
             vault[i] = fresh;
             remaining -= give;
         }
+        CrystalVaultGui.pushLive(faction);
         return remaining;
     }
 

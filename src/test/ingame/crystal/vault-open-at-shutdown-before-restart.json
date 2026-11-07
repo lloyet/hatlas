@@ -1,0 +1,22 @@
+[
+  {"action": "console", "command": "forceload add 1056 992 1071 1007"},
+  {"action": "console", "command": "fill 1056 199 992 1071 199 1007 minecraft:stone"},
+  {"action": "spawn", "bot": "Tester3"},
+  {"action": "console", "command": "gamemode survival Tester3"},
+  {"action": "console", "command": "clear Tester3"},
+  {"action": "console", "command": "tp Tester3 1060.5 200 1000.5"},
+  {"action": "wait_for", "condition": "player_near", "name": "Tester3", "x": 1060, "y": 200, "z": 1000, "distance": 3},
+  {"action": "command", "bot": "Tester3", "command": "f create OpenVaultFac"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "created successfully"},
+  {"action": "console", "command": "item give Tester3 ruby 12"},
+  {"action": "console", "command": "tp Tester3 1063.5 200 1000.5 90 0"},
+  {"action": "wait_for", "condition": "ticks", "count": 40},
+  {"action": "look_at", "bot": "Tester3", "x": 1060.5, "y": 201.5, "z": 1000.5},
+  {"action": "use_entity", "bot": "Tester3", "x": 1060.5, "y": 201, "z": 1000.5},
+  {"action": "wait_for", "condition": "inventory_open", "name": "Tester3", "title": "Crystal Menu"},
+  {"action": "click_slot", "bot": "Tester3", "slot": 32, "click": "left"},
+  {"action": "wait_for", "condition": "inventory_open", "name": "Tester3", "title": "Vault"},
+  {"action": "click_slot", "bot": "Tester3", "slot": 32, "click": "shift_left"},
+  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester3", "material": "EMERALD", "slot": 0},
+  {"action": "assert_inventory", "bot": "Tester3", "slots": [{"slot": 0, "material": "EMERALD", "amount": 12}]}
+]
