@@ -1,0 +1,36 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "op Tester1"},
+  {"action": "console", "command": "tp Tester1 {{spawn}}"},
+  {"action": "wait_for", "condition": "player_near", "name": "Tester1", "x": {{spawn.x}}, "y": {{spawn.y}}, "z": {{spawn.z}}, "distance": 3},
+
+  {"action": "command", "bot": "Tester1", "command": "donjon info dark_forest"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "=== dark_forest ==="},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Vault: world {{donjon.dark_forest.vault.0}}, {{donjon.dark_forest.vault.1}}, {{donjon.dark_forest.vault.2}}"},
+
+  {"action": "command", "bot": "Tester1", "command": "donjon doctor dark_forest"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "=== Doctor: dark_forest ==="},
+  {"action": "assert_message", "bot": "Tester1", "contains": "✔ Vault block"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "✔ Teleport spawn"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "✔ Wave spawn points"},
+
+  {"action": "command", "bot": "Tester1", "command": "donjon info no_such_donjon"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Donjon not found: no_such_donjon"},
+
+  {"action": "command", "bot": "Tester1", "command": "donjon create trial dark_forest"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "A donjon named or with id 'dark_forest' already exists."},
+  {"action": "command", "bot": "Tester1", "command": "donjon create trial DARK_FOREST"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "A donjon named or with id 'DARK_FOREST' already exists."},
+
+  {"action": "command", "bot": "Tester1", "command": "donjon set vault desert_gallery {{donjon.desert_gallery.vault}}"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "at {{donjon.desert_gallery.vault.0}}, {{donjon.desert_gallery.vault.1}}, {{donjon.desert_gallery.vault.2}} for donjon desert_gallery."},
+  {"action": "assert_message", "bot": "Tester1", "contains": "VAULT"},
+  {"action": "command", "bot": "Tester1", "command": "donjon set vault desert_gallery {{sandbox.x}} 64 {{sandbox.z}}"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "not inside the donjon's protected area"},
+  {"action": "command", "bot": "Tester1", "command": "donjon doctor desert_gallery"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "=== Doctor: desert_gallery ==="},
+  {"action": "assert_message", "bot": "Tester1", "contains": "✔ Vault block"},
+
+  {"action": "console", "command": "deop Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]

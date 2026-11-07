@@ -10,7 +10,7 @@
   {"action": "console", "command": "op Tester2"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": true},
   {"action": "command", "bot": "Tester2", "command": "atlas storage info"},
-  {"action": "assert_message", "bot": "Tester2", "contains": "Storage: SQLite ("},
+  {"action": "assert_message", "bot": "Tester2", "contains": "Storage: PostgreSQL ("},
   {"action": "command", "bot": "Tester2", "command": "atlas"},
   {"action": "assert_message", "bot": "Tester2", "contains": "/atlas storage export"},
   {"action": "console", "command": "deop Tester2"},

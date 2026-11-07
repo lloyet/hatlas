@@ -1,0 +1,26 @@
+[
+  {"action": "console", "command": "forceload add {{orezone.city_mine.forceload}}"},
+  {"action": "console", "command": "fill -4714 50 -3194 -4710 52 -3190 air"},
+  {"action": "console", "command": "fill -4714 49 -3194 -4710 49 -3190 stone"},
+  {"action": "console", "command": "setblock -4714 50 -3190 stone"},
+
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "deop Tester1"},
+  {"action": "console", "command": "gamemode survival Tester1"},
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "console", "command": "give Tester1 iron_pickaxe 1"},
+  {"action": "console", "command": "tp Tester1 -4711.5 50 -3190.5"},
+  {"action": "wait_for", "condition": "player_near", "name": "Tester1", "x": -4712, "y": 50, "z": -3191, "distance": 2},
+  {"action": "wait_for", "condition": "ticks", "count": 40},
+  {"action": "hold_item", "bot": "Tester1", "material": "IRON_PICKAXE"},
+
+  {"action": "break_block", "bot": "Tester1", "x": -4713, "y": 49, "z": -3193},
+  {"action": "wait_for", "condition": "block_is", "x": -4713, "y": 49, "z": -3193, "material": "AIR"},
+
+  {"action": "break_block", "bot": "Tester1", "x": -4714, "y": 50, "z": -3190},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Block breaking is disabled in spawn protection."},
+  {"action": "assert_block", "x": -4714, "y": 50, "z": -3190, "material": "STONE"},
+
+  {"action": "console", "command": "forceload remove {{orezone.city_mine.forceload}}"},
+  {"action": "despawn", "bot": "Tester1"}
+]

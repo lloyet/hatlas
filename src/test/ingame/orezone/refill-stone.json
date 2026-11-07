@@ -1,14 +1,14 @@
 [
-  {"action": "console", "command": "forceload add 6 -152 11 -147"},
-  {"action": "console", "command": "orezone reset test"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 glass replace stone"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 white_wool replace coal_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 orange_wool replace iron_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 red_wool replace copper_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 yellow_wool replace gold_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 cyan_wool replace diamond_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 lime_wool replace emerald_ore"},
-  {"action": "console", "command": "fill 6 57 -152 11 62 -147 black_wool replace note_block"},
-  {"action": "console", "command": "orezone reset test"},
-  {"action": "console", "command": "forceload remove 6 -152 11 -147"}
+  {"action": "console", "command": "forceload add {{orezone.city_mine.forceload}}"},
+  {"action": "console", "command": "orezone reset city_mine"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} glass replace stone"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} white_wool replace coal_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} orange_wool replace iron_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} red_wool replace copper_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} yellow_wool replace gold_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} cyan_wool replace diamond_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} lime_wool replace emerald_ore"},
+  {"action": "console", "command": "fill {{orezone.city_mine.min}} {{orezone.city_mine.max}} black_wool replace note_block"},
+  {"action": "console", "command": "orezone reset city_mine"},
+  {"action": "console", "command": "forceload remove {{orezone.city_mine.forceload}}"}
 ]

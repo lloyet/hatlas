@@ -17,6 +17,7 @@
   {"action": "close_menu", "bot": "Tester1"},
   {"action": "console", "command": "execute if items block 1041 101 1040 container.* minecraft:netherite_pickaxe[item_model=\"hatlas:amethyst_pickaxe\"] run tellraw Tester1 \"AMT pickaxe in chest\""},
   {"action": "assert_message", "bot": "Tester1", "contains": "AMT pickaxe in chest"},
+  {"action": "console", "command": "tp Tester1 {{spawn}}"},
   {"action": "console", "command": "setblock 1041 101 1040 air destroy"},
   {"action": "console", "command": "kill @e[type=item,x=1041,y=101,z=1040,distance=..3]"},
   {"action": "console", "command": "setblock 1041 101 1040 air"},

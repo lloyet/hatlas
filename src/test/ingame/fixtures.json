@@ -1,0 +1,497 @@
+{
+  "_doc": "Named places of the test world (Atlas test server, see CLAUDE.md \u00a72). Scenarios use {{path}} placeholders (e.g. {{npc.job_miner.x}}, {{donjon.dark_forest.vault}} = 'x y z'), rendered by scripts/test-world/render.mjs. The setup scenario _setup/build-baseline.json is generated from this file by scripts/test-world/build-setup.mjs. 'surface': true = y is the ground at (x, z), found at run time. Blocks are integer block coordinates.",
+  "world": "world",
+  "spawn": {
+    "x": -4956,
+    "y": 80,
+    "z": -3044
+  },
+  "sandbox": {
+    "x": 1000,
+    "z": 1000,
+    "surface": true,
+    "_doc": "free area for scenarios that build their own setup (factions, chests...)"
+  },
+  "safezone": {
+    "spawn": {
+      "chunks": {
+        "from": [
+          -312,
+          -191
+        ],
+        "to": [
+          -310,
+          -189
+        ]
+      },
+      "spawn_point": {
+        "x": -4956,
+        "y": 80,
+        "z": -3044
+      },
+      "description": "World spawn: job NPCs, Jokeyrini, Smuggler, Explorer, Auctioneer"
+    },
+    "city": {
+      "chunks": {
+        "from": [
+          -301,
+          -203
+        ],
+        "to": [
+          -288,
+          -189
+        ]
+      },
+      "spawn_point": {
+        "x": -4721,
+        "y": 61,
+        "z": -3157
+      },
+      "description": "City with shop houses and the ore zone"
+    }
+  },
+  "orezone": {
+    "city_mine": {
+      "min": [
+        -4719,
+        32,
+        -3199
+      ],
+      "max": [
+        -4704,
+        49,
+        -3184
+      ],
+      "_doc": "inside the city safe zone: ore zones win over safe zones for mining",
+      "forceload": "-4719 -3199 -4704 -3184"
+    }
+  },
+  "shop": {
+    "miner_shop": {
+      "job": "MINER",
+      "x": -4721,
+      "y": 61,
+      "z": -3157,
+      "npc": [
+        -4720.5,
+        61,
+        -3156.5
+      ],
+      "npc_eye": [
+        -4720.5,
+        62.5,
+        -3156.5
+      ]
+    }
+  },
+  "npc": {
+    "job_miner": {
+      "kind": "job",
+      "job": "miner",
+      "x": -4959,
+      "z": -3047,
+      "surface": true
+    },
+    "job_lumberjack": {
+      "kind": "job",
+      "job": "lumberjack",
+      "x": -4956,
+      "z": -3047,
+      "surface": true
+    },
+    "job_hunter": {
+      "kind": "job",
+      "job": "hunter",
+      "x": -4953,
+      "z": -3047,
+      "surface": true
+    },
+    "job_farmer": {
+      "kind": "job",
+      "job": "farmer",
+      "x": -4950,
+      "z": -3047,
+      "surface": true
+    },
+    "job_alchemist": {
+      "kind": "job",
+      "job": "alchemist",
+      "x": -4962,
+      "z": -3047,
+      "surface": true
+    },
+    "jokeyrini": {
+      "kind": "job",
+      "job": "jokeyrini",
+      "x": -4959,
+      "z": -3041,
+      "surface": true
+    },
+    "smuggler": {
+      "kind": "smuggler",
+      "x": -4953,
+      "z": -3041,
+      "surface": true
+    },
+    "explorer": {
+      "kind": "explorer",
+      "x": -4962,
+      "z": -3041,
+      "surface": true
+    },
+    "auctioneer": {
+      "kind": "auctioneer",
+      "x": -4950,
+      "z": -3041,
+      "surface": true
+    }
+  },
+  "donjon": {
+    "dark_forest": {
+      "type": "trial",
+      "chunks": {
+        "from": [
+          -313,
+          -188
+        ],
+        "to": [
+          -311,
+          -187
+        ]
+      },
+      "vault": [
+        -4985,
+        86,
+        -2994
+      ],
+      "teleport": [
+        -4985,
+        86,
+        -2991
+      ],
+      "wave_spawns": [
+        [
+          -4980,
+          87,
+          -3004
+        ],
+        [
+          -4981,
+          86,
+          -2981
+        ]
+      ],
+      "_doc": "built in the map; registered as type trial"
+    },
+    "desert_gallery": {
+      "type": "desert",
+      "chunks": {
+        "from": [
+          -396,
+          -200
+        ],
+        "to": [
+          -395,
+          -199
+        ]
+      },
+      "vault": [
+        -6320,
+        209,
+        -3174
+      ],
+      "teleport": [
+        -6320,
+        209,
+        -3176
+      ],
+      "wave_spawns": [
+        [
+          -6332,
+          209,
+          -3174
+        ],
+        [
+          -6320,
+          209,
+          -3186
+        ]
+      ],
+      "_doc": "placed from hatlas:desert_donjon in the gallery"
+    },
+    "nether_castle_gallery": {
+      "type": "nether_castle",
+      "chunks": {
+        "from": [
+          -392,
+          -200
+        ],
+        "to": [
+          -391,
+          -199
+        ]
+      },
+      "vault": [
+        -6258,
+        209,
+        -3182
+      ],
+      "teleport": [
+        -6260,
+        207,
+        -3182
+      ],
+      "wave_spawns": [
+        [
+          -6260,
+          209,
+          -3191
+        ],
+        [
+          -6267,
+          209,
+          -3182
+        ]
+      ],
+      "_doc": "placed from hatlas:nether_castle_donjon in the gallery"
+    },
+    "ocean_gallery": {
+      "type": "ocean",
+      "chunks": {
+        "from": [
+          -388,
+          -200
+        ],
+        "to": [
+          -387,
+          -199
+        ]
+      },
+      "vault": [
+        -6193,
+        207,
+        -3184
+      ],
+      "teleport": [
+        -6196,
+        206,
+        -3189
+      ],
+      "wave_spawns": [
+        [
+          -6197,
+          206,
+          -3191
+        ],
+        [
+          -6202,
+          209,
+          -3189
+        ]
+      ],
+      "_doc": "placed from hatlas:ocean_donjon in the gallery"
+    },
+    "plain_gallery": {
+      "type": "plain",
+      "chunks": {
+        "from": [
+          -384,
+          -200
+        ],
+        "to": [
+          -383,
+          -199
+        ]
+      },
+      "vault": [
+        -6134,
+        210,
+        -3178
+      ],
+      "teleport": [
+        -6135,
+        209,
+        -3182
+      ],
+      "wave_spawns": [
+        [
+          -6130,
+          210,
+          -3172
+        ],
+        [
+          -6123,
+          207,
+          -3175
+        ]
+      ],
+      "_doc": "placed from hatlas:plain_donjon in the gallery"
+    }
+  },
+  "gallery": {
+    "dark_forest": {
+      "structure": "hatlas:dark_forest_donjon",
+      "origin": [
+        -6400,
+        200,
+        -3200
+      ],
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "chunks": {
+        "from": [
+          -400,
+          -200
+        ],
+        "to": [
+          -399,
+          -199
+        ]
+      },
+      "_doc": "vault present; not registered (the map already has this donjon)"
+    },
+    "desert": {
+      "structure": "hatlas:desert_donjon",
+      "origin": [
+        -6336,
+        200,
+        -3200
+      ],
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "chunks": {
+        "from": [
+          -396,
+          -200
+        ],
+        "to": [
+          -395,
+          -199
+        ]
+      }
+    },
+    "nether_castle": {
+      "structure": "hatlas:nether_castle_donjon",
+      "origin": [
+        -6272,
+        200,
+        -3200
+      ],
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "chunks": {
+        "from": [
+          -392,
+          -200
+        ],
+        "to": [
+          -391,
+          -199
+        ]
+      }
+    },
+    "ocean": {
+      "structure": "hatlas:ocean_donjon",
+      "origin": [
+        -6208,
+        200,
+        -3200
+      ],
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "chunks": {
+        "from": [
+          -388,
+          -200
+        ],
+        "to": [
+          -387,
+          -199
+        ]
+      }
+    },
+    "plain": {
+      "structure": "hatlas:plain_donjon",
+      "origin": [
+        -6144,
+        200,
+        -3200
+      ],
+      "size": [
+        32,
+        16,
+        32
+      ],
+      "chunks": {
+        "from": [
+          -384,
+          -200
+        ],
+        "to": [
+          -383,
+          -199
+        ]
+      }
+    },
+    "sky": {
+      "structure": "hatlas:sky_donjon",
+      "origin": [
+        -6080,
+        200,
+        -3200
+      ],
+      "size": [
+        48,
+        40,
+        48
+      ],
+      "chunks": {
+        "from": [
+          -380,
+          -200
+        ],
+        "to": [
+          -378,
+          -198
+        ]
+      },
+      "_doc": "no vault: gallery only"
+    },
+    "world_spawn": {
+      "structure": "hatlas:world_spawn",
+      "origin": [
+        -6016,
+        200,
+        -3200
+      ],
+      "size": [
+        48,
+        22,
+        48
+      ],
+      "chunks": {
+        "from": [
+          -376,
+          -200
+        ],
+        "to": [
+          -374,
+          -198
+        ]
+      },
+      "_doc": "no vault: gallery only"
+    }
+  }
+}
