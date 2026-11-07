@@ -71,6 +71,13 @@ The faction vault is a shared storage that holds **ruby gems only**. Open it fro
 
 A plain Member who tries to take gems out gets the message "Only the faction owner or a banker (or higher) can take rubies out of the vault." Promote a trusted player to **Banker** to let them shop for the faction without giving them any other right.
 
+You cannot drop rubies straight out of a vault slot (drop key while hovering a slot): the action is refused. Take them into your inventory first.
+
+### Rubies on the ground
+
+- Only players can pick up rubies lying on the ground. Mobs (allays, foxes, zombies…) and hoppers never take them.
+- Rubies can end up on the ground: the ones you throw, the ones you drop when you die, and the vault rubies dropped when a crystal protection breaks. Anyone can pick them up by walking over them: collect them quickly.
+
 ### Crystal Protection
 
 Protection is a Skill Point purchase that is **stockpiled** until your Crystal is attacked.
@@ -369,7 +376,7 @@ Admins can change the bonus. Gear crafted before a change (or before this update
 
 ### Rules
 
-Amethyst gear is **not restricted like rubies**: you can store it in chests, shulker boxes and crystal chests, trade it and sell it on the auction house like any other item.
+Amethyst gear is **not restricted like rubies**: unlike rubies, you can store it in chests, shulker boxes and crystal chests and sell it on the auction house. You can also trade it, like any other item.
 
 ---
 
@@ -549,6 +556,8 @@ Initiate a peer-to-peer item trade with another player.
 ```
 
 Both players are shown a GUI where they can place items in their respective slots. Both players must click **Accept** before a 3-second countdown commits the swap. Either player can cancel at any time before the countdown completes.
+
+You can trade **rubies** this way, player to player. Items that do not fit in the receiver's inventory drop at their feet.
 
 ### /tpa
 

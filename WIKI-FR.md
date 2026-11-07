@@ -78,6 +78,13 @@ Le coffre à rubis est un stockage partagé qui n'accepte **que des rubis**. Ouv
 
 Un simple Membre qui essaie de retirer des rubis reçoit le message « Only the faction owner or a banker (or higher) can take rubies out of the vault. ». Promouvez un joueur de confiance **Banquier** pour qu'il puisse faire les achats de la faction sans lui donner d'autre droit.
 
+Vous ne pouvez pas jeter des rubis directement depuis un emplacement du coffre (touche « jeter » sur un emplacement) : l'action est refusée. Prenez-les d'abord dans votre inventaire.
+
+### Rubis au sol
+
+- Seuls les joueurs peuvent ramasser des rubis posés au sol. Les mobs (allays, renards, zombies…) et les entonnoirs ne les prennent jamais.
+- Des rubis peuvent se retrouver au sol : ceux que vous jetez, ceux que vous lâchez en mourant, et ceux du coffre lâchés quand une protection de cristal se brise. N'importe qui peut les ramasser en passant dessus : récupérez-les vite.
+
 ### Protection du Cristal
 
 La protection est un achat de Point de Compétence **mis en réserve** jusqu'à l'attaque de votre Cristal.
@@ -376,7 +383,7 @@ Les admins peuvent changer ce bonus. Un équipement fabriqué avant un changemen
 
 ### Règles
 
-L'équipement en améthyste n'est **pas limité comme les rubis** : vous pouvez le ranger dans des coffres, des boîtes de Shulker et les coffres de cristal, l'échanger et le vendre à l'hôtel des ventes comme n'importe quel objet.
+L'équipement en améthyste n'est **pas limité comme les rubis** : contrairement aux rubis, vous pouvez le ranger dans des coffres, des boîtes de Shulker et les coffres de cristal et le vendre à l'hôtel des ventes. Vous pouvez aussi l'échanger, comme n'importe quel objet.
 
 ---
 
@@ -556,6 +563,8 @@ Initiez un échange d'objets pair à pair avec un autre joueur.
 ```
 
 Les deux joueurs voient une interface dans laquelle ils peuvent déposer des objets dans leurs emplacements respectifs. Les deux joueurs doivent cliquer sur **Accepter** avant qu'un compte à rebours de 3 secondes valide l'échange. Chaque joueur peut annuler à tout moment avant la fin du compte à rebours.
+
+Vous pouvez échanger des **rubis** de cette façon, de joueur à joueur. Les objets qui ne tiennent pas dans l'inventaire de celui qui les reçoit tombent à ses pieds.
 
 ### /tpa
 
