@@ -1,0 +1,8 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "f info ExpFac"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Claims: 1 / 1"},
+  {"action": "command", "bot": "Tester1", "command": "crystal list"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "main"},
+  {"action": "despawn", "bot": "Tester1"}
+]
