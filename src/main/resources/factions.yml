@@ -95,10 +95,11 @@ skills:
 crystal:
   # HP regenerated per second when the crystal has not been attacked for regen_timeout_seconds.
   regen_per_second: 1.5
-  # Base immunity in seconds granted when a crystal is defeated.
-  # Subsequent defeats within the escalation window multiply this by immunity_multiplier.
-  immunity_base_seconds: 180
-  # Escalation multiplier applied each time the crystal is defeated within the active window.
-  immunity_multiplier: 2
+  # When a protection breaks, the crystal is immune for the protection's duration, then the
+  # protection regenerates once a watch window of (protection_watch_multiplier x duration),
+  # counted from the break, has passed. A hit after the immunity ends and before the window
+  # closes loses the protection for good. 2 = immunity + a regen window as long as the
+  # protection. Minimum 1 (regenerates right when the immunity ends).
+  protection_watch_multiplier: 2
   # Seconds of inactivity (no damage received) before a crystal starts regenerating HP.
   regen_timeout_seconds: 20
