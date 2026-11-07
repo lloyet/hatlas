@@ -64,14 +64,14 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 ### Wiki automation (Open Question 12)
 - **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
 - **Agent** `.claude/agents/wiki-writer.md`: preloads the skill, may only edit the two WIKI files, read-only Bash (`git diff/log/show`, `gh pr view`), never commits.
-- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff against the PR's `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background. Otherwise it does nothing.
+- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff of the PR's `--head/-H` branch (default: the checked-out branch) against its `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background (in a worktree of that branch when it is not checked out). Otherwise it does nothing.
 - `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
 
 ### In-game test gate (Open Question 20)
 - **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
 - **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
 - **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
-- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for HEAD or for an ancestor of HEAD with identical `src/main/`, and no uncommitted `src/main/` change. Else the call is denied with the exact agent prompt to run.
+- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for the PR's head (`--head/-H` branch, else the checked-out HEAD) or for an ancestor of it with identical `src/main/`, and (for the checked-out branch) no uncommitted `src/main/` change. `--base origin/main` and `main` are the same. Both hooks judge the `--head` branch's own content (feature map, suites, diff), so a PR from a worktree or another branch is checked correctly (fixed 2026-11-07). Else the call is denied with the exact agent prompt to run.
 
 ---
 
@@ -318,6 +318,36 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 **Coverage target:** per feature of §4, one nominal + one refusal/edge + one persistence scenario, plus E2E flows ("create faction → job quest → faction XP → crystal skill", "mine ruby in an ore zone → buy in a shop", "run donjon → raid with the Raider's Pickaxe"). Current suites: faction, storage, orezone (+ shop and job on their PR branches).
 
+### M2 — Website, proxy and paid access (status: **planned**, decided 2026-11-07, Open Questions 21–25)
+
+**Goal:** a SvelteKit SSR website (same machine as the servers) where a player links their Minecraft account, buys a monthly ticket that gives access to the faction server, and sees read-only data: their faction (level, rubies, members…), shops, their job XP, online players.
+
+**Architecture**
+```
+player ─▶ Velocity proxy (online-mode, only public port)
+            ├─ hub (default server, no Atlas) ── /link
+            └─ faction server (Atlas, bound to localhost, Velocity modern forwarding)
+SvelteKit SSR ─▶ PostgreSQL ◀─ Atlas (schema atlas) / hatlas-proxy (schema web: read tickets, write link codes + presence)
+Stripe ─webhook▶ SvelteKit (writes web.tickets)
+```
+- **PostgreSQL is the production backend and becomes the default `storage.type`** (SQLite kept as an option for `runServer`/dev). A missing database disables Atlas with a clear message.
+- **Two schemas, enforced by roles:** `atlas` (owned by the plugin; the website reads only **views**, never internal tables) and `web` (owned by SvelteKit: accounts, links, tickets, payments). The plugin writes readable columns for the website (e.g. faction `vault_gems`, shop item material/name/amount) because vault and item contents are Paper item bytes.
+- **No HTTP API in the plugin** (Open Question 22). Reads go through views; **online players** through a presence table written by `hatlas-proxy` on join/quit/server switch (`LISTEN/NOTIFY` for live updates if needed). An API is only added later for live game state the DB cannot hold.
+- **Writes happen only on the website side** (Open Question 21): ticket purchase = Stripe Checkout → webhook → SvelteKit writes `web.tickets`; link = `/link` writes a single-use code (5–10 min) to `web.link_codes`, the player (logged in on the site) enters it, SvelteKit records the link. Payments never depend on the game server being up.
+- **`hatlas-proxy` (Velocity plugin)** owns `/link`, the ticket check when moving hub → faction server ("access expired, renew at <url>"), the mid-session expiry (warn, then **send back to the hub**), and the presence table. Atlas also refuses a login without a valid ticket (defence in depth), switchable for the test server (`access.require_ticket: false`, bots connect directly).
+- **A ticket belongs to a Minecraft UUID** (Open Question 24), not to the web account.
+- **Backups** (Open Question 25): daily `pg_dump -Fc` + world copy taken together (`save-off` → `save-all flush` → dump → copy → `save-on`), restored together by one script, kept **on the same machine in a dedicated folder** for now (rotation e.g. 7 daily + 4 weekly). Data loss ≤ 24 h accepted.
+- **`/atlas storage export` is removed** (replaced by the backups above); `/atlas storage info` stays.
+
+**Planned PRs (in order)**
+1. `feat/postgres-default`: default `storage.type: postgresql`, clear startup error, remove `/atlas storage export` + portable SQLite mode, docs.
+2. `feat/backup-script`: daily world + DB backup/restore script, rotation, scheduled task; reuses the test server's `baseline`/`reset` logic.
+3. `feat/web-read-model`: readable columns (`vault_gems`, item display fields) + `atlas.web_*` views + a read-only DB role.
+4. `feat/hatlas-proxy`: multi-module Gradle (`atlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Atlas login check behind `access.require_ticket`.
+5. Website (separate repo): SvelteKit + Drizzle/postgres.js on schema `web`, Stripe Checkout + webhook, link page, dashboard.
+
+**Before launch:** check Mojang's Minecraft Usage Guidelines for paid server access, EU VAT on digital services (e.g. Stripe Tax), refunds/chargebacks (webhook revokes the ticket).
+
 ---
 
 ## Open Questions
@@ -342,8 +372,13 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
 17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5).
+19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5) — *superseded 2026-11-07 by Open Question 25: export to be removed, PostgreSQL default, daily dumps (M2).*
 20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
+21. ~~**Website writes**~~ — ✔ answered 2026-11-07: link and ticket purchase are handled by **SvelteKit + PostgreSQL**; nothing writes through the plugin. See M2.
+22. ~~**HTTP API in the plugin**~~ — ✔ answered 2026-11-07: **not needed** for now; DB views + a presence table + a Velocity plugin instead. See M2.
+23. ~~**Proxy**~~ — ✔ answered 2026-11-07: **Velocity** in front (hub + faction server) with a small **`hatlas-proxy`** plugin owning `/link` and the ticket check. See M2.
+24. ~~**Ticket expiry / ownership**~~ — ✔ answered 2026-11-07: expiry mid-session **sends the player back to the hub**; a ticket is **tied to the Minecraft UUID**.
+25. ~~**Backups**~~ — ✔ answered 2026-11-07: **daily dump** (≤ 24 h loss), stored **on the same machine in a dedicated folder** for now; `/atlas storage export` will be removed. PostgreSQL becomes the default backend.
 
 ---
 
