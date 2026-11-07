@@ -35,7 +35,7 @@ Si le code et `CLAUDE.md` ne sont pas d'accord, le code gagne. Si une règle n'e
   - un court exemple « pas à pas » quand le flux a plusieurs étapes.
 - **Pas d'interne** : pas de noms de classes, de PDC, de clés YAML de stockage, de tables SQL. Une formule seulement si elle aide le joueur (XP, récompenses).
 - **Commandes admin** : ne les liste pas, sauf si le joueur en voit l'effet (dis alors simplement « un admin peut… »).
-- **Ton** : phrases courtes, deuxième personne (« you » / « tu »), pas de jargon dev. En français : tutoiement, termes du jeu en français sauf noms propres (Atlas Crystal, Jokeyrini, Donjon Key).
+- **Ton** : phrases courtes, deuxième personne (« you » / « vous »), pas de jargon dev. En français : **vouvoiement** (comme le reste de `WIKI-FR.md`), termes du jeu en français sauf noms propres (Atlas Crystal, Jokeyrini, Donjon Key).
 - Supprime ou corrige ce qui n'est plus vrai (valeurs changées, commandes renommées) ; ne laisse pas d'ancienne valeur à côté de la nouvelle.
 
 ## Sortie
