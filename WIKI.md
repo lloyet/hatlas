@@ -63,10 +63,10 @@ Protection is a Skill Point purchase that is **stockpiled** until your Crystal i
 How it works:
 1. Your Crystal is destroyed by an enemy.
 2. The Crystal automatically respawns at full HP and becomes **invincible** for the duration of the longest stockpiled protection.
-3. If no damage is taken during that window, the protection regenerates and stays available for the next attack.
-4. If you own multiple protections, they activate one after another, **longest first**.
+3. When the invincibility ends, a **regen window** of the same length starts (by default; admins can change this ratio). If the Crystal takes **no hit** during that window, the protection regenerates and is ready for the next attack. If it is hit, that protection is **lost for good**.
+4. If you own multiple protections, the next defeat uses the **longest one still available**. Broken protections regenerate one at a time, **shortest first**.
 
-**Example:** your faction owns one 1-hour protection and one 30-minute protection. When the Crystal is destroyed, it respawns at full HP and is invincible for 1 hour. If the 1-hour window survives without damage, it regenerates. If it's broken through, the 30-minute protection automatically takes over.
+**Example:** your faction owns a 1-hour and a 30-minute protection. The Crystal is destroyed: it respawns at full HP and is invincible for 1 hour. Then comes a 1-hour regen window: if nobody hits the Crystal, the 1-hour protection is back 2 hours after the defeat. If the Crystal is destroyed again in the meantime, the 30-minute protection takes over.
 
 The level-based "protection on downgrade" mechanic is gone — all Crystal protection now comes from this stockpile.
 

@@ -70,10 +70,10 @@ La protection est un achat de Point de Compétence **mis en réserve** jusqu'à 
 Comment ça marche :
 1. Votre Cristal est détruit par un ennemi.
 2. Le Cristal réapparaît automatiquement à pleine vie et devient **invincible** pour la durée de la plus longue protection en réserve.
-3. Si aucun dégât n'est subi pendant cette fenêtre, la protection se régénère et reste disponible pour la prochaine attaque.
-4. Si vous possédez plusieurs protections, elles s'activent les unes après les autres, **la plus longue en premier**.
+3. À la fin de l'invincibilité commence une **fenêtre de régénération** de la même durée (par défaut ; les admins peuvent changer ce rapport). Si le Cristal ne subit **aucun coup** pendant cette fenêtre, la protection se régénère et redevient disponible pour la prochaine attaque. S'il est touché, cette protection est **perdue définitivement**.
+4. Si vous possédez plusieurs protections, la prochaine défaite utilise **la plus longue encore disponible**. Les protections cassées se régénèrent une par une, **la plus courte en premier**.
 
-**Exemple :** votre faction possède une protection d'1 h et une protection de 30 min. Quand le Cristal est détruit, il revient à pleine vie et devient invincible pendant 1 h. Si la protection d'1 h tient sans subir de dégâts, elle se régénère. Si elle est percée, la protection de 30 min prend automatiquement le relais.
+**Exemple :** votre faction possède une protection d'1 h et une de 30 min. Le Cristal est détruit : il revient à pleine vie et devient invincible pendant 1 h. Vient ensuite une fenêtre de régénération d'1 h : si personne ne touche le Cristal, la protection d'1 h est de retour 2 h après la défaite. Si le Cristal est de nouveau détruit entre-temps, la protection de 30 min prend le relais.
 
 L'ancienne mécanique de « protection à la rétrogradation de niveau » a été supprimée — toute la protection du Cristal vient désormais de cette réserve.
 
