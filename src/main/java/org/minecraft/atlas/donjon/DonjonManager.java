@@ -1327,8 +1327,23 @@ public class DonjonManager {
         return entityToDonjonId.get(uuid);
     }
 
+    /**
+     * The donjon with this id, or else the one with this name (case-insensitive). Names are
+     * unique ({@link #getDonjonByName}), so admin commands accept either.
+     */
     public static Donjon getDonjon(String id) {
-        return donjons.get(id);
+        if (id == null) return null;
+        Donjon byId = donjons.get(id);
+        return byId != null ? byId : getDonjonByName(id);
+    }
+
+    /** The donjon whose name matches (case-insensitive), or null. */
+    public static Donjon getDonjonByName(String name) {
+        if (name == null) return null;
+        for (Donjon d : donjons.values()) {
+            if (d.getName() != null && d.getName().equalsIgnoreCase(name)) return d;
+        }
+        return null;
     }
 
     public static Map<String, Donjon> getDonjons() {

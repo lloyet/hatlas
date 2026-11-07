@@ -77,7 +77,7 @@ public class DonjonCommand {
                             Component.text("--- Donjon Commands ---", NamedTextColor.GOLD)
                                     .append(Component.newline()).append(helpEntry("create", "<type> <name>", "Create a donjon instance at your location"))
                                     .append(Component.newline()).append(helpEntry("list", "", "List all registered donjons"))
-                                    .append(Component.newline()).append(helpEntry("info", "<id>", "Show detailed donjon info"))
+                                    .append(Component.newline()).append(helpEntry("info", "<id|name>", "Show detailed donjon info"))
                                     .append(Component.newline()).append(helpEntry("activate", "<id>", "Activate a donjon"))
                                     .append(Component.newline()).append(helpEntry("deactivate", "<id>", "Deactivate a donjon"))
                                     .append(Component.newline()).append(helpEntry("reset", "<id>", "Reset a donjon to idle"))
@@ -126,6 +126,12 @@ public class DonjonCommand {
                                                 return Command.SINGLE_SUCCESS;
                                             }
                                             String nameArg = StringArgumentType.getString(ctx, "name");
+                                            if (DonjonManager.getDonjon(nameArg) != null) {
+                                                player.sendMessage(Component.text(
+                                                        "A donjon named or with id '" + nameArg + "' already exists.",
+                                                        NamedTextColor.RED));
+                                                return Command.SINGLE_SUCCESS;
+                                            }
                                             Donjon donjon = DonjonManager.generateDonjon(typeArg, nameArg, player.getLocation());
                                             if (donjon == null) {
                                                 player.sendMessage(Component.text(
