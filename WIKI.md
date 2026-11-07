@@ -174,6 +174,7 @@ Job progress (level + XP) is personal; faction XP earned from quest rewards is s
 | **Lumberjack** | Iron Axe | Chopping trees |
 | **Hunter** | Bow | Killing mobs |
 | **Farmer** | Wheat Seeds | Harvesting crops |
+| **Alchemist** | Blaze Powder | Brewing potions and crafting (ingredients, brewing gear, tipped arrows…). Killing mobs gives no Alchemist XP |
 
 Assign or change your job by interacting with the corresponding job NPC in the world.
 

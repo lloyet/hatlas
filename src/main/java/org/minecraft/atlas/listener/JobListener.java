@@ -222,7 +222,8 @@ public class JobListener implements Listener {
         String entityType = entity.getType().name().toLowerCase();
         PlayerJobData data = JobManager.getJobData(killer.getUniqueId());
 
-        if (data != null && (data.getJob() == Job.HUNTER || data.getJob() == Job.ALCHEMIST)) {
+        // Only HUNTER levels up from kills; ALCHEMIST tracks brewing and crafting only.
+        if (data != null && data.getJob() == Job.HUNTER) {
             JobManager.addProgress(killer.getUniqueId(), 1, killer);
             QuestManager.onTargetGathered(killer.getUniqueId(), "kill_entity", entityType, killer);
         }

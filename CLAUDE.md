@@ -121,7 +121,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - `Job` enum: **MINER, LUMBERJACK, HUNTER, FARMER, ALCHEMIST** (playable) plus **JOKEYRINI** (pseudo-job, used only for Jokeyrini task templates and its NPC).
 - You must be in a faction to get a job. You get it by right-clicking a job NPC (villager tagged `job_npc_type`, spawned with `/job npc spawn <job>`). Switching jobs resets your job data, and after a reset there is a **24 h cooldown** before you can pick a new one.
 - **Job XP:** +1 per relevant action. Level-up needs `(level+1) × 64`.
-  - MINER: ores, stone variants and glowstone. LUMBERJACK: logs and stems. FARMER: crops (`harvest_crop`), sugar cane and kelp, sweet berries, glow berries. HUNTER and ALCHEMIST: kills (`kill_entity`). ALCHEMIST also gets `brew_potion` (brewing-stand pickup) and `craft_item`.
+  - MINER: ores, stone variants and glowstone. LUMBERJACK: logs and stems. FARMER: crops (`harvest_crop`), sugar cane and kelp, sweet berries, glow berries. HUNTER: kills (`kill_entity`). ALCHEMIST: only `brew_potion` (brewing-stand pickup) and `craft_item` (✔ decided 2026-11-07, Open Question 7; its old kill tasks and 3 never-progressing `break_block` gather tasks were replaced by brew/craft tasks).
 - **Daily quests** (`QuestManager`): every `daily_reset_hours` you are offered 3 quests, each with 1–2 tasks at random difficulty 1–4. You can select **2**. Selecting a new day's offer clears your active quests.
   - Task amount = `BASE[d] + jobLevel × PER_LEVEL[d]` (Hunter ×0.9). Time limit is 15/30/60/120/180 min for difficulty 1–5, summed across the quest's tasks. Item rewards are scaled (Hunter ×1.1).
   - Faction XP = `exp_base_reward × Σ(difficulty × expMultiplier) × √(factionLevel+1)`.
@@ -310,7 +310,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 4. ~~**Faction max level**~~ — ✔ answered 2026-11-07: **99** (known issue §7.4 fixed).
 5. **Crystal immunity escalation** — answered 2026-11-07: "configurable, with default values that match the current code". **Needs clarification (asked 2026-11-07):** the old escalation keys (`immunity_base_seconds` / `immunity_multiplier`) are loaded but used nowhere, and their defaults disagree (code 18000 s, `factions.yml` 180 s). The only escalation-like value in the current protection system is hard-coded: the watch window `2 × duration` (`AtlasCrystalManager`, ~line 931). Option A: make that watch-window factor configurable (default 2) and delete the dead keys. Option B: bring the old escalation back on top of protections with the code defaults (18000 s, ×2).
 6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
-7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
+7. ~~**ALCHEMIST job**~~ — ✔ answered 2026-11-07: tracks **only brewing and crafting**. Kills no longer give Alchemist XP; the 7 kill/gather tasks in `jobs.yml` were replaced by 7 brew/craft tasks (still 16 per job).
 8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
 9. **"Rubis Ruins" safe zone** (mentioned in WIKI): is it planned content with its own mechanics?
 10. **Map/world:** is there a production world save or a schematic of spawn that should live in the repo or be documented?

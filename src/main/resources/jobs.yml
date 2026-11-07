@@ -999,52 +999,6 @@ quests:
         normal: 1.0
         hard: 1.0
         hardcore: 1.0
-    - id: hunt_nether_alchemist
-      job: alchemist
-      name: Nether Hunter
-      description: Hunt nether creatures for alchemical components.
-      action_type: kill_entity
-      targets:
-        - BLAZE
-        - GHAST
-        - WITHER_SKELETON
-        - MAGMA_CUBE
-      item_rewards:
-        - material: BLAZE_ROD
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
-    - id: gather_mushrooms
-      job: alchemist
-      name: "Mushroom Picker"
-      description: "Gather mushrooms for potions and brewing."
-      action_type: break_block
-      targets:
-        - BROWN_MUSHROOM
-        - RED_MUSHROOM
-      item_rewards:
-        - material: MUSHROOM_STEW
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
-    - id: gather_sugar_cane
-      job: alchemist
-      name: "Sugar Alchemist"
-      description: "Collect sugar cane for brewing awkward potions."
-      action_type: break_block
-      targets:
-        - SUGAR_CANE
-      item_rewards:
-        - material: SUGAR
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
     - id: craft_fire_charge
       job: alchemist
       name: "Pyromancer"
@@ -1101,64 +1055,6 @@ quests:
         normal: 1.0
         hard: 1.0
         hardcore: 1.0
-    - id: hunt_cave_creatures
-      job: alchemist
-      name: "Cave Exterminator"
-      description: "Eliminate cave creatures for rare alchemy drops."
-      action_type: kill_entity
-      targets:
-        - SILVERFISH
-        - CAVE_SPIDER
-      item_rewards:
-        - material: SPIDER_EYE
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
-    - id: hunt_swamp_beasts
-      job: alchemist
-      name: "Swamp Stalker"
-      description: "Hunt witches and slimes in the murky swamps."
-      action_type: kill_entity
-      targets:
-        - WITCH
-        - SLIME
-      item_rewards:
-        - material: SLIME_BALL
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
-    - id: hunt_ocean_horrors
-      job: alchemist
-      name: "Deep Sea Hunter"
-      description: "Dive into the depths and take down the drowned."
-      action_type: kill_entity
-      targets:
-        - DROWNED
-      item_rewards:
-        - material: NAUTILUS_SHELL
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
-    - id: gather_glowstone
-      job: alchemist
-      name: "Glowstone Collector"
-      description: "Harvest glowstone dust for potion enhancement."
-      action_type: break_block
-      targets:
-        - GLOWSTONE
-      item_rewards:
-        - material: GLOWSTONE_DUST
-      multiplier_exp:
-        easy: 1.0
-        normal: 1.0
-        hard: 1.0
-        hardcore: 1.0
     - id: craft_respawn_anchor
       job: alchemist
       name: "Anchor Architect"
@@ -1168,6 +1064,104 @@ quests:
         - RESPAWN_ANCHOR
       item_rewards:
         - material: GLOWSTONE
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: brew_splash_potions
+      job: alchemist
+      name: "Splash Brewer"
+      description: "Brew splash potions to throw at your enemies."
+      action_type: brew_potion
+      targets:
+        - SPLASH_POTION
+      item_rewards:
+        - material: GUNPOWDER
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: brew_lingering_potions
+      job: alchemist
+      name: "Cloud Brewer"
+      description: "Brew lingering potions that leave a cloud behind."
+      action_type: brew_potion
+      targets:
+        - LINGERING_POTION
+      item_rewards:
+        - material: GLASS_BOTTLE
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: craft_brewing_stands
+      job: alchemist
+      name: "Lab Builder"
+      description: "Craft brewing stands to equip your faction's lab."
+      action_type: craft_item
+      targets:
+        - BREWING_STAND
+      item_rewards:
+        - material: BLAZE_ROD
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: craft_glass_bottles
+      job: alchemist
+      name: "Glassblower"
+      description: "Craft glass bottles to hold your potions."
+      action_type: craft_item
+      targets:
+        - GLASS_BOTTLE
+      item_rewards:
+        - material: SAND
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: craft_cauldrons
+      job: alchemist
+      name: "Cauldron Smith"
+      description: "Craft cauldrons for your brewing room."
+      action_type: craft_item
+      targets:
+        - CAULDRON
+      item_rewards:
+        - material: IRON_INGOT
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: craft_glowstone
+      job: alchemist
+      name: "Light Distiller"
+      description: "Craft glowstone blocks from glowstone dust."
+      action_type: craft_item
+      targets:
+        - GLOWSTONE
+      item_rewards:
+        - material: REDSTONE
+      multiplier_exp:
+        easy: 1.0
+        normal: 1.0
+        hard: 1.0
+        hardcore: 1.0
+    - id: craft_suspicious_stew
+      job: alchemist
+      name: "Strange Cook"
+      description: "Craft suspicious stews with odd effects."
+      action_type: craft_item
+      targets:
+        - SUSPICIOUS_STEW
+      item_rewards:
+        - material: BROWN_MUSHROOM
       multiplier_exp:
         easy: 1.0
         normal: 1.0
