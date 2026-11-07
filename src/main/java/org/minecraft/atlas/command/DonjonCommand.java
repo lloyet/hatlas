@@ -90,7 +90,7 @@ public class DonjonCommand {
                                     .append(Component.newline()).append(helpEntry("set difficulty", "<id> <0-99>", "Set donjon difficulty level"))
                                     .append(Component.newline()).append(helpEntry("set rarity", "<id> <rarity>", "Set donjon rarity"))
                                     .append(Component.newline()).append(helpEntry("set spawn", "<id>", "Set player teleport spawn for a donjon"))
-                                    .append(Component.newline()).append(helpEntry("set vault", "<id>", "Set the vault block (look at the block, max 10 blocks)"))
+                                    .append(Component.newline()).append(helpEntry("set vault", "<id> [x y z]", "Set the vault block (x y z, or look at it, max 10 blocks)"))
                                     .append(Component.newline()).append(helpEntry("doctor", "<id>", "List missing/unset donjon parameters"))
                                     .append(Component.newline()).append(Component.text("  -- /donjon wavespawn --", NamedTextColor.DARK_AQUA))
                                     .append(Component.newline()).append(helpEntry("wavespawn add", "<id>", "Add current location as wave spawn point"))
@@ -372,7 +372,7 @@ public class DonjonCommand {
                                     }
 
                                     String name = d.getName();
-                                    DonjonManager.deleteDonjon(id);
+                                    DonjonManager.deleteDonjon(d.getId());
                                     Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text("Donjon deleted: " + name, NamedTextColor.GREEN));
@@ -471,44 +471,16 @@ public class DonjonCommand {
                                             player.sendMessage(Component.text("Teleport spawn set for donjon " + d.getName() + ".", NamedTextColor.GREEN));
                                             return Command.SINGLE_SUCCESS;
                                         })))
-                        // /donjon set vault <id>
+                        // /donjon set vault <id> [x y z]
                         .then(Commands.literal("vault")
-                                .executes(ctx -> usage(ctx.getSource().getSender(), "set vault <id>"))
+                                .executes(ctx -> usage(ctx.getSource().getSender(), "set vault <id> [x y z]"))
                                 .then(Commands.argument("id", StringArgumentType.word())
                                         .suggests(DONJON_IDS)
-                                        .executes(ctx -> {
-                                            Entity executor = ctx.getSource().getExecutor();
-                                            if (!(executor instanceof Player player)) {
-                                                ctx.getSource().getSender().sendMessage(Component.text("Only players can use this.", NamedTextColor.RED));
-                                                return Command.SINGLE_SUCCESS;
-                                            }
-                                            String id = StringArgumentType.getString(ctx, "id");
-                                            Donjon d = DonjonManager.getDonjon(id);
-                                            if (d == null) {
-                                                player.sendMessage(Component.text("Donjon not found: " + id, NamedTextColor.RED));
-                                                return Command.SINGLE_SUCCESS;
-                                            }
-                                            org.bukkit.block.Block target = player.getTargetBlockExact(10);
-                                            if (target == null) {
-                                                player.sendMessage(Component.text("No block in sight (look at a block within 10 blocks).", NamedTextColor.RED));
-                                                return Command.SINGLE_SUCCESS;
-                                            }
-                                            long targetChunkKey = org.bukkit.Chunk.getChunkKey(target.getX() >> 4, target.getZ() >> 4);
-                                            if (!d.getProtectedChunkKeys().contains(targetChunkKey)) {
-                                                player.sendMessage(Component.text(
-                                                        "That block is not inside the donjon's protected area. Use /donjon claim first.",
-                                                        NamedTextColor.RED));
-                                                return Command.SINGLE_SUCCESS;
-                                            }
-                                            d.setVaultLocation(target.getLocation());
-                                            DonjonManager.spawnOrUpdateNametag(d);
-                                            Storage.save(DataDomain.DONJONS);
-                                            player.sendMessage(Component.text(
-                                                    "Vault block set to " + target.getType().name()
-                                                    + " at " + target.getX() + ", " + target.getY() + ", " + target.getZ()
-                                                    + " for donjon " + d.getName() + ".", NamedTextColor.GREEN));
-                                            return Command.SINGLE_SUCCESS;
-                                        }))))
+                                        .executes(ctx -> setVault(ctx, null))
+                                        .then(Commands.argument("pos", io.papermc.paper.command.brigadier.argument.ArgumentTypes.blockPosition())
+                                                .executes(ctx -> setVault(ctx, ctx.getArgument("pos",
+                                                        io.papermc.paper.command.brigadier.argument.resolvers.BlockPositionResolver.class)
+                                                        .resolve(ctx.getSource())))))))
 
                 // /donjon doctor <id>
                 .then(Commands.literal("doctor")
@@ -556,7 +528,7 @@ public class DonjonCommand {
                                                 NamedTextColor.YELLOW));
                                         return Command.SINGLE_SUCCESS;
                                     }
-                                    if (!DonjonManager.addProtectedChunk(id, player.getWorld(), cx, cz)) {
+                                    if (!DonjonManager.addProtectedChunk(d.getId(), player.getWorld(), cx, cz)) {
                                         player.sendMessage(Component.text("Cannot add chunk: donjon not found or wrong world.", NamedTextColor.RED));
                                         return Command.SINGLE_SUCCESS;
                                     }
@@ -585,7 +557,7 @@ public class DonjonCommand {
                                     }
                                     int cx = player.getLocation().getChunk().getX();
                                     int cz = player.getLocation().getChunk().getZ();
-                                    if (!DonjonManager.removeProtectedChunk(id, player.getWorld(), cx, cz)) {
+                                    if (!DonjonManager.removeProtectedChunk(d.getId(), player.getWorld(), cx, cz)) {
                                         player.sendMessage(Component.text(
                                                 "Chunk [" + cx + ", " + cz + "] is not claimed by donjon " + d.getName() + ".",
                                                 NamedTextColor.YELLOW));
@@ -610,7 +582,7 @@ public class DonjonCommand {
                                         ctx.getSource().getSender().sendMessage(Component.text("Donjon not found: " + id, NamedTextColor.RED));
                                         return Command.SINGLE_SUCCESS;
                                     }
-                                    int removed = DonjonManager.clearProtectedChunks(id);
+                                    int removed = DonjonManager.clearProtectedChunks(d.getId());
                                     if (removed <= 0) {
                                         ctx.getSource().getSender().sendMessage(Component.text(
                                                 "Donjon " + d.getName() + " has no claimed chunks.", NamedTextColor.YELLOW));
@@ -884,6 +856,47 @@ public class DonjonCommand {
                                         }))))
 
                 .build();
+    }
+
+    /**
+     * /donjon set vault <id> [x y z]: the given block, or the block the player looks at (10 blocks).
+     * Coordinates help when another block hides the vault (and scripted setups).
+     */
+    private static int setVault(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx,
+                                io.papermc.paper.math.BlockPosition pos) {
+        Entity executor = ctx.getSource().getExecutor();
+        if (!(executor instanceof Player player)) {
+            ctx.getSource().getSender().sendMessage(Component.text("Only players can use this.", NamedTextColor.RED));
+            return Command.SINGLE_SUCCESS;
+        }
+        String id = StringArgumentType.getString(ctx, "id");
+        Donjon d = DonjonManager.getDonjon(id);
+        if (d == null) {
+            player.sendMessage(Component.text("Donjon not found: " + id, NamedTextColor.RED));
+            return Command.SINGLE_SUCCESS;
+        }
+        org.bukkit.block.Block target = pos != null
+                ? player.getWorld().getBlockAt(pos.blockX(), pos.blockY(), pos.blockZ())
+                : player.getTargetBlockExact(10);
+        if (target == null) {
+            player.sendMessage(Component.text("No block in sight (look at a block within 10 blocks).", NamedTextColor.RED));
+            return Command.SINGLE_SUCCESS;
+        }
+        long targetChunkKey = org.bukkit.Chunk.getChunkKey(target.getX() >> 4, target.getZ() >> 4);
+        if (!d.getProtectedChunkKeys().contains(targetChunkKey)) {
+            player.sendMessage(Component.text(
+                    "That block is not inside the donjon's protected area. Use /donjon claim first.",
+                    NamedTextColor.RED));
+            return Command.SINGLE_SUCCESS;
+        }
+        d.setVaultLocation(target.getLocation());
+        DonjonManager.spawnOrUpdateNametag(d);
+        Storage.save(DataDomain.DONJONS);
+        player.sendMessage(Component.text(
+                "Vault block set to " + target.getType().name()
+                + " at " + target.getX() + ", " + target.getY() + ", " + target.getZ()
+                + " for donjon " + d.getName() + ".", NamedTextColor.GREEN));
+        return Command.SINGLE_SUCCESS;
     }
 
     private static Component infoLine(String label, String value, NamedTextColor valueColor) {
