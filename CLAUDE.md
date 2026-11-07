@@ -43,7 +43,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Gradle plugins: `java-library`, `xyz.jpenilla.run-paper 3.0.2`. Repos: Maven Central, PaperMC, CodeMC.
 - Dependencies (both `compileOnly`): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT` and `com.github.retrooper:packetevents-spigot:2.14.0`. **packetevents must be installed on the server as its own plugin.** It is declared as a required `server` dependency (`load: BEFORE`, `join-classpath: true`) in `paper-plugin.yml`.
 - Descriptor: **`src/main/resources/paper-plugin.yml`** (Paper plugin, not `plugin.yml`), `load: POSTWORLD`, `api-version: '1.21'`, `loader: org.minecraft.hatlas.HatlasLoader`. All permission nodes are declared there.
-- Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `HatlasLoader` (Paper `MavenLibraryResolver`) **only when `storage.type: postgresql`**.
+- Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `HatlasLoader` (Paper `MavenLibraryResolver`) **when `storage.type: postgresql`** (the default, so also on a first start without `config.yml`). A `runServer` dev server can set `storage.type: sqlite` to run without PostgreSQL.
 - **Local PostgreSQL:** `docker compose -f docker/postgres/docker-compose.yml up -d --wait` (password in the git-ignored `docker/postgres/.env`, see `.env.example`). Usage and test recipe: `docs/storage.md` §4.
 - `run/` (test server and world) is git-ignored. **No world or map save is committed.**
 - MCP: `.mcp.json` declares `papermc-docs` → `https://gitmcp.io/PaperMC/docs` (GitMCP view of the PaperMC docs repo) and `vitaminmcp` (`cmd /c npx -y vitaminmcp@3.2.2`, pinned; bots + server observation for in-game tests).
@@ -281,8 +281,8 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 | `orezones.yml` | `interval_reset_hours`, `default_ore_weights` |
 | `shops.yml` | `reset_interval_hours`, `items_per_shop`, `job_defaults` (+ `shops`: import-only, emptied after import) |
 
-**Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **sqlite** → `plugins/hatlas/hatlas.db`). Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
-- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/hatlas storage export` (`hatlas.storage.admin`) writes a full backup to a portable SQLite file in `plugins/hatlas/backups/` (✔ answered 2026-11-07, Open Question 19).
+**Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **postgresql** since 2026-11-07; `sqlite` → `plugins/hatlas/hatlas.db` for dev servers). An unreachable database disables Hatlas with a message naming the database, the cause and what to check. Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
+- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/hatlas storage info` (`hatlas.storage.admin`) shows the backend; `/hatlas storage export` was **removed** 2026-11-07 (Open Question 25): backups are a DB dump + world copy outside the game (M2).
 - On the first start with a database, the `*-data.yml` files are imported and renamed `*.yml.migrated` (backup).
 - Saves happen right after important mutations, then every `autosave_minutes` (5) for all domains, and at shutdown. **A crash loses at most the last autosave interval** for data without an immediate save (job XP, quest progress, custom blocks, combat timers).
 
@@ -344,7 +344,7 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 - **`/hatlas storage export` is removed** (replaced by the backups above); `/hatlas storage info` stays.
 
 **Planned PRs (in order)**
-1. `feat/postgres-default`: default `storage.type: postgresql`, clear startup error, remove `/hatlas storage export` + portable SQLite mode, docs.
+1. `feat/postgres-default` (**PR opened 2026-11-07**): default `storage.type: postgresql` (driver loaded on a first start too), clear startup error, `/hatlas storage export` + portable SQLite mode removed, docs.
 2. `feat/backup-script`: daily world + DB backup/restore script, rotation, scheduled task; reuses the test server's `baseline`/`reset` logic.
 3. `feat/web-read-model`: readable columns (`vault_gems`, item display fields) + `hatlas.web_*` views + a read-only DB role.
 4. `feat/hatlas-proxy`: multi-module Gradle (`hatlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Hatlas login check behind `access.require_ticket`.

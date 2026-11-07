@@ -70,20 +70,22 @@ YAML is **not** a backend any more (decided 2026-11-07, Open Question 19). `stor
 `config.yml`:
 ```yaml
 storage:
-  type: sqlite          # sqlite | postgresql (choose once, no migration between them)
+  type: postgresql      # postgresql (default, production) | sqlite (dev); choose once, no migration between them
   autosave_minutes: 5
   sqlite: { file: hatlas.db }
   postgresql: { host: localhost, port: 5432, database: hatlas, username: hatlas, password: '', ssl: false }
 ```
+- **PostgreSQL is the default** (since 2026-11-07, M2): a missing `storage.type` means `postgresql`, and `HatlasLoader` loads the driver even on the very first start (before `config.yml` exists). Existing installs keep the type written in their `config.yml`. SQLite stays available for a local dev server (`runServer`) without PostgreSQL.
+- **Database unreachable:** Hatlas logs `Storage unavailable — Hatlas is disabled to protect the data.`, then the database it tried (`user@host:port/db`), the root cause, a checklist (server running, database/user exist, password set in `HATLAS_DB_PASSWORD` or the config, flagged `NOT SET` when empty) and the `storage.type: sqlite` hint for dev; the stack trace follows as a separate WARNING. The plugin then disables itself.
 - The password can come from the `HATLAS_DB_PASSWORD` environment variable, which overrides the file.
 - **First start on a database:** if the DB has never been initialized (`server_state[storage.initialized]`), every `*-data.yml` is imported in one transaction and then renamed to `*.yml.migrated`. Those files are a backup and are never read again.
 - **No way back to YAML**, and **no migration between SQLite and PostgreSQL**: the backend is chosen once.
-- **Backup:** `/hatlas storage export` (permission `hatlas.storage.admin`, console or op) writes the whole data set to a new, portable SQLite file `plugins/hatlas/backups/hatlas-<yyyyMMdd-HHmmss>.db` (journal mode DELETE, so no `-wal`/`-shm` files). It works from either backend: the in-memory snapshots are taken on the main thread (so unsaved changes are included), then written on the storage thread after any pending save. **Restore** (SQLite): stop the server, replace `hatlas.db` (and delete `hatlas.db-wal`/`-shm`) with the export, start. A restore brings back the **data only**, not world entities: a crystal whose entity was removed after the export comes back as a stub (no entity). Exports are named to the second, so two exports in the same second fail with "file already exists".
+- **Backup:** outside the game, the database and the world **together** (a data-only restore brings crystals back as stubs without their entity). For PostgreSQL: `save-off` → `save-all flush` → `pg_dump -Fc` + world copy → `save-on`; the daily backup/restore script is planned in M2 (`feat/backup-script`). The old `/hatlas storage export` (portable SQLite file) was **removed** on 2026-11-07 (Open Question 25); `/hatlas storage info` stays.
 - **Inspecting SQLite:** `plugins/hatlas/hatlas.db` (WAL mode, so `-wal`/`-shm` files sit next to it). Open it read-only, or with the server stopped.
 
-## 4. Moving to PostgreSQL later
+## 4. PostgreSQL
 
-1. Create the database and user; set `storage.type: postgresql` and the connection settings, then restart. `HatlasLoader` downloads `org.postgresql:postgresql` through Paper's Maven mirror (only for this type), and the schema is created by `SchemaMigrator`.
+1. Create the database and user, set the connection settings (and `HATLAS_DB_PASSWORD`), then start. `HatlasLoader` downloads `org.postgresql:postgresql` through Paper's Maven mirror (only for this type), and the schema is created by `SchemaMigrator`. An existing install still on `storage.type: sqlite` stays on SQLite until an admin changes it.
 2. There is **no SQLite → PostgreSQL copy** by design (Open Question 19): choose PostgreSQL before the server goes live. A fresh PostgreSQL database only imports legacy `*-data.yml` files.
 3. ✔ **Tested 2026-11-07** against PostgreSQL 16.10 (local docker-compose below): schema creation, driver download, `*-data.yml` import (same row counts as SQLite), immediate save after a mutation, save at shutdown, reload on the next start without re-import.
 

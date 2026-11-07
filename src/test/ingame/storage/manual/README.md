@@ -6,7 +6,8 @@ feature folder are suites).
 
 | Scenario | Manual setup | Note |
 |---|---|---|
-| `export-restore-after-restart.json` | server stopped, a `/hatlas storage export` file copied over `hatlas.db` | SQLite only; obsolete once the export is removed (M2) |
+| (no file) PostgreSQL unreachable | `storage.postgresql.port` set to a closed port (or the database stopped) | expect `Storage unavailable — Hatlas is disabled…` followed by the cause, the checklist (server, database/user, `HATLAS_DB_PASSWORD`) and the `storage.type: sqlite` hint, then Hatlas disabled; `reset` afterwards |
+| (no file) first start with no `config.yml` | delete `plugins/hatlas/config.yml`, `HATLAS_DB_PASSWORD` set, a `hatlas` database on localhost:5432 | expect the PostgreSQL driver download and `Storage: using PostgreSQL (hatlas@localhost:5432/hatlas)` |
 | `yaml-fallback-after-restart.json` | `storage.type: yaml` in `config.yml`, expects the SQLite fallback | SQLite fallback only |
 | `orphan-crystal-after-restart.json` | a crystal entity whose faction row was removed from the database | needs a DB edit before start |
 

@@ -200,8 +200,9 @@ public final class Hatlas extends JavaPlugin {
         try {
             data = Storage.start(this, StorageSettings.from(configFile, getDataFolder(), getLogger()));
         } catch (StorageException e) {
-            getLogger().log(Level.SEVERE, "Storage unavailable — Hatlas is disabled to protect the data: "
-                    + e.getMessage(), e);
+            // Message first and without a stack trace, so the admin sees the cause and the fix.
+            getLogger().severe("Storage unavailable — Hatlas is disabled to protect the data.\n" + e.getMessage());
+            getLogger().log(Level.WARNING, "Storage error details", e);
             getServer().getPluginManager().disablePlugin(this);
             return;
         }

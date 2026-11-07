@@ -4,13 +4,14 @@
 # Where runtime data is stored (factions, crystals, jobs, donjons, homes, shops, …).
 # Tuning stays in the .yml files; only runtime data goes here. Changing the type needs a restart.
 storage:
-  # sqlite     = one database file (recommended for a single server)
-  # postgresql = external server (needed to share data with other servers or a website)
-  # Choose once: there is no migration between sqlite and postgresql. /hatlas storage export
-  # writes a full backup to a portable SQLite file in backups/.
+  # postgresql = PostgreSQL server (default, used in production; shares data with the website).
+  #              Hatlas does not start without its database: see storage.postgresql below.
+  # sqlite     = one local database file, for a development server without PostgreSQL.
+  # Choose once: there is no migration between sqlite and postgresql. Back up the database
+  # with its own tools (pg_dump), together with the world.
   # Legacy *-data.yml files (old yaml storage, no longer supported) are imported once on the
   # first start and renamed to *.yml.migrated (kept as backup).
-  type: sqlite
+  type: postgresql
   # Every domain is saved at this interval, in addition to saves right after important actions.
   autosave_minutes: 5
   sqlite:
