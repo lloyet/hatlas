@@ -1,0 +1,16 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "forceload add 1040 1040"},
+  {"action": "wait_for", "condition": "ticks", "count": 20},
+  {"action": "console", "command": "execute if items block 1041 101 1040 container.* minecraft:netherite_sword[item_model=\"hatlas:amethyst_sword\",max_damage=2336] run tellraw Tester1 \"AMT sword kept in chest\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword kept in chest"},
+  {"action": "console", "command": "execute if items block 1041 101 1040 container.* *[attribute_modifiers~{modifiers:{contains:[{attribute:\"minecraft:attack_damage\",amount:{min:8.19,max:8.21}}]}}] run tellraw Tester1 \"AMT chest sword damage ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT chest sword damage ok"},
+  {"action": "console", "command": "data remove block 1041 101 1040 Items"},
+  {"action": "console", "command": "setblock 1041 101 1040 air"},
+  {"action": "console", "command": "setblock 1040 100 1040 air"},
+  {"action": "console", "command": "setblock 1041 100 1040 air"},
+  {"action": "console", "command": "forceload remove 1040 1040"},
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]
