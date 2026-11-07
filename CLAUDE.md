@@ -7,6 +7,7 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 > 2. **Every time you modify the project, append an entry to [`docs/claude-changelog.md`](docs/claude-changelog.md)** (date, branch, what changed, files touched) and update any section that is now out of date.
 > 3. **When a request is vague or a design choice isn't settled, add it to [Open Questions](#open-questions)** and ask the user, instead of guessing. Move answered questions into the relevant feature section, marked `✔ answered <date>`.
 > 4. For Paper API questions, use the `papermc-docs` MCP server (`.mcp.json`) or the 1.21.11 Javadocs at `https://jd.papermc.io/paper/1.21.11/`.
+> 5. **When a feature is finished (its PR is opened), the player wiki is updated by the `wiki-writer` agent**, started in the background by the `wiki-on-feature` hook (§2). Review its edits, commit them as `docs(wiki): …` on the feature branch and push. Never skip it for a PR that changes `src/main/`.
 
 ---
 
@@ -49,6 +50,12 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics, spark, BlueMap.
 - Bots: offline names `Tester1`, `Tester2`… Atlas gotchas for scenarios: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); the AFK kick (`afk.timeout_seconds`) is raised on the test server; disconnecting within `combat_log.timeout_seconds` of PvP kills the bot; BlueMap re-renders world edits (CPU).
 - This server also holds a real world and plugin data: only act on it when the user has asked for an in-game test.
+
+### Wiki automation (Open Question 12)
+- **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
+- **Agent** `.claude/agents/wiki-writer.md`: preloads the skill, may only edit the two WIKI files, read-only Bash (`git diff/log/show`, `gh pr view`), never commits.
+- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff against the PR's `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background. Otherwise it does nothing.
+- `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
 
 ---
 

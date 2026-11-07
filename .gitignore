@@ -1,6 +1,11 @@
 # MacOS DS_Store files
 .DS_Store
-.claude/
+.claude/*
+# Shared Claude Code config (hooks, agents, skills); settings.local.json stays personal
+!.claude/settings.json
+!.claude/agents/
+!.claude/skills/
+!.claude/hooks/
 
 # Gradle cache folder
 .gradle
