@@ -7,12 +7,16 @@ package org.minecraft.hatlas.economy;
 public enum LedgerKind {
     /** — → player: a ruby ore broken with a valid pickaxe (the only natural source). */
     MINE,
-    /** — → player: a placed ruby block broken (9 gems). */
+    /** faction → player: a placed ruby block broken with a valid pickaxe (9 gems, the block owner's). */
     BLOCK_BREAK,
-    /** player → —: a ruby block placed in a claim (9 gems, back with BLOCK_BREAK). */
+    /** player → faction: a ruby block placed in the faction's claim now belongs to the faction (9 gems). */
     BLOCK_PLACE,
+    /** — → player: a ruby block placed in creative mode or before the ledger existed was broken. */
+    UNTRACKED_BLOCK,
     /** — → player: {@code /item give} or vanilla {@code /give} (admin). */
     ADMIN_GIVE,
+    /** player → —: rubies removed by the vanilla {@code /clear} (admin). */
+    ADMIN_CLEAR,
     /** player → faction: gems put into the vault. */
     VAULT_DEPOSIT,
     /** faction → player: gems taken out of the vault. */
@@ -27,6 +31,7 @@ public enum LedgerKind {
     PICKUP,
     /** — → player: picked up rubies of unknown origin (should not happen; shows a leak). */
     UNTRACKED_PICKUP,
-    /** owner → —: dropped rubies disappeared (despawn, item clear, lava, void…). */
+    /** owner → —: dropped rubies disappeared (despawn, item clear, lava, void…), a ruby block broken
+     *  without a valid pickaxe, or a disbanded faction's vault. */
     LOST
 }

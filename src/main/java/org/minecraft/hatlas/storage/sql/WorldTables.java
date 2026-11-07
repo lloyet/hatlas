@@ -297,19 +297,20 @@ final class WorldTables {
             List<CustomBlock> out = new ArrayList<>();
             Sql.query(c, "SELECT * FROM custom_blocks ORDER BY world, x, y, z", rs ->
                     out.add(new CustomBlock(new BlockPos(rs.getString("world"), rs.getInt("x"), rs.getInt("y"), rs.getInt("z")),
-                            rs.getString("block_id"))));
+                            rs.getString("block_id"), rs.getString("owner"))));
             return new BlocksData(out);
         }
 
         @Override
         public void replace(Connection c, BlocksData data) throws SQLException {
             Sql.deleteAll(c, "custom_blocks");
-            Sql.insert(c, "custom_blocks", "world, x, y, z, block_id", 5, data.blocks(), (ps, b) -> {
+            Sql.insert(c, "custom_blocks", "world, x, y, z, block_id, owner", 6, data.blocks(), (ps, b) -> {
                 ps.setString(1, b.pos().world());
                 ps.setInt(2, b.pos().x());
                 ps.setInt(3, b.pos().y());
                 ps.setInt(4, b.pos().z());
                 ps.setString(5, b.blockId());
+                ps.setString(6, b.owner());
             });
         }
     }

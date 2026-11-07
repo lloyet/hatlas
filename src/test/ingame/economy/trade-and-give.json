@@ -39,6 +39,11 @@
   {"action": "assert_message", "bot": "Tester7", "contains": "ADMIN_GIVE +5 — → Tester6 (/give by Tester7)"},
   {"action": "command", "bot": "Tester7", "command": "hatlas economy supply"},
   {"action": "assert_message", "bot": "Tester7", "contains": "in placed ruby blocks"},
+  {"action": "command", "bot": "Tester7", "command": "clear Tester7"},
+  {"action": "wait_for", "condition": "ticks", "count": 5},
+  {"action": "command", "bot": "Tester7", "command": "hatlas economy history Tester7 5"},
+  {"action": "assert_message", "bot": "Tester7", "contains": "ADMIN_CLEAR -5 Tester7 → — (/clear by Tester7)"},
+  {"action": "assert_message", "bot": "Tester7", "contains": "TRADE +5 Tester6 → Tester7"},
 
   {"action": "console", "command": "deop Tester7"},
   {"action": "console", "command": "clear Tester6"},

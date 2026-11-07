@@ -14,3 +14,5 @@ Checked by hand when the ledger code changes (psql on `hatlas_test`:
 - `/kill @e[type=item]` on dropped rubies gives `LOST` owner → nobody (`ref` = the removal cause);
 - the item clear (`ItemClearManager`) gives `LOST` with `ref = PLUGIN`;
 - a crystal protection break: picking up the dropped gems gives `PICKUP` faction → player, `ref = PROTECTION_BREAK`.
+- a placed ruby block blown up (TNT) then picked up by another player gives `PICKUP` faction → player, `ref = EXPLOSION`;
+- a placed ruby block broken by hand (no pickaxe) gives `LOST` faction → nobody, `ref = BROKEN_WITHOUT_PICKAXE`.

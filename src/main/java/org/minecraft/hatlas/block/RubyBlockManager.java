@@ -36,6 +36,8 @@ public final class RubyBlockManager {
 
     /** All placed custom blocks, keyed by their world location. */
     private static final Map<Location, String> PLACED = new ConcurrentHashMap<>();
+    /** Faction owning each placed ruby block (ruby ledger); absent = no owner. */
+    private static final Map<Location, String> OWNERS = new ConcurrentHashMap<>();
 
     private RubyBlockManager() {
     }
@@ -115,6 +117,23 @@ public final class RubyBlockManager {
 
     public static void removeAt(Block block) {
         PLACED.remove(block.getLocation());
+        OWNERS.remove(block.getLocation());
+    }
+
+    /** Sets (or clears, with null) the faction owning the custom block at {@code block}. */
+    public static void setOwner(Block block, String faction) {
+        if (faction == null) OWNERS.remove(block.getLocation());
+        else OWNERS.put(block.getLocation(), faction);
+    }
+
+    /** Faction owning the custom block at {@code block}, or null. */
+    public static String ownerAt(Block block) {
+        return OWNERS.get(block.getLocation());
+    }
+
+    /** Number of placed custom blocks with this id (e.g. "ruby_block"). */
+    public static long countPlaced(String id) {
+        return PLACED.values().stream().filter(id::equals).count();
     }
 
     public static boolean isTrackedNoteBlock(Block block) {
@@ -167,6 +186,7 @@ public final class RubyBlockManager {
     /** Call after {@link #init} (needs the block specs). */
     public static void restore(MiscData.BlocksData data) {
         PLACED.clear();
+        OWNERS.clear();
         UNRESOLVED.clear();
         for (MiscData.CustomBlock b : data.blocks()) {
             if (!SPECS.containsKey(b.blockId())) continue;
@@ -175,7 +195,9 @@ public final class RubyBlockManager {
                 UNRESOLVED.add(b);
                 continue;
             }
-            PLACED.put(new Location(world, b.pos().x(), b.pos().y(), b.pos().z()), b.blockId());
+            Location loc = new Location(world, b.pos().x(), b.pos().y(), b.pos().z());
+            PLACED.put(loc, b.blockId());
+            if (b.owner() != null) OWNERS.put(loc, b.owner());
         }
     }
 
@@ -185,7 +207,7 @@ public final class RubyBlockManager {
             Location loc = e.getKey();
             if (loc.getWorld() == null) continue;
             out.add(new MiscData.CustomBlock(new BlockPos(loc.getWorld().getName(),
-                    loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()), e.getValue()));
+                    loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()), e.getValue(), OWNERS.get(loc)));
         }
         out.addAll(UNRESOLVED);
         return new MiscData.BlocksData(List.copyOf(out));

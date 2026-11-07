@@ -19,7 +19,8 @@ public final class MiscData {
         public static BlocksData empty() { return new BlocksData(List.of()); }
     }
 
-    public record CustomBlock(BlockPos pos, String blockId) {}
+    /** {@code owner} = faction that owns a placed ruby block (ruby ledger), null for ores and older blocks. */
+    public record CustomBlock(BlockPos pos, String blockId, String owner) {}
 
     /** Domain AUCTIONS: auction-house listings. */
     public record AuctionsData(List<Listing> listings) {

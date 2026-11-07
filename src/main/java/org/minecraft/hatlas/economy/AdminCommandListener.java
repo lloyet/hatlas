@@ -17,13 +17,14 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Ruby ledger for the vanilla {@code /give} (rubies are emeralds with the {@code hatlas:ruby}
- * item model, so an admin can create them that way). The command result is not exposed, so
- * the ruby value held by each target is measured before the command and one tick after it;
- * a gain is recorded as {@code ADMIN_GIVE}. Only commands that mention a ruby are measured.
+ * Ruby ledger for the vanilla {@code /give} and {@code /clear} (rubies are emeralds with the
+ * {@code hatlas:ruby} item model). The command result is not exposed, so the ruby value held by
+ * each target is measured before the command and one tick after it: a gain after {@code /give}
+ * is {@code ADMIN_GIVE}, a loss after {@code /clear} is {@code ADMIN_CLEAR}. A {@code /give} is
+ * only measured when it mentions a ruby; a {@code /clear} for every target holding rubies.
  * Not seen: commands run by plugins through {@code Bukkit.dispatchCommand} (no command event).
  */
-public final class GiveCommandListener implements Listener {
+public final class AdminCommandListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
@@ -42,31 +43,41 @@ public final class GiveCommandListener implements Listener {
     }
 
     private static void measure(CommandSender sender, String command) {
-        String[] args = command.trim().split("\\s+", 3);
-        if (args.length < 3) return;
+        String[] args = command.trim().split("\\s+", 4);
         String label = args[0].toLowerCase(Locale.ROOT);
-        if (!label.equals("give") && !label.equals("minecraft:give")) return;
-        if (!args[2].toLowerCase(Locale.ROOT).contains("ruby")) return;
+        boolean give = label.equals("give") || label.equals("minecraft:give");
+        boolean clear = label.equals("clear") || label.equals("minecraft:clear");
+        if (give && (args.length < 3 || !args[2].toLowerCase(Locale.ROOT).contains("ruby"))) return;
+        if (!give && !clear) return;
 
         List<Entity> targets;
-        try {
-            targets = Bukkit.selectEntities(sender, args[1]);
-        } catch (IllegalArgumentException badSelector) {
-            return; // vanilla reports the error
+        if (args.length < 2) {
+            if (!(sender instanceof Player self)) return;
+            targets = List.of(self); // "/clear" alone clears the sender
+        } else {
+            try {
+                targets = Bukkit.selectEntities(sender, args[1]);
+            } catch (IllegalArgumentException badSelector) {
+                return; // vanilla reports the error
+            }
         }
         Map<Player, Integer> before = new LinkedHashMap<>();
         for (Entity e : targets) {
-            if (e instanceof Player p) before.put(p, RubyLedger.rubyValueHeld(p));
+            if (!(e instanceof Player p)) continue;
+            int held = RubyLedger.rubyValueHeld(p);
+            if (give || held > 0) before.put(p, held);
         }
         if (before.isEmpty()) return;
         Player actor = sender instanceof Player p ? p : null;
+        String ref = (give ? "/give by " : "/clear by ") + sender.getName();
         Bukkit.getScheduler().runTask(Hatlas.instance, () -> {
             for (Map.Entry<Player, Integer> e : before.entrySet()) {
                 Player p = e.getKey();
                 if (!p.isOnline()) continue;
-                int gained = RubyLedger.rubyValueHeld(p) - e.getValue();
-                RubyLedger.record(LedgerKind.ADMIN_GIVE, gained, null, Party.player(p), actor,
-                        "/give by " + sender.getName(), p.getLocation());
+                int delta = RubyLedger.rubyValueHeld(p) - e.getValue();
+                Party party = Party.player(p);
+                if (give) RubyLedger.record(LedgerKind.ADMIN_GIVE, delta, null, party, actor, ref, p.getLocation());
+                else RubyLedger.record(LedgerKind.ADMIN_CLEAR, -delta, party, null, actor, ref, p.getLocation());
             }
         });
     }

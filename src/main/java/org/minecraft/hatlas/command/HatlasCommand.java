@@ -160,9 +160,10 @@ public final class HatlasCommand {
                 sender.sendMessage(Component.text("Ledger read failed: " + err, NamedTextColor.RED));
                 return;
             }
+            long inBlocks = 9L * org.minecraft.hatlas.block.RubyBlockManager.countPlaced("ruby_block");
             sender.sendMessage(info("Rubies emitted: " + t[0] + ", burned: " + t[1]
-                    + ", supply: " + (t[0] - t[1]) + " (of which " + t[2] + " in placed ruby blocks; "
-                    + t[3] + " ledger rows)"));
+                    + ", supply: " + (t[0] - t[1]) + " (of which " + inBlocks + " in placed ruby blocks; "
+                    + t[2] + " ledger rows)"));
         });
         return Command.SINGLE_SUCCESS;
     }
