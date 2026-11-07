@@ -119,3 +119,40 @@ Même démarche, avec ces équivalences :
 - Actions joueur : outils du bot (`move-to-position`, `dig-block`, `place-block`, `equip-item`, `send-chat` pour les commandes avec `/`).
 - Preuves : `read-chat` (messages reçus par le bot), `list-inventory`, `get-block-info`, `read_test_log` (lignes `[TEST]` loggées par le plugin en debug), `read_server_log` pour les exceptions.
 - Limites à signaler dans le rapport : pas de clic dans les GUI, pas d'événements Bukkit, et un seul bot par instance MCP.
+## Suites de scénarios du projet Atlas
+
+Ce dépôt garde ses tests en jeu sous forme de **suites JSON rejouables**. Utilise-les avant d'écrire un nouveau test, et ajoute-y tout scénario validé.
+
+### Où et comment
+
+- `src/test/ingame/<feature>/<cas>.json` : un fichier = un scénario = **le tableau d'étapes** passé tel quel à `bot_run_scenario` (`scenario` = contenu du fichier).
+- `src/test/ingame/features.yml` : la carte feature → globs de fichiers. `node .claude/hooks/affected-features.mjs --base <branche>` donne, pour le diff courant, les features touchées (`features`), les fichiers `src/main/` qu'aucune feature ne couvre (`uncovered`, à ajouter à la carte) et les features sans aucun scénario (`missingSuites`, à écrire).
+- Un changement d'un fichier `shared` (Atlas.java, util/, paper-plugin.yml, build.gradle…) lance **toutes** les suites.
+
+### Écrire un scénario
+
+- **Noms de fichier** : `<cas>.json` pour un scénario autonome ; une paire `<cas>-before-restart.json` / `<cas>-after-restart.json` pour la persistance (le redémarrage se fait entre les deux avec `scripts/test-server.ps1 restart`, puis `session_start`).
+- **Couverture minimale par feature** : un cas nominal, un cas de refus/limite, et une paire de persistance si la feature stocke des données.
+- **Autonome** : prépare tout par des étapes `console` (faction, job, items, `forceload add`), travaille dans la zone de la feature (x = 1000 par défaut, à préciser par feature quand le monde de test arrivera), et **nettoie à la fin** (disband, `f leave`, `setblock … air`, `forceload remove`, `despawn`).
+- **Bots** : `Tester1`, `Tester2`… (offline, UUID stable).
+- **Pièges vus** :
+  - après un `tp`, attends ~40 ticks avant `use_entity` (le client n'a pas encore les entités) ;
+  - `wait_for log_matches` ne voit que les lignes écrites **pendant** l'attente ;
+  - les commandes Atlas réservées aux joueurs se lancent depuis la console avec `execute as TesterN run <cmd>` (ex. `job set`).
+- Une valeur qui dépend du monde courant (coordonnées d'un PNJ, faction existante comme `zob`) doit être notée dans le rapport, pour être adaptée au monde de test.
+
+### Données du serveur de test
+
+Le serveur de test (`CLAUDE.md` §2) contient aussi des données réelles. Avant une campagne :
+1. `server_info` / `list` : **si un joueur réel est connecté**, ne restaure rien à la fin. Annule seulement les changements des bots (quitter la faction, retirer les blocs posés, `forceload remove`).
+2. Sinon, sauvegarde `plugins/atlas/` dans `backups/atlas-<date>` avant de commencer, et restaure-le après (serveur arrêté).
+
+### Verdict pour le hook
+
+L'agent `ingame-tester` écrit `.claude/state/ingame/<sha HEAD complet>.json` (dossier ignoré par git), lu par le hook `ingame-gate` avant `gh pr create` :
+
+```json
+{"head": "<sha>", "verdict": "PASS", "features": ["shop"], "scenarios": [{"file": "src/test/ingame/shop/vault-payment.json", "result": "PASS"}], "notes": "..."}
+```
+
+`verdict` vaut `PASS` seulement si **tous** les scénarios des features listées passent et qu'aucune nouvelle exception `org.minecraft.atlas` n'apparaît. Sinon c'est `FAIL`. `WAIVED` est réservé au cas où l'utilisateur a demandé explicitement de sauter les tests (raison dans `notes`).
