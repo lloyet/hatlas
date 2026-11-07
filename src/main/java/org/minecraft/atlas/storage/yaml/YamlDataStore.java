@@ -3,32 +3,24 @@ package org.minecraft.atlas.storage.yaml;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.minecraft.atlas.storage.DataDomain;
 import org.minecraft.atlas.storage.DataSet;
-import org.minecraft.atlas.storage.DataStore;
 import org.minecraft.atlas.storage.StorageException;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * YAML backend: the historical {@code *-data.yml} files in the plugin folder. Reads every
- * legacy layout. Item stacks are written as Paper bytes in Base64 ({@code *_b64} keys).
- * Each file is written to a temp file and moved into place, so a crash never leaves a
- * half-written file. Domains sharing a file (factions + crystals) are written together.
+ * Read-only reader of the historical {@code *-data.yml} files in the plugin folder, used only
+ * for the one-time import into a fresh database ({@code Storage.importYaml}). YAML is not a
+ * storage backend any more. Reads every legacy layout; item stacks are Paper bytes in Base64
+ * ({@code *_b64} keys) or legacy Bukkit-serialized items.
  */
-public final class YamlDataStore implements DataStore {
+public final class YamlDataStore {
 
     private final File folder;
     private final Map<DataDomain, YamlDomain<?>> domains = new EnumMap<>(DataDomain.class);
@@ -54,12 +46,10 @@ public final class YamlDataStore implements DataStore {
         }
     }
 
-    @Override
     public String describe() {
         return "YAML (" + folder.getPath() + "/*-data.yml)";
     }
 
-    @Override
     public void open() {
         if (!folder.exists()) folder.mkdirs();
     }
@@ -83,7 +73,6 @@ public final class YamlDataStore implements DataStore {
         return files.computeIfAbsent(name, n -> YamlConfiguration.loadConfiguration(new File(folder, n)));
     }
 
-    @Override
     public DataSet load() throws StorageException {
         DataSet set = new DataSet();
         for (Map.Entry<DataDomain, YamlDomain<?>> e : domains.entrySet()) {
@@ -96,38 +85,6 @@ public final class YamlDataStore implements DataStore {
         return set;
     }
 
-    @Override
-    public void write(DataSet data) throws StorageException {
-        Map<String, List<DataDomain>> byFile = new LinkedHashMap<>();
-        for (DataDomain d : data.domains()) byFile.computeIfAbsent(domains.get(d).file(), k -> new ArrayList<>()).add(d);
-        for (Map.Entry<String, List<DataDomain>> e : byFile.entrySet()) {
-            YamlConfiguration cfg = file(e.getKey());
-            for (DataDomain d : e.getValue()) writeDomain(cfg, d, data.raw(d));
-            save(cfg, new File(folder, e.getKey()));
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> void writeDomain(YamlConfiguration cfg, DataDomain d, Object value) {
-        ((YamlDomain<T>) domains.get(d)).write(cfg, (T) value);
-    }
-
-    private static void save(YamlConfiguration cfg, File target) throws StorageException {
-        Path dest = target.toPath();
-        Path tmp = dest.resolveSibling(target.getName() + ".tmp");
-        try {
-            Files.writeString(tmp, cfg.saveToString(), StandardCharsets.UTF_8);
-            try {
-                Files.move(tmp, dest, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tmp, dest, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException e) {
-            throw new StorageException("Cannot save " + target.getName() + ": " + e.getMessage(), e);
-        }
-    }
-
-    @Override
     public void close() {
         files.clear();
     }

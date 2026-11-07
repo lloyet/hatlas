@@ -73,7 +73,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 `Atlas extends JavaPlugin`, singleton `Atlas.instance`. Its `onEnable()` runs these steps in order:
 1. Registers `LocatorBarListener` with the packetevents API.
 2. Loads the tuning YAML files (see §5) into `public static YamlConfiguration xxxConfig` fields (`loadTuning`), copies new `config.yml` defaults (e.g. `storage`), and calls the managers' `loadConfig(...)` and `init()` methods (keys, item registries, recipes).
-3. **Storage** (`storage/`, see [`docs/storage.md`](docs/storage.md)): `Storage.start()` opens the backend chosen in `config.yml > storage` (yaml | sqlite | postgresql), imports the `*-data.yml` files once into a fresh database, and loads every domain. If this fails, the plugin disables itself (nothing is written).
+3. **Storage** (`storage/`, see [`docs/storage.md`](docs/storage.md)): `Storage.start()` opens the backend chosen in `config.yml > storage` (sqlite | postgresql), imports the `*-data.yml` files once into a fresh database, and loads every domain. If this fails, the plugin disables itself (nothing is written).
 4. Registers one snapshot supplier per domain, then calls each manager's `restore(...)` in dependency order (factions → crystals → … → shops), then `Storage.markReady()` (writes allowed from here on, autosave started).
 5. Registers 18 listeners (incl. `AfkManager`, `CombatLogListener`, `ResourcePackManager`, which are listeners themselves) and calls `ResourcePackManager.sendToAll()`.
 6. Starts the schedulers: Golem, Crystal, Donjon, Quest expiry, ItemClear, Afk, CombatLog, ClaimBorder, NpcLook, OreZone, Shop.
@@ -270,7 +270,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 | `shops.yml` | `reset_interval_hours`, `items_per_shop`, `job_defaults` (+ `shops`: import-only, emptied after import) |
 
 **Runtime data** goes through the storage adapter (`config.yml > storage.type`, default **sqlite** → `plugins/atlas/atlas.db`). Full audit, schema and operating notes: [`docs/storage.md`](docs/storage.md). 13 domains: FACTIONS, CRYSTALS, JOBS (incl. Jokeyrini), DONJONS, HOMES, SAFEZONES, COMBAT, BLOCKS, AUCTIONS, OREZONES, SHOPS, TAGS, SPAWN. Schema files: `src/main/resources/db/V<n>__*.sql`, applied by `SchemaMigrator`.
-- With `storage.type: yaml` the legacy `*-data.yml` files are used (same layouts, items as Base64 `*_b64`).
+- YAML is no longer a backend: `storage.type: yaml` is read as `sqlite` with a warning. The backend is chosen once (no SQLite ↔ PostgreSQL migration). `/atlas storage export` (`atlas.storage.admin`) writes a full backup to a portable SQLite file in `plugins/atlas/backups/` (✔ answered 2026-11-07, Open Question 19).
 - On the first start with a database, the `*-data.yml` files are imported and renamed `*.yml.migrated` (backup).
 - Saves happen right after important mutations, then every `autosave_minutes` (5) for all domains, and at shutdown. **A crash loses at most the last autosave interval** for data without an immediate save (job XP, quest progress, custom blocks, combat timers).
 
@@ -334,7 +334,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
 17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. **Storage — PostgreSQL** — first part ✔ answered 2026-11-07: covered by a **local docker-compose PostgreSQL** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end on `./run`. **Still open:** the `/atlas storage export` command (explained to the user 2026-11-07, awaiting a yes/no). Old text: the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
+19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5).
 20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
 
 ---

@@ -9,6 +9,7 @@
 | [Faction](#faction) | Create and manage a faction: levels, skill points, crystal, claims, allies |
 | [Job](#job) | Choose a profession (after joining a faction), complete daily quests, earn faction XP |
 | [Job Shops](#job-shops) | Buy gear and supplies from job NPCs with your faction's rubies |
+| [Amethyst Gear](#amethyst-gear) | Craft amethyst weapons, tools and armor, 15% stronger than netherite |
 | [Dungeon](#dungeon) | Raid wave-based dungeons, fight a boss, share loot, earn special rewards |
 | [Combat & PvP](#combat--pvp) | 1.8-style PvP, anti-disconnect (combat log) rules |
 | [Safe Zones](#safe-zones) | Protected hubs and `/spawn` behavior |
@@ -56,6 +57,18 @@ You decide your faction's growth path. There is no fixed upgrade tree — every 
 The faction chest is a virtual double-chest storage shared between all members. Available chests come from the **Faction Chest** skill — buy more slots with Skill Points to expand storage. Access them through the Atlas Crystal GUI.
 
 If a level downgrade ever drops the chest count below the number you've used, the excess chests are destroyed and their contents drop on the ground at the crystal location.
+
+### Faction Vault (rubies)
+
+The faction vault is a shared storage that holds **ruby gems only**. Open it from the Atlas Crystal GUI (**Faction Vault** button); `/faction balance` shows how many rubies it holds. The vault pays for job shop and auction house purchases, and receives the money when your faction sells on the auction house.
+
+| Action | Who can do it |
+|---|---|
+| Deposit rubies | Every member |
+| Take rubies out | Owner, Banker, Moderator, Leader |
+| Spend rubies (job shops, auction house purchases) | Owner, Banker, Moderator, Leader |
+
+A plain Member who tries to take gems out gets the message "Only the faction owner or a banker (or higher) can take rubies out of the vault." Promote a trusted player to **Banker** to let them shop for the faction without giving them any other right.
 
 ### Crystal Protection
 
@@ -150,12 +163,17 @@ When a faction is **disbanded** by another faction destroying its last Crystal, 
 
 ### Member Roles
 
+Roles from lowest to highest: **Member < Banker < Moderator < Leader**. The **Owner** is above every role.
+
 | Role | Permissions |
 |---|---|
-| **Member** | Basic access, no management |
-| **Moderator** | Invite, kick members |
-| **Leader** | All Moderator actions + rename, color, description, sethome on any Crystal |
-| **Owner** | Full control, including disband, ownership transfer, Crystal promotion |
+| **Member** | Basic access, no management. Can deposit rubies into the faction vault, but cannot spend them |
+| **Banker** | Can spend the faction vault's rubies: take gems out of the vault, buy in job shops and buy on the auction house. No other management right |
+| **Moderator** | All Banker actions + invite players, kick Members and Bankers |
+| **Leader** | All Moderator actions + rename, color, description, sethome on any Crystal, sell on the auction house |
+| **Owner** | Full control, including disband, ownership transfer, promote/demote, Crystal promotion |
+
+Only the owner can promote or demote. `/faction promote` moves a player up one step (Member → Banker → Moderator → Leader), `/faction demote` moves them down one step. `/faction info` lists the Leaders, Moderators and Bankers of your faction.
 
 ---
 
@@ -250,9 +268,10 @@ Each job has its own shop: a villager NPC near spawn (Miner, Lumberjack, Hunter,
 | Requirement | Common items | Rare items |
 |---|---|---|
 | Be in a faction | ✔ | ✔ |
+| Be the owner, a Banker, a Moderator or a Leader | ✔ | ✔ |
 | Have a job | any job | **the shop's job** (e.g. only Miners buy rare Miner items) |
 
-Any member who meets these requirements can spend the faction vault. There is no role restriction.
+Plain Members cannot buy: ask your owner to promote you to **Banker** (see [Member Roles](#member-roles)).
 
 ### How to buy
 
@@ -265,6 +284,49 @@ If the vault does not hold enough rubies, the purchase is refused: deposit rubie
 ### Restock
 
 Every **7 days** each shop draws a new selection: up to **12 common** and **12 rare** items, picked at random from the shop's list (some items are rarer than others).
+
+---
+
+## Amethyst Gear
+
+### What is Amethyst Gear?
+
+Amethyst gear is a full set of weapons, tools and armor crafted from **amethyst shards**. Each piece is **15% stronger** than its netherite version (the spear: than a trident). No netherite and no smithing table are needed.
+
+### Crafting
+
+Use a crafting table with amethyst shards (and sticks for the tools), in the same shapes as the vanilla recipes:
+
+| Item | Recipe |
+|---|---|
+| Sword, Pickaxe, Axe, Shovel, Hoe | Vanilla tool shape, amethyst shards + sticks |
+| Spear | 3 amethyst shards in a vertical line |
+| Helmet, Chestplate, Leggings, Boots | Vanilla armor shape, amethyst shards |
+
+### Stats
+
+Compared with netherite (trident for the spear), amethyst gives **+15%** to:
+- attack damage;
+- armor, armor toughness and knockback resistance;
+- mining speed on the blocks the tool is made for (other blocks: same speed as netherite);
+- durability.
+
+**Attack speed does not change.**
+
+| Item | Netherite | Amethyst |
+|---|---|---|
+| Sword: attack damage | 8 | **9.2** |
+| Pickaxe: mining speed | 9 | **10.35** |
+| Sword and tools: durability | 2031 | **2336** |
+| Chestplate: armor / toughness | 8 / 3 | **9.2 / 3.45** |
+
+Admins can change the bonus. Gear crafted before a change (or before this update) keeps the stats it was made with.
+
+### Rules
+
+Amethyst gear is **not restricted like rubies**: you can store it in chests, shulker boxes and crystal chests, trade it and sell it on the auction house like any other item.
+
+---
 
 ## Dungeon
 
@@ -390,7 +452,7 @@ When a player damages another player (melee or projectile), both attacker and vi
 - Disconnecting while flagged **kills the player** and drops their full inventory + armor at their last location.
 - Each new hit refreshes the timer to the full duration.
 - Surviving the timer without further damage clears the flag — you can quit safely.
-- Active combat timers persist across server restarts (`combats-data.yml`); a clean restart by itself does **not** kill in-combat players.
+- Active combat timers persist across server restarts; a clean restart by itself does **not** kill in-combat players.
 
 Action-bar notifications announce when you enter combat and when the timer expires.
 

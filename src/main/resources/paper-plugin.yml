@@ -16,6 +16,9 @@ dependencies:
       join-classpath: true
 
 permissions:
+  atlas.storage.admin:
+    description: /atlas storage info|export (full data backup to a portable SQLite file)
+    default: op
   atlas.quest:
     description: Access to /quest
     default: true

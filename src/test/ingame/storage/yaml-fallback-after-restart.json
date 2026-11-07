@@ -1,0 +1,17 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "f info ExpFac"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Claims: 1 / 1"},
+  {"action": "console", "command": "op Tester1"},
+  {"action": "wait_for", "condition": "player_state", "name": "Tester1", "op": true},
+  {"action": "command", "bot": "Tester1", "command": "atlas storage info"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Storage: SQLite ("},
+  {"action": "console", "command": "deop Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "f disband"},
+  {"action": "wait_for", "condition": "inventory_open", "name": "Tester1", "title": "Confirm Disband"},
+  {"action": "click_slot", "bot": "Tester1", "slot": 0, "click": "left"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Your faction has been disbanded"},
+  {"action": "command", "bot": "Tester1", "command": "f info ExpFac"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "does not exist"},
+  {"action": "despawn", "bot": "Tester1"}
+]

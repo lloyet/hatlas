@@ -9,6 +9,7 @@
 | [Faction](#faction) | Créer et gérer une faction : niveaux, points de compétence, cristal, claims, alliés |
 | [Métier](#métier) | Choisir une profession (après avoir rejoint une faction), faire des quêtes quotidiennes |
 | [Boutiques de métier](#boutiques-de-métier) | Acheter équipement et fournitures aux PNJ de métier avec les rubis de votre faction |
+| [Équipement en améthyste](#équipement-en-améthyste) | Fabriquer armes, outils et armure en améthyste, 15 % plus puissants que la netherite |
 | [Donjon](#donjon) | Raider des donjons par vagues, vaincre un boss, partager le butin, gagner des récompenses spéciales |
 | [Combat & PvP](#combat--pvp) | PvP 1.8, règles d'anti-déconnexion (combat log) |
 | [Zones Sûres](#zones-sûres) | Hubs protégés et comportement de `/spawn` |
@@ -63,6 +64,18 @@ Vous décidez de la trajectoire de votre faction. Il n'y a pas d'arbre d'amélio
 Le coffre de faction est un espace de stockage virtuel (coffre double) partagé entre tous les membres. Le nombre de coffres disponibles dépend de la compétence **Coffre de Faction** — achetez-en plus avec des Points de Compétence pour étendre l'espace. L'accès se fait via l'interface du Cristal d'Atlas.
 
 Si une rétrogradation de niveau réduit le nombre de coffres en dessous de ce que vous utilisez, les coffres en trop sont détruits et leur contenu est jeté au sol à l'emplacement du cristal.
+
+### Coffre à rubis de la faction
+
+Le coffre à rubis est un stockage partagé qui n'accepte **que des rubis**. Ouvrez-le depuis l'interface du Cristal d'Atlas (bouton **Faction Vault**) ; `/faction balance` affiche le nombre de rubis qu'il contient. C'est lui qui paie les achats dans les boutiques de métier et à l'hôtel des ventes, et qui reçoit l'argent quand votre faction vend à l'hôtel des ventes.
+
+| Action | Qui peut le faire |
+|---|---|
+| Déposer des rubis | Tous les membres |
+| Retirer des rubis | Propriétaire, Banquier, Modérateur, Chef |
+| Dépenser des rubis (boutiques de métier, achats à l'hôtel des ventes) | Propriétaire, Banquier, Modérateur, Chef |
+
+Un simple Membre qui essaie de retirer des rubis reçoit le message « Only the faction owner or a banker (or higher) can take rubies out of the vault. ». Promouvez un joueur de confiance **Banquier** pour qu'il puisse faire les achats de la faction sans lui donner d'autre droit.
 
 ### Protection du Cristal
 
@@ -157,12 +170,17 @@ Lorsqu'une faction est **dissoute** parce qu'une autre faction a détruit son de
 
 ### Rôles des Membres
 
+Rôles du plus bas au plus haut : **Membre < Banquier < Modérateur < Chef**. Le **Propriétaire** est au-dessus de tous les rôles.
+
 | Rôle | Permissions |
 |---|---|
-| **Membre** | Accès de base, aucune gestion |
-| **Modérateur** | Inviter, expulser des membres |
-| **Chef** | Toutes les actions de Modérateur + renommer, couleur, description, sethome sur n'importe quel Cristal |
-| **Propriétaire** | Contrôle total, y compris dissoudre, transférer la propriété et promouvoir un Cristal |
+| **Membre** | Accès de base, aucune gestion. Peut déposer des rubis dans le coffre à rubis de la faction, mais pas les dépenser |
+| **Banquier** | Peut dépenser les rubis du coffre de la faction : retirer des rubis du coffre, acheter dans les boutiques de métier et acheter à l'hôtel des ventes. Aucun autre droit de gestion |
+| **Modérateur** | Toutes les actions de Banquier + inviter des joueurs, expulser les Membres et les Banquiers |
+| **Chef** | Toutes les actions de Modérateur + renommer, couleur, description, sethome sur n'importe quel Cristal, vendre à l'hôtel des ventes |
+| **Propriétaire** | Contrôle total, y compris dissoudre, transférer la propriété, promouvoir/rétrograder et promouvoir un Cristal |
+
+Seul le propriétaire peut promouvoir ou rétrograder. `/faction promote` fait monter un joueur d'un cran (Membre → Banquier → Modérateur → Chef), `/faction demote` le fait descendre d'un cran. `/faction info` liste les Chefs, Modérateurs et Banquiers de votre faction.
 
 ---
 
@@ -257,9 +275,10 @@ Chaque métier a sa boutique : un PNJ villageois près du spawn (Mineur, Bûcher
 | Condition | Objets communs | Objets rares |
 |---|---|---|
 | Être dans une faction | ✔ | ✔ |
+| Être propriétaire, Banquier, Modérateur ou Chef | ✔ | ✔ |
 | Avoir un métier | n'importe lequel | **le métier de la boutique** (ex. seuls les Mineurs achètent les objets rares du Mineur) |
 
-Tout membre qui remplit ces conditions peut dépenser le coffre de la faction. Il n'y a pas de restriction de rôle.
+Les simples Membres ne peuvent pas acheter : demandez à votre propriétaire de vous promouvoir **Banquier** (voir [Rôles des Membres](#rôles-des-membres)).
 
 ### Comment acheter
 
@@ -272,6 +291,49 @@ Si le coffre ne contient pas assez de rubis, l'achat est refusé : déposez d'ab
 ### Réassort
 
 Tous les **7 jours**, chaque boutique tire une nouvelle sélection : jusqu'à **12 objets communs** et **12 objets rares**, choisis au hasard dans la liste de la boutique (certains objets sont plus rares que d'autres).
+
+---
+
+## Équipement en améthyste
+
+### Qu'est-ce que l'équipement en améthyste ?
+
+L'équipement en améthyste est un ensemble complet d'armes, d'outils et d'armure fabriqué avec des **éclats d'améthyste**. Chaque pièce est **15 % plus puissante** que sa version en netherite (la lance : qu'un trident). Pas besoin de netherite ni de table de forgeron.
+
+### Fabrication
+
+Utilisez un établi avec des éclats d'améthyste (et des bâtons pour les outils), avec les mêmes formes que les recettes vanilla :
+
+| Objet | Recette |
+|---|---|
+| Épée, Pioche, Hache, Pelle, Houe | Forme vanilla de l'outil, éclats d'améthyste + bâtons |
+| Lance | 3 éclats d'améthyste en colonne |
+| Casque, Plastron, Jambières, Bottes | Forme vanilla de l'armure, éclats d'améthyste |
+
+### Statistiques
+
+Par rapport à la netherite (au trident pour la lance), l'améthyste donne **+15 %** en :
+- dégâts d'attaque ;
+- armure, robustesse d'armure et résistance au recul ;
+- vitesse de minage sur les blocs adaptés à l'outil (autres blocs : même vitesse que la netherite) ;
+- durabilité.
+
+**La vitesse d'attaque ne change pas.**
+
+| Objet | Netherite | Améthyste |
+|---|---|---|
+| Épée : dégâts d'attaque | 8 | **9,2** |
+| Pioche : vitesse de minage | 9 | **10,35** |
+| Épée et outils : durabilité | 2031 | **2336** |
+| Plastron : armure / robustesse | 8 / 3 | **9,2 / 3,45** |
+
+Les admins peuvent changer ce bonus. Un équipement fabriqué avant un changement (ou avant cette mise à jour) garde les statistiques avec lesquelles il a été créé.
+
+### Règles
+
+L'équipement en améthyste n'est **pas limité comme les rubis** : vous pouvez le ranger dans des coffres, des boîtes de Shulker et les coffres de cristal, l'échanger et le vendre à l'hôtel des ventes comme n'importe quel objet.
+
+---
 
 ## Donjon
 
@@ -397,7 +459,7 @@ Lorsqu'un joueur inflige des dégâts à un autre joueur (mêlée ou projectile)
 - Se déconnecter pendant ce délai **tue le joueur** et fait tomber l'inventaire complet + l'armure à sa dernière position.
 - Chaque nouveau coup réinitialise le timer à la durée complète.
 - Tenir le timer en entier sans subir de dégâts efface la marque — vous pouvez quitter en sécurité.
-- Les timers de combat actifs persistent à travers les redémarrages serveur (`combats-data.yml`) ; un redémarrage propre ne **tue pas** les joueurs en combat.
+- Les timers de combat actifs persistent à travers les redémarrages serveur ; un redémarrage propre ne **tue pas** les joueurs en combat.
 
 Des notifications en barre d'action signalent l'entrée en combat et l'expiration du timer.
 
