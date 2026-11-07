@@ -5,7 +5,8 @@
 # opens a menu with two sub-shops:
 #   - Common: any faction member who has a job (whatever the job) can buy.
 #   - Rare:   only faction members whose job matches the shop's job can buy.
-# Prices are in ruby gems, taken from the buyer's inventory.
+# Prices are in ruby gems, taken from the buyer's faction vault (like the auction house).
+# Any faction member with a job can buy (rare items: members whose job matches the shop).
 
 # How often (in hours) every shop restocks: its common and rare selections are
 # re-drawn at random from the pools below, using each entry's weight.

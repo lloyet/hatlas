@@ -112,14 +112,17 @@ public class AtlasCrystalManager {
 
     // ── Config ────────────────────────────────────────────────────────────────
     public static double regenPerSecond         = 1.5;
-    public static long   immunityBaseMs         = 18_000_000L;
-    public static int    immunityMultiplierBase = 2;
+    /**
+     * Watch window of a broken protection, as a multiple of its duration, counted from the
+     * moment it broke: the first 1 × duration is the immunity, the rest is the regen window
+     * during which any hit loses the protection for good. Minimum 1 (no regen window).
+     */
+    public static double protectionWatchMultiplier = 2.0;
     public static long   regenTimeoutMs         = 60_000L;
 
     public static void loadConfig(FileConfiguration config) {
         regenPerSecond         = config.getDouble("crystal.regen_per_second", 1.5);
-        immunityBaseMs         = config.getLong("crystal.immunity_base_seconds", 18000L) * 1000L;
-        immunityMultiplierBase = config.getInt("crystal.immunity_multiplier", 2);
+        protectionWatchMultiplier = Math.max(1.0, config.getDouble("crystal.protection_watch_multiplier", 2.0));
         regenTimeoutMs         = config.getLong("crystal.regen_timeout_seconds", 20L) * 1000L;
     }
 
@@ -912,8 +915,9 @@ public class AtlasCrystalManager {
 
                     // Protection regen check — sequential. Only the SHORTEST broken protection
                     // is currently regenerating at any moment; longer ones queue behind it.
-                    // Each head protection has a watch window of 2 × duration after its
-                    // brokenAt (immunity duration + regen duration). If the crystal takes
+                    // Each head protection has a watch window of protectionWatchMultiplier ×
+                    // duration after its brokenAt (immunity duration + regen window, default
+                    // 2 × duration). If the crystal takes
                     // damage during the regen portion, the head is permanently lost; otherwise
                     // it regenerates. When the head resolves, the next-shortest broken
                     // protection takes over: its brokenAt is shifted to (now − itsDuration)
@@ -928,7 +932,7 @@ public class AtlasCrystalManager {
                             if (head == null || d < head) head = d;
                         }
                         long brokenAt = broken.get(head);
-                        long regenAt  = brokenAt + 2 * head;
+                        long regenAt  = brokenAt + (long) (protectionWatchMultiplier * head);
                         if (nowMs >= regenAt) {
                             if (crystal.getLastAttackMillis() > brokenAt) {
                                 broken.remove(head);

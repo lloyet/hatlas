@@ -1,11 +1,14 @@
 # Atlas — Wiki Joueur
 
+> **Mise à jour actuelle : Ruby Ruins** — les rubis (la monnaie des factions), l'équipement en améthyste, les zones de minerai, l'hôtel des ventes et les boutiques de métier.
+
 ## Sommaire
 
 | Section | Description |
 |---|---|
 | [Faction](#faction) | Créer et gérer une faction : niveaux, points de compétence, cristal, claims, alliés |
 | [Métier](#métier) | Choisir une profession (après avoir rejoint une faction), faire des quêtes quotidiennes |
+| [Boutiques de métier](#boutiques-de-métier) | Acheter équipement et fournitures aux PNJ de métier avec les rubis de votre faction |
 | [Donjon](#donjon) | Raider des donjons par vagues, vaincre un boss, partager le butin, gagner des récompenses spéciales |
 | [Combat & PvP](#combat--pvp) | PvP 1.8, règles d'anti-déconnexion (combat log) |
 | [Zones Sûres](#zones-sûres) | Hubs protégés et comportement de `/spawn` |
@@ -68,10 +71,10 @@ La protection est un achat de Point de Compétence **mis en réserve** jusqu'à 
 Comment ça marche :
 1. Votre Cristal est détruit par un ennemi.
 2. Le Cristal réapparaît automatiquement à pleine vie et devient **invincible** pour la durée de la plus longue protection en réserve.
-3. Si aucun dégât n'est subi pendant cette fenêtre, la protection se régénère et reste disponible pour la prochaine attaque.
-4. Si vous possédez plusieurs protections, elles s'activent les unes après les autres, **la plus longue en premier**.
+3. À la fin de l'invincibilité commence une **fenêtre de régénération** de la même durée (par défaut ; les admins peuvent changer ce rapport). Si le Cristal ne subit **aucun coup** pendant cette fenêtre, la protection se régénère et redevient disponible pour la prochaine attaque. S'il est touché, cette protection est **perdue définitivement**.
+4. Si vous possédez plusieurs protections, la prochaine défaite utilise **la plus longue encore disponible**. Les protections cassées se régénèrent une par une, **la plus courte en premier**.
 
-**Exemple :** votre faction possède une protection d'1 h et une protection de 30 min. Quand le Cristal est détruit, il revient à pleine vie et devient invincible pendant 1 h. Si la protection d'1 h tient sans subir de dégâts, elle se régénère. Si elle est percée, la protection de 30 min prend automatiquement le relais.
+**Exemple :** votre faction possède une protection d'1 h et une de 30 min. Le Cristal est détruit : il revient à pleine vie et devient invincible pendant 1 h. Vient ensuite une fenêtre de régénération d'1 h : si personne ne touche le Cristal, la protection d'1 h est de retour 2 h après la défaite. Si le Cristal est de nouveau détruit entre-temps, la protection de 30 min prend le relais.
 
 L'ancienne mécanique de « protection à la rétrogradation de niveau » a été supprimée — toute la protection du Cristal vient désormais de cette réserve.
 
@@ -181,6 +184,7 @@ La progression du métier (niveau + XP) est personnelle ; l'XP de faction gagné
 | **Bûcheron** | Hache en Fer | Couper des arbres |
 | **Chasseur** | Arc | Tuer des mobs |
 | **Fermier** | Graines de Blé | Récolter des cultures |
+| **Alchimiste** | Poudre de Blaze | Brasser des potions et fabriquer (ingrédients, matériel d'alchimie, flèches à effet…). Tuer des mobs ne donne pas d'XP d'Alchimiste |
 
 Attribuez ou changez votre métier en interagissant avec le PNJ correspondant dans le monde.
 
@@ -241,6 +245,33 @@ La progression des quêtes Jokeyrini est affichée dans la barre d'action avec l
 Interagissez directement avec les PNJ de métier pour accéder à l'interface du métier. Il n'y a pas de commandes de chat pour la gestion des quêtes quotidiennes — tout se fait via l'interface en jeu.
 
 ---
+
+## Boutiques de métier
+
+### Qu'est-ce qu'une boutique de métier ?
+
+Chaque métier a sa boutique : un PNJ villageois près du spawn (Mineur, Bûcheron, Chasseur, Fermier, Alchimiste). Les boutiques vendent outils, fournitures et objets rares enchantés, payés en **rubis du coffre de votre faction**.
+
+### Qui peut acheter ?
+
+| Condition | Objets communs | Objets rares |
+|---|---|---|
+| Être dans une faction | ✔ | ✔ |
+| Avoir un métier | n'importe lequel | **le métier de la boutique** (ex. seuls les Mineurs achètent les objets rares du Mineur) |
+
+Tout membre qui remplit ces conditions peut dépenser le coffre de la faction. Il n'y a pas de restriction de rôle.
+
+### Comment acheter
+
+1. Faites un clic droit sur le PNJ de la boutique.
+2. Choisissez **Objets communs** ou **Objets rares**. Le menu affiche le solde du **coffre de faction** et le temps avant le prochain réassort.
+3. Cliquez sur un objet pour l'acheter. Son prix est retiré du coffre de faction et l'objet arrive dans votre inventaire (au sol à vos pieds s'il est plein).
+
+Si le coffre ne contient pas assez de rubis, l'achat est refusé : déposez d'abord des rubis dans le coffre de faction (Cristal d'Atlas → Coffre).
+
+### Réassort
+
+Tous les **7 jours**, chaque boutique tire une nouvelle sélection : jusqu'à **12 objets communs** et **12 objets rares**, choisis au hasard dans la liste de la boutique (certains objets sont plus rares que d'autres).
 
 ## Donjon
 
@@ -374,7 +405,7 @@ Des notifications en barre d'action signalent l'entrée en combat et l'expiratio
 
 ## Zones Sûres
 
-Les Zones Sûres sont des aires définies par les administrateurs (par exemple le spawn, ainsi que la nouvelle zone **Rubis Ruins** prévue pour la prochaine mise à jour) protégées contre le PvP et les actions territoriales. Les joueurs entrant dans une zone sûre voient leur visite enregistrée et peuvent s'y téléporter plus tard.
+Les Zones Sûres sont des aires définies par les administrateurs (par exemple le spawn) protégées contre le PvP et les actions territoriales. Les joueurs entrant dans une zone sûre voient leur visite enregistrée et peuvent s'y téléporter plus tard.
 
 ```
 /safezone tp <nom>     — se téléporter vers une zone sûre déjà visitée (compte à rebours, contournable par op)

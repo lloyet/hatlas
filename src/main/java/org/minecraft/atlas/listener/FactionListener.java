@@ -287,9 +287,9 @@ public class FactionListener implements Listener {
         Long longestAvailable = atlasCrystal.getLongestAvailableProtection();
         if (longestAvailable != null) {
             // Consume the longest available protection — strongest shield absorbs the first
-            // defeat. The broken protection regenerates after its watch window (equal to the
-            // immunity duration) if the crystal takes no damage in the meantime; otherwise
-            // it is permanently lost.
+            // defeat. The broken protection regenerates at the end of its watch window
+            // (crystal.protection_watch_multiplier × duration, default 2) if the crystal takes
+            // no damage after the immunity ends; otherwise it is permanently lost.
             long immunityMs = longestAvailable;
             long nowMs2 = System.currentTimeMillis();
             atlasCrystal.breakProtection(longestAvailable, nowMs2);

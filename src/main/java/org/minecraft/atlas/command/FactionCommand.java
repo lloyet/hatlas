@@ -100,6 +100,7 @@ public class FactionCommand {
         if (isInsideFaction) {
             List<String> leaders = new ArrayList<>();
             List<String> moderators = new ArrayList<>();
+            List<String> bankers = new ArrayList<>();
             List<String> plainMembers = new ArrayList<>();
 
             for (UUID uuid : faction.getMembers()) {
@@ -107,6 +108,7 @@ public class FactionCommand {
                 switch (faction.getRole(uuid)) {
                     case LEADER -> leaders.add(name);
                     case MODERATOR -> moderators.add(name);
+                    case BANKER -> bankers.add(name);
                     case MEMBER -> plainMembers.add(name);
                 }
             }
@@ -117,6 +119,9 @@ public class FactionCommand {
                     .append(Component.newline())
                     .append(Component.text("Moderators: ", NamedTextColor.GRAY))
                     .append(Component.text(moderators.isEmpty() ? "None" : String.join(", ", moderators), NamedTextColor.AQUA))
+                    .append(Component.newline())
+                    .append(Component.text("Bankers: ", NamedTextColor.GRAY))
+                    .append(Component.text(bankers.isEmpty() ? "None" : String.join(", ", bankers), NamedTextColor.GREEN))
                     .append(Component.newline())
                     .append(Component.text("Members (" + totalMembers + "):", NamedTextColor.GRAY))
                     .append(Component.newline())
@@ -132,6 +137,11 @@ public class FactionCommand {
                 msg = msg.append(Component.newline())
                         .append(Component.text("  " + name, NamedTextColor.WHITE))
                         .append(Component.text(" [Moderator]", NamedTextColor.AQUA));
+            }
+            for (String name : bankers) {
+                msg = msg.append(Component.newline())
+                        .append(Component.text("  " + name, NamedTextColor.WHITE))
+                        .append(Component.text(" [Banker]", NamedTextColor.GREEN));
             }
             for (String name : plainMembers) {
                 msg = msg.append(Component.newline())
