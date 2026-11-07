@@ -24,6 +24,8 @@ import java.util.UUID;
  *   <li>{@code /hatlas storage save}: writes all data now and waits for it (used by
  *       {@code scripts/backup/hatlas-backup.sh} before the database dump).</li>
  *   <li>{@code /hatlas access check <player|uuid>}: the player's ticket as the login check sees it.</li>
+ *   <li>{@code /hatlas economy history <player|faction> [n]}: the latest ruby-ledger rows of a party.</li>
+ *   <li>{@code /hatlas economy supply}: rubies created and destroyed so far.</li>
  * </ul>
  * Backups are taken outside the game (database dump together with the world), not by a command.
  */
@@ -40,7 +42,8 @@ public final class HatlasCommand {
     public static LiteralCommandNode<CommandSourceStack> build() {
         return Commands.literal("hatlas")
                 .requires(src -> src.getSender().hasPermission("hatlas.storage.admin")
-                        || src.getSender().hasPermission("hatlas.access.admin"))
+                        || src.getSender().hasPermission("hatlas.access.admin")
+                        || src.getSender().hasPermission("hatlas.economy.admin"))
                 .executes(ctx -> help(ctx.getSource().getSender()))
                 .then(Commands.literal("access")
                         .requires(src -> src.getSender().hasPermission("hatlas.access.admin"))
@@ -49,6 +52,19 @@ public final class HatlasCommand {
                                 .then(Commands.argument("player", StringArgumentType.word())
                                         .executes(ctx -> checkAccess(ctx.getSource().getSender(),
                                                 StringArgumentType.getString(ctx, "player"))))))
+                .then(Commands.literal("economy")
+                        .requires(src -> src.getSender().hasPermission("hatlas.economy.admin"))
+                        .executes(ctx -> help(ctx.getSource().getSender()))
+                        .then(Commands.literal("history")
+                                .then(Commands.argument("party", StringArgumentType.word())
+                                        .executes(ctx -> history(ctx.getSource().getSender(),
+                                                StringArgumentType.getString(ctx, "party"), 10))
+                                        .then(Commands.argument("limit", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 100))
+                                                .executes(ctx -> history(ctx.getSource().getSender(),
+                                                        StringArgumentType.getString(ctx, "party"),
+                                                        com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "limit"))))))
+                        .then(Commands.literal("supply")
+                                .executes(ctx -> supply(ctx.getSource().getSender()))))
                 .then(Commands.literal("storage")
                         .requires(src -> src.getSender().hasPermission("hatlas.storage.admin"))
                         .executes(ctx -> help(ctx.getSource().getSender()))
@@ -76,7 +92,79 @@ public final class HatlasCommand {
             msg = msg.append(info("/hatlas access check <player|uuid>"))
                     .append(Component.text(" — a player's access ticket", NamedTextColor.GRAY));
         }
+        if (sender.hasPermission("hatlas.economy.admin")) {
+            if (!msg.equals(Component.empty())) msg = msg.append(Component.newline());
+            msg = msg.append(info("/hatlas economy history <player|faction> [n]"))
+                    .append(Component.text(" — latest ruby moves", NamedTextColor.GRAY))
+                    .append(Component.newline())
+                    .append(info("/hatlas economy supply"))
+                    .append(Component.text(" — rubies emitted, burned, supply", NamedTextColor.GRAY));
+        }
         sender.sendMessage(msg);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** A faction name, else a player (online, cached or UUID). Reads after the pending ledger rows. */
+    private static int history(CommandSender sender, String who, int limit) {
+        String id;
+        String label;
+        org.minecraft.hatlas.faction.Faction faction = org.minecraft.hatlas.faction.FactionManager.getFaction(who);
+        if (faction != null) {
+            id = faction.getName();
+            label = "faction " + faction.getName();
+        } else {
+            UUID uuid = null;
+            try {
+                uuid = UUID.fromString(who);
+            } catch (IllegalArgumentException notUuid) {
+                OfflinePlayer p = Bukkit.getOfflinePlayerIfCached(who);
+                if (p != null) uuid = p.getUniqueId();
+            }
+            if (uuid == null) {
+                sender.sendMessage(Component.text("No faction or known player named " + who + ".", NamedTextColor.RED));
+                return 0;
+            }
+            id = uuid.toString();
+            label = who;
+        }
+        org.minecraft.hatlas.economy.RubyLedger.flush();
+        Storage.readAsync(store -> store.readLedger(id, limit), (rows, err) -> {
+            if (err != null) {
+                sender.sendMessage(Component.text("Ledger read failed: " + err, NamedTextColor.RED));
+                return;
+            }
+            Component msg = info("Ruby ledger of " + label + " (" + rows.size() + " latest):");
+            for (org.minecraft.hatlas.storage.model.LedgerRow r : rows) {
+                boolean in = id.equals(r.receiverId());
+                msg = msg.append(Component.newline())
+                        .append(Component.text(r.kind() + " ", NamedTextColor.WHITE))
+                        .append(Component.text((in ? "+" : "-") + r.amount(), in ? NamedTextColor.GREEN : NamedTextColor.RED))
+                        .append(Component.text(" " + party(r.senderType(), r.senderName()) + " → "
+                                + party(r.receiverType(), r.receiverName())
+                                + (r.ref() == null ? "" : " (" + r.ref() + ")"), NamedTextColor.GRAY));
+            }
+            sender.sendMessage(msg);
+        });
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static String party(String type, String name) {
+        if (type == null) return "—";
+        return "FACTION".equals(type) ? "[" + name + "]" : name;
+    }
+
+    private static int supply(CommandSender sender) {
+        org.minecraft.hatlas.economy.RubyLedger.flush();
+        Storage.readAsync(org.minecraft.hatlas.storage.DataStore::ledgerTotals, (t, err) -> {
+            if (err != null) {
+                sender.sendMessage(Component.text("Ledger read failed: " + err, NamedTextColor.RED));
+                return;
+            }
+            long inBlocks = 9L * org.minecraft.hatlas.block.RubyBlockManager.countPlaced("ruby_block");
+            sender.sendMessage(info("Rubies emitted: " + t[0] + ", burned: " + t[1]
+                    + ", supply: " + (t[0] - t[1]) + " (of which " + inBlocks + " in placed ruby blocks; "
+                    + t[2] + " ledger rows)"));
+        });
         return Command.SINGLE_SUCCESS;
     }
 

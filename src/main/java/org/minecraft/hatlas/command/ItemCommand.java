@@ -98,16 +98,22 @@ public final class ItemCommand {
                              ItemStack template, int amount) {
         int maxStack = template.getMaxStackSize();
         int remaining = amount;
+        org.minecraft.hatlas.economy.Party owner = org.minecraft.hatlas.economy.Party.player(target);
+        int rubies = 0;
         while (remaining > 0) {
             int n = Math.min(remaining, maxStack);
             ItemStack stack = template.clone();
             stack.setAmount(n);
+            rubies += org.minecraft.hatlas.economy.RubyLedger.gemValue(stack);
             var overflow = target.getInventory().addItem(stack);
             for (ItemStack drop : overflow.values()) {
-                target.getWorld().dropItemNaturally(target.getLocation(), drop);
+                org.minecraft.hatlas.economy.RubyLedger.drop(target.getLocation(), drop, owner, "ADMIN_GIVE");
             }
             remaining -= n;
         }
+        // Ruby ledger: rubies created by an admin (ores count 0 until mined).
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.ADMIN_GIVE, rubies,
+                null, owner, sender instanceof Player p ? p : null, "by " + sender.getName(), target.getLocation());
         sender.sendMessage(success("Gave " + amount + "× " + id + " to " + target.getName() + "."));
         target.sendMessage(success("You received " + amount + "× " + id + "."));
     }

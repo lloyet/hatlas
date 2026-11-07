@@ -1,0 +1,13 @@
+[
+  {"action": "spawn", "bot": "Tester4"},
+  {"action": "console", "command": "op Tester4"},
+  {"action": "wait_for", "condition": "player_state", "name": "Tester4", "op": true},
+  {"action": "command", "bot": "Tester4", "command": "hatlas economy history Tester4"},
+  {"action": "assert_message", "bot": "Tester4", "contains": "Ruby ledger of Tester4 (1 latest):"},
+  {"action": "assert_message", "bot": "Tester4", "contains": "ADMIN_GIVE +3 — → Tester4"},
+  {"action": "command", "bot": "Tester4", "command": "hatlas economy supply"},
+  {"action": "assert_message", "bot": "Tester4", "contains": "Rubies emitted: "},
+  {"action": "console", "command": "deop Tester4"},
+  {"action": "console", "command": "clear Tester4"},
+  {"action": "despawn", "bot": "Tester4"}
+]

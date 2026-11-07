@@ -23,4 +23,7 @@ public interface SqlDialect {
 
     /** Column type for binary data. */
     String blobType();
+
+    /** Column definition of an auto-increment primary key (placeholder {@code ${autoid}}). */
+    String autoIdColumn();
 }

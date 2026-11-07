@@ -46,6 +46,8 @@ public class CrystalVaultGui implements HatlasGui {
 
     private final String factionName;
     private final Set<UUID> viewers = new HashSet<>();
+    /** Players whose vault move is already being measured this tick (one check per player per tick). */
+    private final Set<UUID> measuring = new HashSet<>();
     private final Inventory inventory;
 
     private CrystalVaultGui(Faction faction) {
@@ -128,13 +130,64 @@ public class CrystalVaultGui implements HatlasGui {
     public void handleClick(InventoryClickEvent event) {
         // RubyRestrictionListener handles per-item filtering; here only withdrawals are gated.
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (FactionManager.canSpendVault(FactionManager.getFaction(factionName), player.getUniqueId())) return;
-        if (canWithdraw(event)) {
+        // Dropping straight out of a vault slot would put faction gems on the ground untracked.
+        if (event.getClickedInventory() == inventory && isDrop(event.getAction())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FactionManager.canSpendVault(FactionManager.getFaction(factionName), player.getUniqueId())
+                && canWithdraw(event)) {
             event.setCancelled(true);
             player.sendMessage(Component.text(
                     "Only the faction owner or a banker (or higher) can take rubies out of the vault.",
                     NamedTextColor.RED));
+            return;
         }
+        trackMove(player);
+    }
+
+    private static boolean isDrop(org.bukkit.event.inventory.InventoryAction action) {
+        return switch (action) {
+            case DROP_ALL_CURSOR, DROP_ONE_CURSOR, DROP_ALL_SLOT, DROP_ONE_SLOT -> true;
+            default -> false;
+        };
+    }
+
+    private int vaultGems() {
+        int total = 0;
+        for (ItemStack s : inventory.getContents()) {
+            if (s != null && org.minecraft.hatlas.Item.RubyItem.isRubyGem(s)) total += s.getAmount();
+        }
+        return total;
+    }
+
+    /**
+     * Ruby ledger: compares the vault and the player's gems before the click and one tick
+     * later (after the server applied it). Gems the vault gained and the player lost are a
+     * deposit, the opposite a withdrawal; anything else (a cancelled click, a throw) is ignored.
+     * Several clicks in the same tick share one measurement (the first click's "before"),
+     * otherwise each would record the combined change.
+     */
+    private void trackMove(Player player) {
+        if (!measuring.add(player.getUniqueId())) return;
+        int vaultBefore = vaultGems();
+        int heldBefore = org.minecraft.hatlas.economy.RubyLedger.gemsHeld(player);
+        org.bukkit.Bukkit.getScheduler().runTask(Hatlas.instance, () -> {
+            measuring.remove(player.getUniqueId());
+            Faction faction = FactionManager.getFaction(factionName);
+            if (faction == null || !player.isOnline()) return;
+            int dv = vaultGems() - vaultBefore;
+            int dp = org.minecraft.hatlas.economy.RubyLedger.gemsHeld(player) - heldBefore;
+            org.minecraft.hatlas.economy.Party vault = org.minecraft.hatlas.economy.Party.faction(faction);
+            org.minecraft.hatlas.economy.Party member = org.minecraft.hatlas.economy.Party.player(player);
+            if (dv > 0 && dp < 0) {
+                org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.VAULT_DEPOSIT,
+                        Math.min(dv, -dp), member, vault, player, null, null);
+            } else if (dv < 0 && dp > 0) {
+                org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.VAULT_WITHDRAW,
+                        Math.min(-dv, dp), vault, member, player, null, null);
+            }
+        });
     }
 
     private static boolean isEmpty(ItemStack item) {
@@ -170,6 +223,7 @@ public class CrystalVaultGui implements HatlasGui {
     @Override
     public void handleDrag(InventoryDragEvent event) {
         // Free interaction — RubyRestrictionListener handles per-item filtering.
+        if (event.getWhoClicked() instanceof Player player) trackMove(player);
     }
 
     @Override

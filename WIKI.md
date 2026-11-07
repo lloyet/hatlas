@@ -71,6 +71,13 @@ The faction vault is a shared storage that holds **ruby gems only**. Open it fro
 
 A plain Member who tries to take gems out gets the message "Only the faction owner or a banker (or higher) can take rubies out of the vault." Promote a trusted player to **Banker** to let them shop for the faction without giving them any other right.
 
+You cannot drop rubies straight out of a vault slot (drop key while hovering a slot): the action is refused. Take them into your inventory first.
+
+### Rubies on the ground
+
+- Only players can pick up rubies lying on the ground. Mobs (allays, foxes, zombies…) and hoppers never take them.
+- Rubies can end up on the ground: the ones you throw, the ones you drop when you die, and the vault rubies dropped when a crystal protection breaks. Anyone can pick them up by walking over them: collect them quickly.
+
 ### Crystal Protection
 
 Protection is a Skill Point purchase that is **stockpiled** until your Crystal is attacked.
@@ -290,6 +297,14 @@ Admins can tune the chances of each zone, so a given mine may differ from this t
 - Ruby ore drops **1 ruby gem**.
 - You need an **iron, diamond or netherite pickaxe**. With any other tool the ore breaks and drops **nothing**.
 
+### Ruby blocks
+
+- **9 ruby gems = 1 ruby block** (and back) in a crafting table.
+- A ruby block can only be **placed inside a claim of your own faction**. Anywhere else (wilderness, another faction's claim) the placement is refused with "Ruby blocks can only be placed in your faction's claim!". The same rule applies to ruby ore items.
+- A placed ruby block belongs to **your faction**. Break it with an **iron, diamond or netherite pickaxe** to get the block back. With any other tool it breaks and drops **nothing**: its 9 rubies are lost.
+- An explosion (TNT, creeper) drops the block on the ground, where anyone can pick it up. Raiders can take your ruby blocks this way, or with a Raider's Pickaxe.
+- Ruby blocks cannot go in chests or in the faction vault (gems only): keep them in your inventory or place them in your claim.
+
 ### Ore zones in safe zones
 
 An ore zone can sit inside a safe zone, like the city mine. You can still mine it there, but everything else stays protected. See [Mining inside a safe zone](#mining-inside-a-safe-zone).
@@ -369,7 +384,7 @@ Admins can change the bonus. Gear crafted before a change (or before this update
 
 ### Rules
 
-Amethyst gear is **not restricted like rubies**: you can store it in chests, shulker boxes and crystal chests, trade it and sell it on the auction house like any other item.
+Amethyst gear is **not restricted like rubies**: unlike rubies, you can store it in chests, shulker boxes and crystal chests and sell it on the auction house. You can also trade it, like any other item.
 
 ---
 
@@ -549,6 +564,8 @@ Initiate a peer-to-peer item trade with another player.
 ```
 
 Both players are shown a GUI where they can place items in their respective slots. Both players must click **Accept** before a 3-second countdown commits the swap. Either player can cancel at any time before the countdown completes.
+
+You can trade **rubies** this way, player to player. Items that do not fit in the receiver's inventory drop at their feet.
 
 ### /tpa
 

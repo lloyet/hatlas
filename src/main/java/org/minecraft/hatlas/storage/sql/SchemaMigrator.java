@@ -16,13 +16,15 @@ import java.util.logging.Logger;
  * Applies the versioned schema files {@code /db/V<n>__<name>.sql} in order, each in its own
  * transaction, and records them in {@code hatlas_schema_version}. To change the schema, add a
  * new file and append it to {@link #MIGRATIONS}; never edit an applied one.
- * Placeholder {@code ${blob}} is replaced by the dialect's binary type.
+ * Placeholders: {@code ${blob}} = the dialect's binary type, {@code ${autoid}} = its
+ * auto-increment primary key column.
  */
 final class SchemaMigrator {
 
     static final List<String> MIGRATIONS = List.of(
             "V1__initial_schema.sql",
-            "V2__web_read_model.sql"
+            "V2__web_read_model.sql",
+            "V3__ruby_ledger.sql"
     );
 
     private SchemaMigrator() {}
@@ -45,7 +47,8 @@ final class SchemaMigrator {
 
         for (int version = current + 1; version <= MIGRATIONS.size(); version++) {
             String script = MIGRATIONS.get(version - 1);
-            List<String> statements = parse(read(script).replace("${blob}", dialect.blobType()));
+            List<String> statements = parse(read(script).replace("${blob}", dialect.blobType())
+                    .replace("${autoid}", dialect.autoIdColumn()));
             boolean autoCommit = c.getAutoCommit();
             c.setAutoCommit(false);
             try (Statement st = c.createStatement()) {

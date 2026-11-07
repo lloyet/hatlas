@@ -195,6 +195,7 @@ public final class Hatlas extends JavaPlugin {
         AmethystItem.init();
         AmethystItem.registerRecipes();
         RubyBlockManager.init();
+        org.minecraft.hatlas.economy.RubyLedger.init(this);
         TagManager.init();
 
         // Runtime data (SQLite or PostgreSQL — see config.yml > storage)
@@ -267,6 +268,8 @@ public final class Hatlas extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SafeZoneNpcListener(), this);
         getServer().getPluginManager().registerEvents(new BlockListener(), this);
         getServer().getPluginManager().registerEvents(new RubyRestrictionListener(), this);
+        getServer().getPluginManager().registerEvents(new org.minecraft.hatlas.economy.RubyLedgerListener(), this);
+        getServer().getPluginManager().registerEvents(new org.minecraft.hatlas.economy.AdminCommandListener(), this);
         getServer().getPluginManager().registerEvents(new AuctionNpcListener(), this);
         getServer().getPluginManager().registerEvents(new ShopNpcListener(), this);
         AfkManager afkManager = new AfkManager();
@@ -289,6 +292,7 @@ public final class Hatlas extends JavaPlugin {
         NpcLookHelper.schedule(this);
         OreZoneManager.schedule(this);
         ShopManager.schedule(this);
+        org.minecraft.hatlas.economy.RubyLedger.schedule(this);
 
         // Register all commands
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS,
@@ -352,6 +356,7 @@ public final class Hatlas extends JavaPlugin {
         CombatLogManager.setShuttingDown(true);
         // Waits for pending async saves, then writes every domain synchronously.
         // Does nothing if the data was never loaded (failed startup), so stored data is safe.
+        org.minecraft.hatlas.economy.RubyLedger.flush(); // queued before the final save
         Storage.shutdown();
         AccessManager.shutdown();
         getLogger().info("Hatlas disabled.");

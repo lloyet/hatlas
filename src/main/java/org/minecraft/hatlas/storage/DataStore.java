@@ -36,5 +36,21 @@ public interface DataStore {
     /** Records that the backend is initialized; {@link #isFresh} returns false afterwards. */
     default void markInitialized(String source) throws StorageException {}
 
+    /**
+     * Appends ruby-ledger rows (never replaced or deleted), atomically. Runs on the storage
+     * writer thread, like {@link #write}.
+     */
+    default void appendLedger(java.util.List<org.minecraft.hatlas.storage.model.LedgerRow> rows) throws StorageException {}
+
+    /** Latest ledger rows where {@code partyId} (UUID or faction name) is sender or receiver, newest first. */
+    default java.util.List<org.minecraft.hatlas.storage.model.LedgerRow> readLedger(String partyId, int limit) throws StorageException {
+        return java.util.List.of();
+    }
+
+    /** {emitted, burned, rows} over the whole ledger. */
+    default long[] ledgerTotals() throws StorageException {
+        return new long[3];
+    }
+
     void close();
 }

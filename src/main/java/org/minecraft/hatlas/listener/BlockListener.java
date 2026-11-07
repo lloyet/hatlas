@@ -76,6 +76,24 @@ public final class BlockListener implements Listener {
             return;
         }
         RubyBlockManager.placeAt(event.getBlockPlaced(), customId);
+        recordPlace(player, inHand, event.getBlockPlaced());
+    }
+
+    /**
+     * Ruby ledger: a placed ruby block (only possible in the placer's own claim) belongs to the
+     * placer's faction: player → faction. In creative mode nothing is consumed, so the block gets
+     * no owner (breaking it later counts as UNTRACKED_BLOCK).
+     */
+    private static void recordPlace(Player player, ItemStack hand, Block block) {
+        ItemStack one = hand.clone();
+        one.setAmount(1);
+        int value = org.minecraft.hatlas.economy.RubyLedger.gemValue(one);
+        String faction = org.minecraft.hatlas.faction.FactionManager.getPlayerFaction(player.getUniqueId());
+        if (value <= 0 || faction == null || player.getGameMode() == GameMode.CREATIVE) return;
+        RubyBlockManager.setOwner(block, faction);
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.BLOCK_PLACE, value,
+                org.minecraft.hatlas.economy.Party.player(player), org.minecraft.hatlas.economy.Party.faction(faction),
+                player, null, block.getLocation());
     }
 
     /**
@@ -127,6 +145,7 @@ public final class BlockListener implements Listener {
         // note-block ones — vanilla captures the destroy state before our handler can
         // mutate it, so swapping the type mid-event doesn't change the sound.
         event.setCancelled(true);
+        String blockOwner = RubyBlockManager.ownerAt(block);
         RubyBlockManager.removeAt(block);
 
         Location loc = block.getLocation();
@@ -141,10 +160,29 @@ public final class BlockListener implements Listener {
         if (tool != null && !tool.isEmpty()) {
             tool.damage(1, breaker);
         }
-        if (!ACCEPTED_PICKAXES.contains(tool.getType())) return;
+        boolean ore = !"ruby_block".equals(id);
+        ItemStack drop = RubyBlockManager.dropFor(id);
+        int value = org.minecraft.hatlas.economy.RubyLedger.gemValue(drop);
+        org.minecraft.hatlas.economy.Party blockParty = blockOwner == null ? null
+                : org.minecraft.hatlas.economy.Party.faction(blockOwner);
+        if (!ACCEPTED_PICKAXES.contains(tool.getType())) {
+            // No drop: the block's rubies are destroyed.
+            if (!ore && blockParty != null) {
+                org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.LOST, value,
+                        blockParty, null, breaker, "BROKEN_WITHOUT_PICKAXE", loc);
+            }
+            return;
+        }
 
-        block.getWorld().dropItemNaturally(loc.toCenterLocation(),
-                RubyBlockManager.dropFor(id));
+        // Ruby ledger: an ore creates 1 gem (MINE); a placed ruby block goes from its faction to
+        // the breaker (BLOCK_BREAK), or is new money if it had no owner (UNTRACKED_BLOCK).
+        org.minecraft.hatlas.economy.Party breakerParty = org.minecraft.hatlas.economy.Party.player(breaker);
+        org.minecraft.hatlas.economy.LedgerKind kind = ore ? org.minecraft.hatlas.economy.LedgerKind.MINE
+                : blockParty == null ? org.minecraft.hatlas.economy.LedgerKind.UNTRACKED_BLOCK
+                : org.minecraft.hatlas.economy.LedgerKind.BLOCK_BREAK;
+        org.minecraft.hatlas.economy.RubyLedger.record(kind, value, ore ? null : blockParty, breakerParty, breaker,
+                ore ? org.minecraft.hatlas.orezone.OreZoneManager.zoneNameAt(loc) : null, loc);
+        org.minecraft.hatlas.economy.RubyLedger.drop(loc.toCenterLocation(), drop, breakerParty, ore ? "MINE" : "BLOCK_BREAK");
     }
 
     private static Material breakEffectMaterial(String id) {
@@ -229,6 +267,7 @@ public final class BlockListener implements Listener {
                 return;
             }
             RubyBlockManager.placeAt(target, heldId);
+            recordPlace(player, hand, target);
             target.getWorld().playSound(target.getLocation().toCenterLocation(),
                     Sound.BLOCK_STONE_PLACE, 1.0f, 1.0f);
         } else {
@@ -384,9 +423,12 @@ public final class BlockListener implements Listener {
             Block b = it.next();
             String id = RubyBlockManager.getCustomIdAt(b);
             if (id == null) continue;
+            // Ruby ledger: the dropped block stays its faction's until someone picks it up.
+            String blockOwner = RubyBlockManager.ownerAt(b);
             RubyBlockManager.removeAt(b);
-            b.getWorld().dropItemNaturally(b.getLocation().add(0.5, 0.5, 0.5),
-                    RubyBlockManager.dropFor(id));
+            org.minecraft.hatlas.economy.RubyLedger.drop(b.getLocation().add(0.5, 0.5, 0.5),
+                    RubyBlockManager.dropFor(id),
+                    blockOwner == null ? null : org.minecraft.hatlas.economy.Party.faction(blockOwner), "EXPLOSION");
             b.setType(Material.AIR, false);
             it.remove();
         }

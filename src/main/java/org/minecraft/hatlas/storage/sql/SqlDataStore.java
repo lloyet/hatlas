@@ -127,6 +127,51 @@ public final class SqlDataStore implements DataStore {
         }
     }
 
+    @Override
+    public void appendLedger(java.util.List<org.minecraft.hatlas.storage.model.LedgerRow> rows) throws StorageException {
+        if (rows.isEmpty()) return;
+        Connection c;
+        try {
+            c = connection();
+            c.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new StorageException("Cannot write the ruby ledger to " + describe() + ": " + e.getMessage(), e);
+        }
+        try {
+            LedgerTable.insert(c, rows);
+            c.commit();
+        } catch (SQLException | RuntimeException e) {
+            try {
+                c.rollback();
+            } catch (SQLException rollback) {
+                e.addSuppressed(rollback);
+            }
+            throw new StorageException("Ruby ledger append of " + rows.size() + " rows failed (rolled back): " + e.getMessage(), e);
+        } finally {
+            try {
+                c.setAutoCommit(true);
+            } catch (SQLException ignored) {}
+        }
+    }
+
+    @Override
+    public java.util.List<org.minecraft.hatlas.storage.model.LedgerRow> readLedger(String partyId, int limit) throws StorageException {
+        try {
+            return LedgerTable.read(connection(), partyId, limit);
+        } catch (SQLException e) {
+            throw new StorageException("Cannot read the ruby ledger: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public long[] ledgerTotals() throws StorageException {
+        try {
+            return LedgerTable.totals(connection());
+        } catch (SQLException e) {
+            throw new StorageException("Cannot read the ruby ledger: " + e.getMessage(), e);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private <T> void replace(Connection c, DataDomain d, Object value) throws SQLException {
         ((SqlDomain<T>) domains.get(d)).replace(c, (T) value);

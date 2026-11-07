@@ -177,10 +177,17 @@ public class AuctionConfirmGui implements HatlasGui {
         int overflow = FactionVault.deposit(sellerFaction, listing.price());
         // Save the faction state (both vaults mutated).
         Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
+        // Ruby ledger: the whole price goes to the seller's faction; an overflow lies on the
+        // ground as theirs until picked up.
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.AUCTION_BUY,
+                listing.price(), org.minecraft.hatlas.economy.Party.faction(buyerFaction),
+                org.minecraft.hatlas.economy.Party.faction(sellerFaction), player, "listing:" + listing.id(),
+                player.getLocation());
         if (overflow > 0 && player.getLocation().getWorld() != null) {
             ItemStack overflowStack = RubyItem.get("ruby");
             overflowStack.setAmount(overflow);
-            player.getWorld().dropItemNaturally(player.getLocation(), overflowStack);
+            org.minecraft.hatlas.economy.RubyLedger.drop(player.getLocation(), overflowStack,
+                    org.minecraft.hatlas.economy.Party.faction(sellerFaction), "AUCTION_OVERFLOW");
             player.sendMessage(Component.text(
                     "Seller's vault was full — " + overflow + " rubies dropped at your feet for them.",
                     NamedTextColor.YELLOW));

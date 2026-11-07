@@ -78,6 +78,13 @@ Le coffre à rubis est un stockage partagé qui n'accepte **que des rubis**. Ouv
 
 Un simple Membre qui essaie de retirer des rubis reçoit le message « Only the faction owner or a banker (or higher) can take rubies out of the vault. ». Promouvez un joueur de confiance **Banquier** pour qu'il puisse faire les achats de la faction sans lui donner d'autre droit.
 
+Vous ne pouvez pas jeter des rubis directement depuis un emplacement du coffre (touche « jeter » sur un emplacement) : l'action est refusée. Prenez-les d'abord dans votre inventaire.
+
+### Rubis au sol
+
+- Seuls les joueurs peuvent ramasser des rubis posés au sol. Les mobs (allays, renards, zombies…) et les entonnoirs ne les prennent jamais.
+- Des rubis peuvent se retrouver au sol : ceux que vous jetez, ceux que vous lâchez en mourant, et ceux du coffre lâchés quand une protection de cristal se brise. N'importe qui peut les ramasser en passant dessus : récupérez-les vite.
+
 ### Protection du Cristal
 
 La protection est un achat de Point de Compétence **mis en réserve** jusqu'à l'attaque de votre Cristal.
@@ -297,6 +304,14 @@ Les admins peuvent régler les chances de chaque zone : une mine donnée peut do
 - Le minerai de rubis donne **1 gemme de rubis**.
 - Il faut une **pioche en fer, en diamant ou en netherite**. Avec tout autre outil, le minerai se casse et ne donne **rien**.
 
+### Blocs de rubis
+
+- **9 gemmes de rubis = 1 bloc de rubis** (et inversement) dans une table de craft.
+- Un bloc de rubis ne peut être **posé que dans un claim de votre propre faction**. Partout ailleurs (terres libres, claim d'une autre faction), la pose est refusée avec « Ruby blocks can only be placed in your faction's claim! ». La même règle s'applique aux objets minerai de rubis.
+- Un bloc de rubis posé appartient à **votre faction**. Cassez-le avec une **pioche en fer, en diamant ou en netherite** pour récupérer le bloc. Avec tout autre outil, il se casse et ne donne **rien** : ses 9 rubis sont perdus.
+- Une explosion (TNT, creeper) fait tomber le bloc au sol, où n'importe qui peut le ramasser. Les pillards peuvent ainsi prendre vos blocs de rubis, ou avec une Pioche du Pillard.
+- Les blocs de rubis ne vont ni dans les coffres ni dans le coffre de faction (gemmes uniquement) : gardez-les dans votre inventaire ou posez-les dans votre claim.
+
 ### Zones de minerai dans les zones sûres
 
 Une zone de minerai peut se trouver dans une zone sûre, comme la mine de la ville. Vous pouvez quand même la miner, mais tout le reste reste protégé. Voir [Miner dans une zone sûre](#miner-dans-une-zone-sûre).
@@ -376,7 +391,7 @@ Les admins peuvent changer ce bonus. Un équipement fabriqué avant un changemen
 
 ### Règles
 
-L'équipement en améthyste n'est **pas limité comme les rubis** : vous pouvez le ranger dans des coffres, des boîtes de Shulker et les coffres de cristal, l'échanger et le vendre à l'hôtel des ventes comme n'importe quel objet.
+L'équipement en améthyste n'est **pas limité comme les rubis** : contrairement aux rubis, vous pouvez le ranger dans des coffres, des boîtes de Shulker et les coffres de cristal et le vendre à l'hôtel des ventes. Vous pouvez aussi l'échanger, comme n'importe quel objet.
 
 ---
 
@@ -556,6 +571,8 @@ Initiez un échange d'objets pair à pair avec un autre joueur.
 ```
 
 Les deux joueurs voient une interface dans laquelle ils peuvent déposer des objets dans leurs emplacements respectifs. Les deux joueurs doivent cliquer sur **Accepter** avant qu'un compte à rebours de 3 secondes valide l'échange. Chaque joueur peut annuler à tout moment avant la fin du compte à rebours.
+
+Vous pouvez échanger des **rubis** de cette façon, de joueur à joueur. Les objets qui ne tiennent pas dans l'inventaire de celui qui les reçoit tombent à ses pieds.
 
 ### /tpa
 

@@ -250,6 +250,10 @@ public class Trade {
         closeInventories();
         restoreXp();
 
+        // Ruby ledger: each side's rubies go to the other player.
+        recordTrade(initiator, target, initiatorOffer);
+        recordTrade(target, initiator, targetOffer);
+
         giveItems(initiator, targetOffer);
         giveItems(target,    initiatorOffer);
 
@@ -305,10 +309,20 @@ public class Trade {
         return items;
     }
 
+    private static void recordTrade(Player from, Player to, List<ItemStack> offer) {
+        int rubies = 0;
+        for (ItemStack item : offer) rubies += org.minecraft.hatlas.economy.RubyLedger.gemValue(item);
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.TRADE, rubies,
+                org.minecraft.hatlas.economy.Party.player(from), org.minecraft.hatlas.economy.Party.player(to),
+                from, null, from.getLocation());
+    }
+
+    /** Leftovers that do not fit are dropped as the receiver's (ruby ledger). */
     private static void giveItems(Player player, List<ItemStack> items) {
+        org.minecraft.hatlas.economy.Party owner = org.minecraft.hatlas.economy.Party.player(player);
         for (ItemStack item : items) {
             player.getInventory().addItem(item).values()
-                    .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+                    .forEach(leftover -> org.minecraft.hatlas.economy.RubyLedger.drop(player.getLocation(), leftover, owner, "TRADE"));
         }
     }
 

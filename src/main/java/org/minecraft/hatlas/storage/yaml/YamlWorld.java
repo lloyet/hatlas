@@ -200,7 +200,7 @@ final class YamlWorld {
                 ConfigurationSection b = sec.getConfigurationSection(k);
                 if (b == null || b.getString("world") == null || b.getString("id") == null) continue;
                 out.add(new CustomBlock(new BlockPos(b.getString("world"), b.getInt("x"), b.getInt("y"), b.getInt("z")),
-                        b.getString("id")));
+                        b.getString("id"), null));
             }
             return new BlocksData(out);
         }

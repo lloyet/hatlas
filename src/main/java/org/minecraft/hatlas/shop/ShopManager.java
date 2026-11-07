@@ -528,6 +528,10 @@ public final class ShopManager {
             return false;
         }
         Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.SHOP_BUY, item.price(),
+                org.minecraft.hatlas.economy.Party.faction(faction), null, player,
+                "shop:" + shop.getName() + "/" + tier.name().toLowerCase(java.util.Locale.ROOT) + "/" + itemId,
+                player.getLocation());
         for (ItemStack overflow : player.getInventory().addItem(item.createStack()).values()) {
             player.getWorld().dropItemNaturally(player.getLocation(), overflow);
         }

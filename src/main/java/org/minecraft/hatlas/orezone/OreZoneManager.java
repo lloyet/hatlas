@@ -91,6 +91,14 @@ public final class OreZoneManager {
         return false;
     }
 
+    /** Name of the ore zone containing {@code loc}, or null. */
+    public static String zoneNameAt(Location loc) {
+        for (OreZone zone : getAll()) {
+            if (zone.contains(loc)) return zone.getName();
+        }
+        return null;
+    }
+
     public static Collection<OreZone> getAll() {
         return Collections.unmodifiableCollection(zones.values());
     }

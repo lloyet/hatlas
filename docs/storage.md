@@ -121,6 +121,8 @@ The website (SvelteKit, M2) reads Hatlas data **only through the `web_*` views**
 | `web_player_jobs` | player_uuid, job, level, progress, level_up_at (= `(level + 1) × 64`) |
 | `web_shops` | name, job |
 | `web_shop_items` | shop, tier (`common`/`rare`), item_id, name, material (`minecraft:diamond`), amount, price (ruby gems), on_sale (in the current rotation) |
+| `web_ruby_transactions` | every ruby move of the ruby ledger (V3), without coordinates: at, kind, amount, sender/receiver type, id, name, faction, actor, ref. See [`economy.md`](economy.md) |
+| `web_ruby_daily` | per UTC day: rubies created, destroyed, transferred, number of transactions |
 
 - **Readable columns:** vault and item contents are Paper item bytes the website cannot read, so the plugin also writes `factions.vault_gems` and `shop_items.material`/`amount`. They are computed in the main-thread snapshot and written with every save (NULL right after the V2 migration, filled by the next save; the shutdown save is enough).
 - **Read-only role** `storage.postgresql.web_role` (default `hatlas_web`, empty = off). Hatlas **never creates it** (it needs a password the website holds). If it exists, on every start Hatlas grants it `USAGE` on the schema, revokes everything on the schema's tables/views and grants `SELECT` on each `web_*` view, so a view recreated by a later migration keeps its grant (log: `Storage: role 'hatlas_web' may read N web_* views`). Create it once as an admin, then restart Hatlas:
@@ -130,6 +132,8 @@ The website (SvelteKit, M2) reads Hatlas data **only through the `web_*` views**
   ✔ Checked on the test server: the role reads `hatlas.web_shop_items`, gets `permission denied` on `hatlas.factions` and on `DELETE FROM hatlas.web_shops`.
 - **Online players** are not here: `hatlas-proxy` will write a presence table (M2 PR 4). Player **names** are not stored by Hatlas either (UUIDs only): the website resolves them through the presence table or Mojang's profile API.
 - **Changing a view:** a later `V<n>` migration does `DROP VIEW` + `CREATE VIEW` (never alter a table a view depends on without recreating the view). Adding columns is backward compatible for the website; removing or renaming one is a breaking change to coordinate with the website.
+
+**Ruby ledger** (V3, `ruby_ledger`): not a domain. It is append-only (`DataStore.appendLedger`, never replaced by a save), written by the storage writer every second. Placeholder `${autoid}` = the dialect's auto-increment key. See [`economy.md`](economy.md).
 
 ## 6. Changing the schema or adding a domain
 

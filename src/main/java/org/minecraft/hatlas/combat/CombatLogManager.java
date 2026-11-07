@@ -126,9 +126,10 @@ public class CombatLogManager {
         PlayerInventory inv = player.getInventory();
 
         if (world != null) {
+            org.minecraft.hatlas.economy.Party owner = org.minecraft.hatlas.economy.Party.player(player);
             for (ItemStack item : inv.getContents()) {
                 if (item != null && !item.getType().isAir()) {
-                    world.dropItemNaturally(loc, item);
+                    org.minecraft.hatlas.economy.RubyLedger.drop(loc, item, owner, "COMBAT_LOG");
                 }
             }
             for (ItemStack armor : inv.getArmorContents()) {
