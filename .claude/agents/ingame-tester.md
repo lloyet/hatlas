@@ -22,7 +22,7 @@ On te donne la liste des features à vérifier, le sha de HEAD et la base du dif
 4. **Exécuter** chaque scénario des features listées : rends-le d'abord avec `node scripts/test-world/render.mjs <fichier>` et passe la sortie à `bot_run_scenario`. Pour les paires de persistance : `*-before-restart.json`, `test-server.ps1 restart`, `session_start`, puis `*-after-restart.json`. Après chaque scénario : `exceptions_recent`. Toute nouvelle exception dont la trace contient `org.minecraft.hatlas` fait échouer le scénario. Si un scénario laisse un état qui gêne les suivants, refais un `reset` (puis `deploy`) plutôt que de nettoyer à la main.
 5. **En cas d'échec** : cherche la cause (fichier:ligne). Ne corrige pas le code du plugin, sauf pour un scénario faux, que tu peux corriger en le disant. Rapporte la cause et le correctif proposé.
 6. **Verdict** : écris `.claude/state/ingame/<sha complet de HEAD>.json` au format du skill. `PASS` seulement si tout passe, sinon `FAIL`. N'écris `WAIVED` pour une feature que si l'utilisateur l'a demandé explicitement (cite-le dans `notes`).
-7. **Finir** : `session_reset`. Pas de nettoyage du monde : le prochain `reset` s'en charge.
+7. **Finir** (PASS ou FAIL, une fois le verdict écrit) : `session_reset`, puis **arrête le serveur de test** : `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-server.ps1 stop` (arrêt propre par RCON, jamais de kill) et vérifie que `status` répond `stopped`. Ne le laisse tourner que si l'appelant l'a demandé explicitement (ex. « garde le serveur allumé »). Pas de nettoyage du monde : le prochain `reset` s'en charge et redémarre le serveur. Le conteneur PostgreSQL reste allumé (léger, réutilisé par `reset`).
 
 ## Contraintes
 
