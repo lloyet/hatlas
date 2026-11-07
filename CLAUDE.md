@@ -198,7 +198,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
   - Gems and blocks are allowed in a crafting table.
   - Only gems are allowed in the faction vault.
   - Everything else (chests, shulkers, hoppers, crystal chests…) rejects all ruby items.
-- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards. Stats are the base item's **+`config.yml > amethyst.stat_bonus_percent`** (default 15 %): attack damage (total, fist included), armor, toughness, knockback resistance, mining speed and durability; attack speed unchanged. No ruby-style restrictions (✔ answered 2026-11-07, Open Question 8).
+- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards. Stats are the base item's **+`config.yml > amethyst.stat_bonus_percent`** (default 15 %): attack damage (total, fist included), armor, toughness, knockback resistance, correct-tool mining speed (huge speeds such as the sword's instant-mine rule are kept, else the item cannot be saved) and durability; attack speed and default mining speed unchanged. No ruby-style restrictions (✔ answered 2026-11-07, Open Question 8).
 - `/item give <player> <id> [amount]` (`atlas.item.admin`).
 
 ### 4.11 Trade (`trade/`, `TradeCommand`, `TradeListener`, `TradeGui`)

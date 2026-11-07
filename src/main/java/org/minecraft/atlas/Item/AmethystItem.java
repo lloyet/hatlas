@@ -32,8 +32,8 @@ import java.util.Map;
  *
  * <p>Stats: every piece starts from its vanilla base (netherite, or trident for the spear)
  * and gets {@code config.yml > amethyst.stat_bonus_percent} (default 15 %) more attack damage,
- * armor, armor toughness, knockback resistance, mining speed and durability. Attack speed is
- * kept. Items already crafted keep the stats they were made with.
+ * armor, armor toughness, knockback resistance, mining speed (correct-tool rules only) and
+ * durability. Attack speed and the default mining speed are kept. Items already crafted keep the stats they were made with.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class AmethystItem {
@@ -194,11 +194,12 @@ public final class AmethystItem {
         Tool tool = item.getData(DataComponentTypes.TOOL);
         if (tool != null) {
             Tool.Builder builder = Tool.tool()
-                    .defaultMiningSpeed((float) (tool.defaultMiningSpeed() * statMultiplier))
+                    // Default speed (blocks the tool is not made for) stays vanilla.
+                    .defaultMiningSpeed(tool.defaultMiningSpeed())
                     .damagePerBlock(tool.damagePerBlock())
                     .canDestroyBlocksInCreative(tool.canDestroyBlocksInCreative());
             for (Tool.Rule rule : tool.rules()) {
-                Float speed = rule.speed() == null ? null : (float) (rule.speed() * statMultiplier);
+                Float speed = scaledSpeed(rule.speed());
                 builder.addRule(Tool.rule(rule.blocks(), speed, rule.correctForDrops()));
             }
             item.setData(DataComponentTypes.TOOL, builder.build());
@@ -210,7 +211,18 @@ public final class AmethystItem {
         }
     }
 
-    private static double scaledAmount(Attribute attribute, AttributeModifier m) {
+    /**
+     * Scales a tool rule speed. Huge speeds (the sword's instant-mine rule uses
+     * Float.MAX_VALUE) are kept as is: scaling them overflows to Infinity, which Minecraft
+     * refuses to save, so the item would vanish on logout.
+     */
+    private static Float scaledSpeed(Float speed) {
+        if (speed == null) return null;
+        double scaled = speed * statMultiplier;
+        return (Double.isFinite(scaled) && scaled <= Float.MAX_VALUE) ? (float) scaled : speed;
+    }
+
+        private static double scaledAmount(Attribute attribute, AttributeModifier m) {
         if (m.getOperation() != AttributeModifier.Operation.ADD_NUMBER) return m.getAmount();
         if (attribute == Attribute.ATTACK_DAMAGE) {
             // The modifier is added to the fist's 1 damage: scale the total, not the modifier.
