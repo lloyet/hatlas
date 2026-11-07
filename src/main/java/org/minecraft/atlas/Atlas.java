@@ -188,7 +188,7 @@ public final class Atlas extends JavaPlugin {
         RubyBlockManager.init();
         TagManager.init();
 
-        // Runtime data (YAML, SQLite or PostgreSQL — see config.yml > storage)
+        // Runtime data (SQLite or PostgreSQL — see config.yml > storage)
         DataSet data;
         try {
             data = Storage.start(this, StorageSettings.from(configFile, getDataFolder(), getLogger()));

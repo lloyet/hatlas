@@ -7,6 +7,8 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 > 2. **Every time you modify the project, append an entry to [`docs/claude-changelog.md`](docs/claude-changelog.md)** (date, branch, what changed, files touched) and update any section that is now out of date.
 > 3. **When a request is vague or a design choice isn't settled, add it to [Open Questions](#open-questions)** and ask the user, instead of guessing. Move answered questions into the relevant feature section, marked `✔ answered <date>`.
 > 4. For Paper API questions, use the `papermc-docs` MCP server (`.mcp.json`) or the 1.21.11 Javadocs at `https://jd.papermc.io/paper/1.21.11/`.
+> 5. **When a feature is finished (its PR is opened), the player wiki is updated by the `wiki-writer` agent**, started in the background by the `wiki-on-feature` hook (§2). Review its edits, commit them as `docs(wiki): …` on the feature branch and push. Never skip it for a PR that changes `src/main/`.
+> 6. **A feature is only finished when its in-game suites pass.** Before `gh pr create`, the `ingame-gate` hook (§2) denies the PR until the `ingame-tester` agent has written a PASS verdict for the change. When denied, run that agent in the foreground with the features it names, fix any FAIL, commit (incl. new scenarios), then retry. `WAIVED` only when the user explicitly says to skip.
 
 ---
 
@@ -39,6 +41,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Dependencies (both `compileOnly`): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT` and `com.github.retrooper:packetevents-spigot:2.14.0`. **packetevents must be installed on the server as its own plugin.** It is declared as a required `server` dependency (`load: BEFORE`, `join-classpath: true`) in `paper-plugin.yml`.
 - Descriptor: **`src/main/resources/paper-plugin.yml`** (Paper plugin, not `plugin.yml`), `load: POSTWORLD`, `api-version: '1.21'`, `loader: org.minecraft.atlas.AtlasLoader`. All permission nodes are declared there.
 - Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `AtlasLoader` (Paper `MavenLibraryResolver`) **only when `storage.type: postgresql`**.
+- **Local PostgreSQL:** `docker compose -f docker/postgres/docker-compose.yml up -d --wait` (password in the git-ignored `docker/postgres/.env`, see `.env.example`). Usage and test recipe: `docs/storage.md` §4.
 - `run/` (test server and world) is git-ignored. **No world or map save is committed.**
 - MCP: `.mcp.json` declares `papermc-docs` → `https://gitmcp.io/PaperMC/docs` (GitMCP view of the PaperMC docs repo) and `vitaminmcp` (`cmd /c npx -y vitaminmcp@3.2.2`, pinned; bots + server observation for in-game tests).
 
@@ -49,6 +52,18 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics, spark, BlueMap.
 - Bots: offline names `Tester1`, `Tester2`… Atlas gotchas for scenarios: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); the AFK kick (`afk.timeout_seconds`) is raised on the test server; disconnecting within `combat_log.timeout_seconds` of PvP kills the bot; BlueMap re-renders world edits (CPU).
 - This server also holds a real world and plugin data: only act on it when the user has asked for an in-game test.
+
+### Wiki automation (Open Question 12)
+- **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
+- **Agent** `.claude/agents/wiki-writer.md`: preloads the skill, may only edit the two WIKI files, read-only Bash (`git diff/log/show`, `gh pr view`), never commits.
+- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff against the PR's `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background. Otherwise it does nothing.
+- `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
+
+### In-game test gate (Open Question 20)
+- **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
+- **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
+- **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
+- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for HEAD or for an ancestor of HEAD with identical `src/main/`, and no uncommitted `src/main/` change. Else the call is denied with the exact agent prompt to run.
 
 ---
 
@@ -84,9 +99,9 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 ## 4. Features
 
 ### 4.1 Factions (`faction/`, `FactionCommand`, `FactionListener`, `ChatListener`)
-- **Model `Faction`:** name, `owner` (UUID, stored separately from `members`), members, `roles` (`FactionRole` = MEMBER < MODERATOR < LEADER; there is **no OWNER enum value**), color (`NamedTextColor`), description, level, exp, skillPoints, allies, `outpostUnlocked`, purchased home/vault tier indices, vault size + contents, downgrade fields (legacy, unused).
+- **Model `Faction`:** name, `owner` (UUID, stored separately from `members`), members, `roles` (`FactionRole` = MEMBER < BANKER < MODERATOR < LEADER; there is **no OWNER enum value**), color (`NamedTextColor`), description, level, exp, skillPoints, allies, `outpostUnlocked`, purchased home/vault tier indices, vault size + contents, downgrade fields (legacy, unused).
 - **Levels:** `FactionLevelManager.MAX_LEVEL = 99`. XP to level 1 = 100, then each level costs `ceil(prev × 1.09)`. Overflow carries over. Each level gives `skill_points_per_level` SP (default 1). XP sources are quest completion and donjon boss-damage share.
-- **Permissions by role:** invite = MODERATOR+; kick = MODERATOR may kick MEMBER, LEADER may kick MODERATOR/MEMBER, owner may kick anyone; rename/description/color = LEADER+; promote/demote/transfer/disband = owner only (transfer turns the old owner into LEADER); claim, sethome, outpost, ally, sell/buy on auction = owner or LEADER.
+- **Permissions by role:** spend the vault (take gems out of `CrystalVaultGui`, buy in a job shop or on the auction house) = owner or BANKER+ (`FactionManager.canSpendVault`; any member may deposit; ✔ answered 2026-11-07, Open Question 6); invite = MODERATOR+; kick = MODERATOR may kick BANKER/MEMBER, LEADER may kick MODERATOR/BANKER/MEMBER, owner may kick anyone; rename/description/color = LEADER+; promote/demote/transfer/disband = owner only (transfer turns the old owner into LEADER); claim, sethome, outpost, ally, sell on auction = owner or LEADER. A BANKER has no right other than spending the vault.
 - **Creating a faction** (`/f create <name>`) spawns the **main crystal** at the player's position, claims that chunk, names it `main` and sets its home there. It is refused inside an existing claim, a donjon chunk or a safe zone.
 - **Claims** (`FactionClaimManager`, runtime key `world:cx:cz`): a new claim must be side-adjacent to the faction's territory and needs a crystal with free `claimCapacity` (`findCrystalForClaim` picks the nearest one). Claims belong to a crystal and are persisted per crystal. `/f showclaim true|false` draws GLOW_SQUID_INK borders within 3 chunks (`FactionClaimBorderRenderer`).
 - **Territory protection** (`FactionListener`): outsiders cannot break, place or interact in a claim. Exceptions: TNT placement, creeper spawn eggs, flint & steel or fire charge on TNT, and the **Raider's Pickaxe** (break only in enemy claims, consumes uses; anvils and smithing are blocked and it takes no durability damage). Entering or leaving a territory shows a title.
@@ -101,7 +116,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - **Nametag:** a TextDisplay showing `name [Faction]` / `LvL.x` / `hp/max ♥` / `IMMUNITY - [ready/total]` (aqua while immune, yellow while reloading).
 - **Damage:** only enemy-faction players can damage a crystal, at most 1 hit/s per attacker. Non-entity damage is cancelled. Members are alerted. Regen is `regen_per_second + regenBonus` per second after `regen_timeout_seconds` without being hit.
 - **When HP reaches 0:**
-  - If a protection is available, the **longest** one is consumed: HP is refilled, the crystal becomes immune for that duration, a small explosion plays and vault rubies drop. Broken protections regenerate **one at a time, shortest first**. Each one's watch window is `2 × duration` after it broke. If the crystal was hit during that window, the protection is **lost forever**.
+  - If a protection is available, the **longest** one is consumed: HP is refilled, the crystal becomes immune for that duration, a small explosion plays and vault rubies drop. Broken protections regenerate **one at a time, shortest first**. Each one's watch window is `crystal.protection_watch_multiplier × duration` after it broke (default 2: immunity + a regen window as long as the protection). If the crystal was hit during that window, the protection is **lost forever**.
   - If no protection is left, a big explosion plays and `destroyCrystal()` runs: the crystal's claims are removed, its chests drop, the faction loses `spentSkillPoints / skill_points_per_level` levels (an outpost also refunds the outpost cost) and its exp resets to 0. If the main crystal died, the outpost becomes main. If it was the last crystal, all vault gems drop and the faction is disbanded with a global broadcast.
 - **Skills** (`CrystalSkillListGui` → `CrystalSkillConfirmGui`, tiers from `factions.yml > skills`):
   | Skill | Scope | Effect |
@@ -121,7 +136,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - `Job` enum: **MINER, LUMBERJACK, HUNTER, FARMER, ALCHEMIST** (playable) plus **JOKEYRINI** (pseudo-job, used only for Jokeyrini task templates and its NPC).
 - You must be in a faction to get a job. You get it by right-clicking a job NPC (villager tagged `job_npc_type`, spawned with `/job npc spawn <job>`). Switching jobs resets your job data, and after a reset there is a **24 h cooldown** before you can pick a new one.
 - **Job XP:** +1 per relevant action. Level-up needs `(level+1) × 64`.
-  - MINER: ores, stone variants and glowstone. LUMBERJACK: logs and stems. FARMER: crops (`harvest_crop`), sugar cane and kelp, sweet berries, glow berries. HUNTER and ALCHEMIST: kills (`kill_entity`). ALCHEMIST also gets `brew_potion` (brewing-stand pickup) and `craft_item`.
+  - MINER: ores, stone variants and glowstone. LUMBERJACK: logs and stems. FARMER: crops (`harvest_crop`), sugar cane and kelp, sweet berries, glow berries. HUNTER: kills (`kill_entity`). ALCHEMIST: only `brew_potion` (brewing-stand pickup) and `craft_item` (✔ decided 2026-11-07, Open Question 7; its old kill tasks and 3 never-progressing `break_block` gather tasks were replaced by brew/craft tasks).
 - **Daily quests** (`QuestManager`): every `daily_reset_hours` you are offered 3 quests, each with 1–2 tasks at random difficulty 1–4. You can select **2**. Selecting a new day's offer clears your active quests.
   - Task amount = `BASE[d] + jobLevel × PER_LEVEL[d]` (Hunter ×0.9). Time limit is 15/30/60/120/180 min for difficulty 1–5, summed across the quest's tasks. Item rewards are scaled (Hunter ×1.1).
   - Faction XP = `exp_base_reward × Σ(difficulty × expMultiplier) × √(factionLevel+1)`.
@@ -174,12 +189,12 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### 4.8 Auction House (`auction/`, `AuctionCommand`, `Auction*Gui`)
 - **Selling:** `/auction sell <price> [description]` lists the whole main-hand stack. You must be the owner or a LEADER, and you can have at most `max_listings_per_player` listings. **Ruby items cannot be listed.**
-- **Buying:** payment goes from the **buyer's faction vault to the seller's faction vault** (the faction recorded on the listing). Overflow drops as gems. Only the owner or a LEADER can buy.
+- **Buying:** payment goes from the **buyer's faction vault to the seller's faction vault** (the faction recorded on the listing). Overflow drops as gems. Only the owner or a BANKER+ can buy.
 - Listings from disbanded factions are hidden from the market but can still be taken back through `/auction sales`.
 - The Auctioneer NPC (librarian villager, `/auction npc spawn`) opens `AuctionMainGui`, which leads to market and sales lists (paged, 45 per page) and `AuctionConfirmGui` (BUY/REMOVE).
 
 ### 4.9 Job Shops (`shop/`, `ShopCommand`, `Shop*Gui`), newest feature on branch `feat/add-shop-manager`
-- Each shop is a villager NPC tied to a job and has two weighted pools: **common** (any faction member with a job) and **rare** (members whose job matches the shop). Prices are **ruby gems taken from the player's inventory** (not the vault).
+- Each shop is a villager NPC tied to a job and has two weighted pools: **common** (any faction member with a job) and **rare** (members whose job matches the shop). Prices are **ruby gems taken from the buyer's faction vault**, like the auction house (✔ decided 2026-11-07, Open Question 6); the buyer needs access to the tier **and** must be the owner or a BANKER+.
 - Every `reset_interval_hours` (168 h) up to `items_per_shop.<tier>` (max 28) items are drawn. Shops (job, NPC, pools), the rotation and the last reset time are stored in the **SHOPS** storage domain (✔ decided 2026-11-06).
 - `shops.yml` keeps only tuning and `job_defaults.<JOB>` (templates copied into a new shop by `/shop create`; entries are `material/amount/potion/enchantments` or a serialized `item:`). A shop still hand-written under `shops.yml > shops` is **imported once** at startup, then that section is emptied.
 - Admin: `/shop create <name> <job>`, `delete`, `list`, `additem <name> <common|rare> <weight> <price>`, `reset [name]`. Shop NPCs are immune to all damage and transformations.
@@ -198,7 +213,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
   - Gems and blocks are allowed in a crafting table.
   - Only gems are allowed in the faction vault.
   - Everything else (chests, shulkers, hoppers, crystal chests…) rejects all ruby items.
-- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards.
+- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards. Stats are the base item's **+`config.yml > amethyst.stat_bonus_percent`** (default 15 %): attack damage (total, fist included), armor, toughness, knockback resistance, correct-tool mining speed (huge speeds such as the sword's instant-mine rule are kept, else the item cannot be saved) and durability; attack speed and default mining speed unchanged. No ruby-style restrictions (✔ answered 2026-11-07, Open Question 8).
 - `/item give <player> <id> [amount]` (`atlas.item.admin`).
 
 ### 4.11 Trade (`trade/`, `TradeCommand`, `TradeListener`, `TradeGui`)
@@ -243,7 +258,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 | Config (shipped) | Content |
 |---|---|
-| `config.yml` | `storage` (backend), `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
+| `config.yml` | `storage` (backend), `amethyst`, `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
 | `factions.yml` | `faction_home`, `skill_points_per_level`, `vault`, `skills.{homes,hp,claims,chest,protection,outpost,vault}`, `crystal.*` |
 | `jobs.yml` | `quests.{daily_reset_hours,exp_base_reward,tasks[]}`, `jokeyrini.{daily_reset_hours,special_quest_chance,tasks[]}` |
 | `donjons.yml` | activation/timeout/max active, smuggler cooldown, `difficulty[]`, `rarity`, `ominous_key`, `types.<type>` (mobs, bosses, waves, multipliers, exp, `boss_drops.<rarity>`) |
@@ -275,7 +290,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 2. ~~`TagCommand` `delete`/`edit` saved tags to `config.yml`~~ — **fixed 2026-11-05**: all `/tag` subcommands now save to `tags-data.yml`.
 3. `ElectricalCreeperManager.OBSIDIAN_HITS_REQUIRED = 3`, but a listener comment says "4 hits". The WIKI also contradicts itself on creeper eggs.
 4. ~~Faction max level 99 in code, 100 in the WIKI and `/f level set` help~~ — **fixed 2026-11-07**: 99 is the max (Open Question 4); help text and both WIKIs say 99.
-5. `factions.yml` `crystal.immunity_base_seconds` / `immunity_multiplier` are loaded but no longer used (the protection-stockpile system replaced them). The `Faction` downgrade fields are also unused.
+5. ~~`factions.yml` `crystal.immunity_base_seconds` / `immunity_multiplier` loaded but unused~~ — **fixed 2026-11-07** (Open Question 5): removed; the watch-window factor is now `crystal.protection_watch_multiplier` (default 2, min 1). The `Faction` downgrade fields are still unused.
 6. The `config.yml` comment says "/air tp" for random teleport. The WIKI values (tpa cooldown 30 s, 5 s countdowns) differ from the configs (tpa 60 s, 10 s countdowns).
 7. The `structures/*.nbt` files are unused by the code **by design** (see §4.5).
 8. Typo `maxActiveDonjonons` in `DonjonManager`.
@@ -287,16 +302,13 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ## 8. Milestones
 
-### M1 — In-game regression & end-to-end tests in CI (status: **on hold, redesign needed**, requested 2026-11-06)
+### M1 — Regression tests: local in-game gate + CI unit tests (status: **in progress**, redesigned 2026-11-07)
 
-**Decision (2026-11-07, Open Questions 13, 14, 16):** CI will **not** run an MCP server or a Minecraft server in Docker: too many tokens and too much CI time. The docker-compose stack, the VitaminMCP runner in CI and the required status check are dropped.
+**Decisions (Open Questions 13–16, 20):** no MCP server and no Minecraft server in CI (token and CI-time cost).
+1. **Local, in game, before every feature PR** — done on `feat/ingame-test-agent`: JSON suites per feature, `features.yml` selection, `ingame-tester` agent, `ingame-gate` hook (§2). Runs on the Windows test server until the dedicated test world lands (Open Questions 10/15), then on that world.
+2. **CI on every PR to `main`** — planned: a GitHub Actions workflow running `./gradlew build` + **unit tests** (JUnit 5, MockBukkit where Bukkit types are needed) for pure logic: faction XP curve and level-ups, quest amounts / time limits / rewards, donjon XP and rarity rolls, ore-zone weighted roll, storage round-trip (YAML ↔ SQLite on a temp folder). Required status check before merge.
 
-**Kept:**
-- In-game scenarios in `src/test/ingame/<feature>/<case>.json` (faction, storage, orezone so far), replayed **locally** with the `paper-ingame-test` skill on the test server (§2) before merging a feature.
-- A **dedicated test world**, copied into the repo in the next PR (Open Question 15). Scenarios will then rely on its fixtures instead of the real world.
-- A new or changed feature ships with its scenarios in the same PR.
-
-**Still open:** what CI should check instead (Open Question 20).
+**Coverage target:** per feature of §4, one nominal + one refusal/edge + one persistence scenario, plus E2E flows ("create faction → job quest → faction XP → crystal skill", "mine ruby in an ore zone → buy in a shop", "run donjon → raid with the Raider's Pickaxe"). Current suites: faction, storage, orezone (+ shop and job on their PR branches).
 
 ---
 
@@ -308,22 +320,22 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 2. ~~Structures~~ — ✔ answered 2026-11-05: archives of arena/donjon builds for manual import; not loaded by code.
 3. ~~**Donjon types**~~ — ✔ answered 2026-11-07: all 6 types in `donjons.yml` are live. There is no `COOLDOWN` status: it was only written in the old CLAUDE.md (commit c9d9685, `DonjonStatus — IDLE, ACTIVE, COOLDOWN`) and never existed in code. `DonjonStatus` stays IDLE / ACTIVE.
 4. ~~**Faction max level**~~ — ✔ answered 2026-11-07: **99** (known issue §7.4 fixed).
-5. **Crystal immunity escalation** — answered 2026-11-07: "configurable, with default values that match the current code". **Needs clarification (asked 2026-11-07):** the old escalation keys (`immunity_base_seconds` / `immunity_multiplier`) are loaded but used nowhere, and their defaults disagree (code 18000 s, `factions.yml` 180 s). The only escalation-like value in the current protection system is hard-coded: the watch window `2 × duration` (`AtlasCrystalManager`, ~line 931). Option A: make that watch-window factor configurable (default 2) and delete the dead keys. Option B: bring the old escalation back on top of protections with the code defaults (18000 s, ×2).
-6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
-7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
-8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
-9. **"Rubis Ruins" safe zone** (mentioned in WIKI): is it planned content with its own mechanics?
-10. **Map/world:** is there a production world save or a schematic of spawn that should live in the repo or be documented?
+5. ~~**Crystal immunity escalation**~~ — ✔ answered 2026-11-07: the dead `immunity_base_seconds` / `immunity_multiplier` keys are removed; the protection watch window (hard-coded `2 × duration` before) is configurable as `crystal.protection_watch_multiplier`, default 2 = previous behaviour.
+6. ~~**Shop payment**~~ — ✔ answered 2026-11-07: shops are paid from the **faction vault** like the auction house (no difference intended). New role **BANKER** (MEMBER < BANKER < MODERATOR < LEADER) that may only spend the vault's rubies; spending the vault (withdraw, shop, auction buy) = owner or BANKER+ (see §4.1).
+7. ~~**ALCHEMIST job**~~ — ✔ answered 2026-11-07: tracks **only brewing and crafting**. Kills no longer give Alchemist XP; the 7 kill/gather tasks in `jobs.yml` were replaced by 7 brew/craft tasks (still 16 per job).
+8. ~~**Amethyst gear**~~ — ✔ answered 2026-11-07: custom stats, by default **15 % above netherite** (configurable `amethyst.stat_bonus_percent`); **no** ruby-style restrictions. See §4.10.
+9. ~~**"Rubis Ruins" safe zone**~~ — ✔ answered 2026-11-07: **Ruby Ruins** is the name of the current update (ruby, amethyst, ore zones, auction house, shops), not a safe zone. WIKI EN/FR fixed (banner at the top, wrong safe-zone mention removed).
+10. ~~**Map/world**~~ — ✔ answered 2026-11-07: the user will add an **empty world save** plus **schematics of the spawn city and the donjons** to the repo (for saves/tests); see also Open Question 15.
 11. ~~**Persistence:** autosave?~~ — ✔ answered 2026-11-06: storage adapter with async saves after mutations + autosave every `storage.autosave_minutes` (5) + sync save at shutdown.
 12. ~~**WIKI maintenance**~~ — ✔ answered 2026-11-07: a dedicated **wiki-writer agent + skill**, started by a **hook** each time a feature is finished, writes player-facing docs (features, commands, what players can do) in `WIKI.md` / `WIKI-FR.md`. Built on its own branch (`feat/wiki-agent`).
 13. ~~**M1 — who drives the tests in CI?**~~ — ✔ answered 2026-11-07: nobody; no MCP in CI (see M1).
 14. ~~**M1 — VitaminMCP in CI**~~ — ✔ answered 2026-11-07: not needed, no MCP in CI.
 15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR.
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
-17. **M1 — "part of a feature" granularity** (moot while M1 is on hold): is path-based selection (file globs per feature) enough, or should some changes (e.g. a GUI-only tweak) select only specific scenarios inside a feature?
+17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. **Storage — PostgreSQL not run yet** — *partly answered 2026-11-07:* YAML storage is removed (legacy files are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` only writes a **whole-database backup to a portable SQLite file** (done, see §5 and `docs/storage.md`). Still open: how PostgreSQL itself gets tested (PR #27 adds a local docker-compose).
-20. **M1 — what should CI check instead?** e.g. only `./gradlew build` on each PR, plus unit tests (MockBukkit) for pure logic (XP curve, quest amounts, rarity rolls, storage round-trip YAML ↔ SQLite)? Or no CI at all, local in-game runs only?
+19. ~~**Storage — PostgreSQL / export**~~ — ✔ answered 2026-11-07: PostgreSQL is covered by a **local docker-compose** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end. YAML storage is removed (legacy `*-data.yml` are only imported once); once an admin picks sqlite or postgresql there is **no migration** between them; `/atlas storage export` writes a **whole-database backup to a portable SQLite file** (see §5).
+20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
 
 ---
 

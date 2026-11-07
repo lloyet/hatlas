@@ -54,6 +54,13 @@ death_teleport_cooldown:
   # Also the value the multiplier resets to when the window expires.
   multiplier: 2
 
+# Amethyst gear (/item give … amethyst_*): bonus over the vanilla base item (netherite, or
+# trident for the spear) applied to attack damage, armor, armor toughness, knockback
+# resistance, mining speed and durability. Attack speed is unchanged. Only items crafted or
+# given after a restart get a new value.
+amethyst:
+  stat_bonus_percent: 15
+
 # hatlas resource pack — pushed to every joining player via Player#sendResourcePacks
 resourcepack:
   # Direct download URL of the .zip (must be reachable from the client)

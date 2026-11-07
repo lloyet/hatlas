@@ -18,7 +18,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
@@ -26,8 +25,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionType;
 import org.minecraft.atlas.Atlas;
-import org.minecraft.atlas.Item.RubyItem;
+import org.minecraft.atlas.faction.Faction;
 import org.minecraft.atlas.faction.FactionManager;
+import org.minecraft.atlas.faction.FactionVault;
 import org.minecraft.atlas.job.Job;
 import org.minecraft.atlas.job.PlayerJobData;
 import org.minecraft.atlas.job.JobManager;
@@ -491,7 +491,8 @@ public final class ShopManager {
     // ── Purchase ──────────────────────────────────────────────────────────────
 
     /**
-     * Buys one entry, paying rubies from the player's inventory. Re-checks access and that
+     * Buys one entry, paying rubies from the faction vault (the buyer needs access to the
+     * tier and must be allowed to spend the vault: owner or BANKER+). Re-checks access and that
      * the entry is still on sale (a rotation may have happened while the GUI was open).
      * Returns true on success; failures are reported in chat.
      */
@@ -510,15 +511,22 @@ public final class ShopManager {
             player.sendMessage(Component.text("This item is no longer on sale.", NamedTextColor.RED));
             return false;
         }
-        int balance = countRubies(player);
-        if (balance < item.price()) {
-            player.sendMessage(Component.text("You have " + balance + " rubies — need "
+        Faction faction = FactionManager.getFaction(FactionManager.getPlayerFaction(player.getUniqueId()));
+        if (!FactionManager.canSpendVault(faction, player.getUniqueId())) {
+            player.sendMessage(Component.text(
+                    "Only the faction owner or a banker (or higher) can spend from the vault.",
+                    NamedTextColor.RED));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            return false;
+        }
+        int balance = FactionVault.countGems(faction);
+        if ( balance < item.price() || !FactionVault.withdraw(faction, item.price())) {
+            player.sendMessage(Component.text("Your faction vault has " + balance + " rubies — need "
                     + item.price() + ".", NamedTextColor.RED));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             return false;
         }
-
-        takeRubies(player, item.price());
+        Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
         for (ItemStack overflow : player.getInventory().addItem(item.createStack()).values()) {
             player.getWorld().dropItemNaturally(player.getLocation(), overflow);
         }
@@ -527,30 +535,16 @@ public final class ShopManager {
                 .append(Component.text(item.name(), NamedTextColor.WHITE))
                 .append(Component.text(" for ", NamedTextColor.GREEN))
                 .append(Component.text(item.price() + " ruby", NamedTextColor.RED))
-                .append(Component.text(".", NamedTextColor.GREEN)));
+                .append(Component.text(" from the faction vault.", NamedTextColor.GREEN)));
         return true;
     }
 
-    /** Ruby gems in the player's inventory (storage slots + offhand). */
-    public static int countRubies(Player player) {
-        int total = 0;
-        for (ItemStack s : player.getInventory().getContents()) {
-            if (RubyItem.isRubyGem(s)) total += s.getAmount();
-        }
-        return total;
-    }
-
-    private static void takeRubies(Player player, int count) {
-        PlayerInventory inv = player.getInventory();
-        ItemStack[] contents = inv.getContents();
-        int remaining = count;
-        for (int i = 0; i < contents.length && remaining > 0; i++) {
-            ItemStack s = contents[i];
-            if (!RubyItem.isRubyGem(s)) continue;
-            int take = Math.min(s.getAmount(), remaining);
-            s.setAmount(s.getAmount() - take);
-            inv.setItem(i, s.getAmount() <= 0 ? null : s);
-            remaining -= take;
-        }
+    /**
+     * Ruby gems in the vault of the player's faction (shops are paid from the faction vault,
+     * like the auction house). 0 when the player has no faction.
+     */
+    public static int vaultBalance(Player player) {
+        Faction faction = FactionManager.getFaction(FactionManager.getPlayerFaction(player.getUniqueId()));
+        return faction == null ? 0 : FactionVault.countGems(faction);
     }
 }

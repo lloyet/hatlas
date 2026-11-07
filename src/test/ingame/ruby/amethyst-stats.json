@@ -1,0 +1,33 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "console", "command": "item give Tester1 amethyst_sword"},
+  {"action": "console", "command": "item give Tester1 amethyst_pickaxe"},
+  {"action": "console", "command": "item give Tester1 amethyst_chestplate"},
+  {"action": "console", "command": "item give Tester1 amethyst_spear"},
+
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.0 minecraft:netherite_sword[item_model=\"hatlas:amethyst_sword\",max_damage=2336] run tellraw Tester1 \"AMT sword durability ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword durability ok"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.0 *[attribute_modifiers~{modifiers:{contains:[{attribute:\"minecraft:attack_damage\",amount:{min:8.19,max:8.21}}]}}] run tellraw Tester1 \"AMT sword damage ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword damage ok"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.0 *[attribute_modifiers~{modifiers:{contains:[{attribute:\"minecraft:attack_speed\",amount:{min:-2.41,max:-2.39}}]}}] run tellraw Tester1 \"AMT sword speed ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword speed ok"},
+
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.1 minecraft:netherite_pickaxe[max_damage=2336] run tellraw Tester1 \"AMT pickaxe durability ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT pickaxe durability ok"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.1 *[tool={default_mining_speed:1.0f,rules:[{blocks:\"#minecraft:incorrect_for_netherite_tool\",correct_for_drops:false},{blocks:\"#minecraft:mineable/pickaxe\",correct_for_drops:true,speed:10.35f}]}] run tellraw Tester1 \"AMT pickaxe speed ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT pickaxe speed ok"},
+
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.2 minecraft:netherite_chestplate[max_damage=681] run tellraw Tester1 \"AMT chestplate durability ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT chestplate durability ok"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.2 *[attribute_modifiers~{modifiers:{contains:[{attribute:\"minecraft:armor\",amount:{min:9.19,max:9.21}},{attribute:\"minecraft:armor_toughness\",amount:{min:3.44,max:3.46}},{attribute:\"minecraft:knockback_resistance\",amount:{min:0.114,max:0.116}}]}}] run tellraw Tester1 \"AMT chestplate armor ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT chestplate armor ok"},
+
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.3 minecraft:trident[max_damage=288] run tellraw Tester1 \"AMT spear durability ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT spear durability ok"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.3 *[attribute_modifiers~{modifiers:{contains:[{attribute:\"minecraft:attack_damage\",amount:{min:9.34,max:9.36}}]}}] run tellraw Tester1 \"AMT spear damage ok\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT spear damage ok"},
+
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]

@@ -85,7 +85,22 @@ storage:
 
 1. Create the database and user; set `storage.type: postgresql` and the connection settings, then restart. `AtlasLoader` downloads `org.postgresql:postgresql` through Paper's Maven mirror (only for this type), and the schema is created by `SchemaMigrator`.
 2. There is **no SQLite → PostgreSQL copy** by design (Open Question 19): choose PostgreSQL before the server goes live. A fresh PostgreSQL database only imports legacy `*-data.yml` files.
-3. ⚠ **PostgreSQL has not been run yet.** The SQL is portable (no dialect-specific queries; `BOOLEAN`, `BIGINT`, `DOUBLE PRECISION`, `ON CONFLICT DO NOTHING` are valid on both), but it needs a test before production.
+3. ✔ **Tested 2026-11-07** against PostgreSQL 16.10 (local docker-compose below): schema creation, driver download, `*-data.yml` import (same row counts as SQLite), immediate save after a mutation, save at shutdown, reload on the next start without re-import.
+
+### Local PostgreSQL (docker-compose)
+
+`docker/postgres/docker-compose.yml` runs `postgres:16.10-alpine`, bound to `127.0.0.1` only, with a named volume and a `pg_isready` healthcheck.
+
+```bash
+cp docker/postgres/.env.example docker/postgres/.env    # set ATLAS_DB_PASSWORD (file is git-ignored)
+docker compose -f docker/postgres/docker-compose.yml up -d --wait
+# plugins/atlas/config.yml: storage.type: postgresql, host localhost, port 5432,
+# database atlas, username atlas; password via the ATLAS_DB_PASSWORD env variable
+docker compose -f docker/postgres/docker-compose.yml down      # stop, keep data
+docker compose -f docker/postgres/docker-compose.yml down -v   # stop and wipe data
+```
+
+To test without touching the shared test server, use the isolated `./gradlew runServer` instance (`./run`, git-ignored): put `eula=true`, a `server.properties` on another port (e.g. 25566, RCON on), packetevents in `run/plugins/`, and a `run/plugins/atlas/config.yml` with `type: postgresql`. Inspect rows with `docker compose -f docker/postgres/docker-compose.yml exec postgres psql -U atlas -d atlas`.
 
 ## 5. Changing the schema or adding a domain
 
