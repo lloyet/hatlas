@@ -60,7 +60,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### In-game test gate (Open Question 20)
 - **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
-- **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
+- **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
 - **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
 - **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for HEAD or for an ancestor of HEAD with identical `src/main/`, and no uncommitted `src/main/` change. Else the call is denied with the exact agent prompt to run.
 
@@ -331,7 +331,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 14. ~~**M1 — VitaminMCP in CI**~~ — ✔ answered 2026-11-07: not needed, no MCP in CI.
 15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR.
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
-17. **M1 — "part of a feature" granularity** — *clarified 2026-11-07:* feature-level = all scenarios of a touched feature run; scenario-level = each scenario lists the files it exercises, so a GUI-only tweak runs only GUI scenarios (faster, more upkeep, can miss side effects). **Implemented feature-level** in `features.yml` (recommended); awaiting confirmation.
+17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
 19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
 20. **M1 — what should CI check instead?** e.g. only `./gradlew build` on each PR, plus unit tests (MockBukkit) for pure logic (XP curve, quest amounts, rarity rolls, storage round-trip YAML ↔ SQLite)? Or no CI at all, local in-game runs only?
