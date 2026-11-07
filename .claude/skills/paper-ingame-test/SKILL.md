@@ -103,6 +103,8 @@ Après chaque cas :
 
 `session_reset` (déconnecte les bots ; l'état du monde n'est pas restauré), `deop Tester1` si tu l'avais op, retrait des permissions ajoutées, `fill` de la zone de test à l'air.
 
+**Fin de campagne** : quand tous les scénarios sont joués et le rapport/verdict écrit, **arrête le serveur de test** avec le script de contrôle (`stop`, arrêt propre ; jamais de kill du processus), puis vérifie `status` = `stopped`. Exception : l'utilisateur a demandé de le garder allumé.
+
 ## 8. Rapport et non-régression
 
 - Enregistre chaque scénario validé dans `src/test/ingame/<fonctionnalite>/<cas>.json` pour pouvoir le rejouer plus tard (« rejoue les tests en jeu de /shop »).
@@ -148,6 +150,7 @@ Ce dépôt garde ses tests en jeu sous forme de **suites JSON rejouables**. Util
 
 Le serveur de test (`CLAUDE.md` §2) ne contient **que le monde de test** : aucune donnée réelle, aucun joueur réel à protéger. Hatlas y tourne sur **PostgreSQL** (docker, base `hatlas_test`).
 - **Avant une campagne** : `scripts/test-server.ps1 reset` remet le monde, `plugins/hatlas` et la base dans l'état de référence (~25 s), puis `deploy`. Refais un `reset` si un scénario a laissé un état gênant. Pas de sauvegarde, pas de restauration, pas de nettoyage.
+- **Après une campagne** : `scripts/test-server.ps1 stop` (le prochain `reset` le redémarre). Le conteneur PostgreSQL peut rester allumé.
 - **La référence** (`<TEST_SERVER_DIR>\baseline`, hors git) = la carte brute (`run/world`) + `build-baseline.json`. Elle ne se reconstruit que si la carte, `fixtures.json` ou la mise en place changent :
   1. `scripts/test-server.ps1 rebuild-from-map` (carte brute, base vide, `hatlas-config.yml`, structures installées) ;
   2. `node scripts/test-world/build-setup.mjs`, connecte le bot `Builder` (`bot_spawn`), puis `scripts/test-server.ps1 run-console src/test/ingame/_setup/build-baseline.json` ;
