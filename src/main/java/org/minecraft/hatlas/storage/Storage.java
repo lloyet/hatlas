@@ -155,6 +155,15 @@ public final class Storage {
         return store == null ? "not started" : store.describe();
     }
 
+    /**
+     * A new, unconfigured connection to the storage database (schema-qualify every name), for
+     * readers outside the storage writer such as the login ticket check. The caller closes it.
+     */
+    public static java.sql.Connection newConnection() throws java.sql.SQLException {
+        if (!(store instanceof SqlDataStore sql)) throw new java.sql.SQLException("storage is not started");
+        return sql.newConnection();
+    }
+
     /** Stops the writer, then writes every domain synchronously and closes the backend. */
     public static void shutdown() {
         if (store == null) return;

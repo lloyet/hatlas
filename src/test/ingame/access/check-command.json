@@ -1,0 +1,23 @@
+[
+  {"action": "spawn", "bot": "Tester3"},
+  {"action": "console", "command": "deop Tester3"},
+  {"action": "wait_for", "condition": "player_state", "name": "Tester3", "op": false},
+  {"action": "command", "bot": "Tester3", "command": "hatlas access check Tester1"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "Unknown or incomplete command"},
+
+  {"action": "console", "command": "op Tester3"},
+  {"action": "wait_for", "condition": "player_state", "name": "Tester3", "op": true},
+  {"action": "command", "bot": "Tester3", "command": "hatlas"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "/hatlas access check <player|uuid>"},
+  {"action": "command", "bot": "Tester3", "command": "hatlas access check Tester1"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "Tester1 (5b30590c-7361-31a2-a5a0-ee3cb0717365): ticket valid until"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "(login check OFF)"},
+  {"action": "command", "bot": "Tester3", "command": "hatlas access check Tester2"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "Tester2 (e4c9cd18-ee96-3574-b06a-e9866b0fa22d): ticket expired on"},
+  {"action": "command", "bot": "Tester3", "command": "hatlas access check Tester3"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "Tester3 (362bd452-26d9-3b54-8335-8aa4abf72f39): no ticket"},
+  {"action": "command", "bot": "Tester3", "command": "hatlas access check e4c9cd18-ee96-3574-b06a-e9866b0fa22d"},
+  {"action": "assert_message", "bot": "Tester3", "contains": "ticket expired on"},
+  {"action": "console", "command": "deop Tester3"},
+  {"action": "despawn", "bot": "Tester3"}
+]

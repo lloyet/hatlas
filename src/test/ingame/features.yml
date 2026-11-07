@@ -37,6 +37,10 @@ features:
     - src/main/java/org/minecraft/hatlas/listener/FactionListener.java
     - src/main/java/org/minecraft/hatlas/gui/Crystal*.java
     - src/main/resources/factions.yml
+  access:
+    - src/main/java/org/minecraft/hatlas/access/**
+    - src/main/java/org/minecraft/hatlas/command/HatlasCommand.java
+    - scripts/test-world/web-tickets.sql
   storage:
     - src/main/java/org/minecraft/hatlas/storage/**
     - src/main/resources/db/**

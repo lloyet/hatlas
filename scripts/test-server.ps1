@@ -25,7 +25,8 @@
               and 'baseline'. Only needed when the map or the setup changes.
   - install-structures: copies src/main/resources/structures/*.nbt into world/generated/hatlas/
               (so /place template hatlas:<name> works). Part of building the baseline.
-  - reset   : stops the server, restores the baseline (worlds, plugins/hatlas, database), starts it.
+  - reset   : stops the server, restores the baseline (worlds, plugins/hatlas, database), loads the
+              website ticket fixture (test-world/web-tickets.sql, schema web), starts it.
               Use before a test session or after a run left a mess. Nothing else to undo.
 
   The test server is disposable (test world only, no real data): scenarios do not need to clean up.
@@ -229,6 +230,13 @@ function Save-Baseline {
     Write-Output "baseline saved to $BaselineDir"
 }
 
+# Website ticket table with rows for the test bots (dates relative to now), for the access suites.
+function Import-WebTickets {
+    $sql = Get-Content (Join-Path $PSScriptRoot 'test-world\web-tickets.sql') -Raw
+    $sql | & docker compose -f $Compose exec -T postgres psql -U hatlas -d $DbName -v ON_ERROR_STOP=1 -q -f - | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'web-tickets.sql failed' }
+}
+
 function Restore-Baseline {
     if (-not (Test-Path (Join-Path $BaselineDir 'database.dump'))) { throw "no baseline in $BaselineDir (run 'baseline' once)" }
     Stop-TestServer
@@ -244,6 +252,7 @@ function Restore-Baseline {
     & docker cp (Join-Path $BaselineDir 'database.dump') "${cid}:/tmp/baseline.dump" | Out-Null
     & docker compose -f $Compose exec -T postgres pg_restore -U hatlas -d $DbName --no-owner /tmp/baseline.dump
     if ($LASTEXITCODE -ne 0) { throw 'pg_restore failed' }
+    Import-WebTickets
     Write-Output 'baseline restored'
     Start-TestServer
 }

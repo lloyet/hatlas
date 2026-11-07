@@ -74,6 +74,8 @@ import org.minecraft.hatlas.shop.ShopManager;
 import org.minecraft.hatlas.storage.DataDomain;
 import org.minecraft.hatlas.storage.DataSet;
 import org.minecraft.hatlas.storage.Storage;
+import org.minecraft.hatlas.access.AccessManager;
+import org.minecraft.hatlas.access.AccessSettings;
 import org.minecraft.hatlas.storage.StorageException;
 import org.minecraft.hatlas.storage.StorageSettings;
 import org.minecraft.hatlas.storage.model.CrystalsData;
@@ -197,8 +199,10 @@ public final class Hatlas extends JavaPlugin {
 
         // Runtime data (SQLite or PostgreSQL — see config.yml > storage)
         DataSet data;
+        StorageSettings storageSettings;
         try {
-            data = Storage.start(this, StorageSettings.from(configFile, getDataFolder(), getLogger()));
+            storageSettings = StorageSettings.from(configFile, getDataFolder(), getLogger());
+            data = Storage.start(this, storageSettings);
         } catch (StorageException e) {
             // Message first and without a stack trace, so the admin sees the cause and the fix.
             getLogger().severe("Storage unavailable — Hatlas is disabled to protect the data.\n" + e.getMessage());
@@ -207,6 +211,16 @@ public final class Hatlas extends JavaPlugin {
             return;
         }
         registerSnapshots();
+
+        // Paid access: login ticket check (config.yml > access, docs/access.md)
+        try {
+            getServer().getPluginManager().registerEvents(
+                    AccessManager.init(AccessSettings.from(configFile), storageSettings.type(), getLogger()), this);
+        } catch (IllegalArgumentException e) {
+            getLogger().severe("Access settings invalid — Hatlas is disabled: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Restore order matters: factions before crystals (orphan check) and auctions
         // (faction fallback); config before donjons/shops/ore zones/blocks.
@@ -339,6 +353,7 @@ public final class Hatlas extends JavaPlugin {
         // Waits for pending async saves, then writes every domain synchronously.
         // Does nothing if the data was never loaded (failed startup), so stored data is safe.
         Storage.shutdown();
+        AccessManager.shutdown();
         getLogger().info("Hatlas disabled.");
     }
 }

@@ -16,6 +16,9 @@ dependencies:
       join-classpath: true
 
 permissions:
+  hatlas.access.admin:
+    description: /hatlas access check <player|uuid> (a player's access ticket, as the login check sees it)
+    default: op
   hatlas.storage.admin:
     description: /hatlas storage info|save (active backend; write all data now, before a backup)
     default: op
