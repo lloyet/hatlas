@@ -491,8 +491,8 @@ public final class ShopManager {
     // ── Purchase ──────────────────────────────────────────────────────────────
 
     /**
-     * Buys one entry, paying rubies from the faction vault (any member with access to the
-     * tier may spend it). Re-checks access and that
+     * Buys one entry, paying rubies from the faction vault (the buyer needs access to the
+     * tier and must be allowed to spend the vault: owner or BANKER+). Re-checks access and that
      * the entry is still on sale (a rotation may have happened while the GUI was open).
      * Returns true on success; failures are reported in chat.
      */
@@ -512,8 +512,15 @@ public final class ShopManager {
             return false;
         }
         Faction faction = FactionManager.getFaction(FactionManager.getPlayerFaction(player.getUniqueId()));
-        int balance = faction == null ? 0 : FactionVault.countGems(faction);
-        if (faction == null || balance < item.price() || !FactionVault.withdraw(faction, item.price())) {
+        if (!FactionManager.canSpendVault(faction, player.getUniqueId())) {
+            player.sendMessage(Component.text(
+                    "Only the faction owner or a banker (or higher) can spend from the vault.",
+                    NamedTextColor.RED));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            return false;
+        }
+        int balance = FactionVault.countGems(faction);
+        if ( balance < item.price() || !FactionVault.withdraw(faction, item.price())) {
             player.sendMessage(Component.text("Your faction vault has " + balance + " rubies — need "
                     + item.price() + ".", NamedTextColor.RED));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
