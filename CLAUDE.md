@@ -41,6 +41,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Dependencies (both `compileOnly`): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT` and `com.github.retrooper:packetevents-spigot:2.14.0`. **packetevents must be installed on the server as its own plugin.** It is declared as a required `server` dependency (`load: BEFORE`, `join-classpath: true`) in `paper-plugin.yml`.
 - Descriptor: **`src/main/resources/paper-plugin.yml`** (Paper plugin, not `plugin.yml`), `load: POSTWORLD`, `api-version: '1.21'`, `loader: org.minecraft.atlas.AtlasLoader`. All permission nodes are declared there.
 - Database drivers: **SQLite** uses the `sqlite-jdbc` that Paper ships on the server classpath (no dependency). **PostgreSQL**'s driver (`org.postgresql:postgresql:42.7.7`) is downloaded at startup by `AtlasLoader` (Paper `MavenLibraryResolver`) **only when `storage.type: postgresql`**.
+- **Local PostgreSQL:** `docker compose -f docker/postgres/docker-compose.yml up -d --wait` (password in the git-ignored `docker/postgres/.env`, see `.env.example`). Usage and test recipe: `docs/storage.md` §4.
 - `run/` (test server and world) is git-ignored. **No world or map save is committed.**
 - MCP: `.mcp.json` declares `papermc-docs` → `https://gitmcp.io/PaperMC/docs` (GitMCP view of the PaperMC docs repo) and `vitaminmcp` (`cmd /c npx -y vitaminmcp@3.2.2`, pinned; bots + server observation for in-game tests).
 
@@ -333,7 +334,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
 17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
-19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
+19. **Storage — PostgreSQL** — first part ✔ answered 2026-11-07: covered by a **local docker-compose PostgreSQL** (`docker/postgres/`, see `docs/storage.md` §4), tested end to end on `./run`. **Still open:** the `/atlas storage export` command (explained to the user 2026-11-07, awaiting a yes/no). Old text: the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
 20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.
 
 ---
