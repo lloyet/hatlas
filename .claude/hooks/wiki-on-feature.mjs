@@ -2,6 +2,7 @@
 // asks the main session to run the wiki-writer agent in the background.
 // Prints nothing (no-op) when the command was not a successful `gh pr create`.
 import { execSync } from "node:child_process";
+import { parsePrCommand, resolveHead } from "./affected-features.mjs";
 
 let raw = "";
 process.stdin.setEncoding("utf8");
@@ -19,24 +20,28 @@ process.stdin.on("end", () => {
   // gh prints the new PR URL alone on a line of stdout.
   const resp = input?.tool_response;
   const stdout = typeof resp === "string" ? resp : (resp?.stdout ?? "");
-  const pr = stdout.match(/^https:\/\/github\.com\/[^\s/]+\/[^\s/]+\/pull\/(\d+)\s*$/m);
-  if (!pr) return; // PR creation failed or was not printed
+  const prUrl = stdout.match(/^https:\/\/github\.com\/[^\s/]+\/[^\s/]+\/pull\/(\d+)\s*$/m);
+  if (!prUrl) return; // PR creation failed or was not printed
 
-  let branch = "";
-  try { branch = execSync("git branch --show-current", { encoding: "utf8" }).trim(); } catch {}
+  // The PR's own branch (--head/-H), not whatever the main checkout has checked out.
+  const root = input?.cwd || process.cwd();
+  const { base, head: headFlag } = parsePrCommand(cmd);
+  const pr = resolveHead(headFlag, root);
+  const branch = pr.branch;
+  const range = `origin/${base}...${pr.current ? "HEAD" : pr.branch}`;
 
   // Nothing player-facing to document if the PR touches no plugin code or shipped config.
-  const base = (cmd.match(/--base[=\s]+["']?([\w./-]+)/) ?? [])[1] ?? "main";
   try {
-    const changed = execSync(`git diff --name-only origin/${base}...HEAD`, { encoding: "utf8" });
+    const changed = execSync(`git diff --name-only origin/${base}...${pr.ref}`, { cwd: root, encoding: "utf8" });
     if (!changed.split("\n").some((f) => f.startsWith("src/main/"))) return;
   } catch {} // unknown base: let the agent decide
 
   const context =
-    `Feature finished: PR #${pr[1]} (${pr[0]}) was opened from branch '${branch}'. ` +
+    `Feature finished: PR #${prUrl[1]} (${prUrl[0].trim()}) was opened from branch '${branch}'. ` +
     `Per CLAUDE.md (Open Question 12), now launch the 'wiki-writer' agent in the background ` +
     `(Agent tool, subagent_type "wiki-writer") with the prompt: "Update WIKI.md and WIKI-FR.md ` +
-    `for PR #${pr[1]} (branch ${branch}, diff: origin/${base}...HEAD)." ` +
+    `for PR #${prUrl[1]} (branch ${branch}, diff: ${range})."` +
+    (pr.current ? " " : ` The branch is not checked out here: have the agent work in a worktree of '${branch}'. `) +
     `When it reports back, review its edits, commit them on '${branch}' as ` +
     `"docs(wiki): <feature>", push, and tell the user what changed.`;
 

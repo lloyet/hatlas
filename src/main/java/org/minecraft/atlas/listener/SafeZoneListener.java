@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.minecraft.atlas.orezone.OreZoneManager;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -72,6 +73,8 @@ public class SafeZoneListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         if (!isInSafeZone(event.getBlock().getLocation())) return;
+        // Ore zones win over safe zones: their blocks can be mined (e.g. an ore zone in a city).
+        if (OreZoneManager.isInOreZone(event.getBlock().getLocation())) return;
         event.setCancelled(true);
         event.getPlayer().sendActionBar(Component.text(
                 "Block breaking is disabled in spawn protection.", NamedTextColor.RED));

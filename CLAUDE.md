@@ -46,24 +46,32 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - MCP: `.mcp.json` declares `papermc-docs` → `https://gitmcp.io/PaperMC/docs` (GitMCP view of the PaperMC docs repo) and `vitaminmcp` (`cmd /c npx -y vitaminmcp@3.2.2`, pinned; bots + server observation for in-game tests).
 
 ### In-game test server (used by the `paper-ingame-test` skill)
-- `TEST_SERVER_DIR=C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11` (outside the repo, not in git, not Docker). `PLUGIN_NAME=atlas`.
-- Control script (Windows, PowerShell 5.1): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-server.ps1 start|stop|restart|deploy|status|console "<cmd>"`. `deploy` = gradle build → replace `plugins/atlas-*.jar` → restart. Stop goes through RCON so `onDisable` saves data; the script never kills the process. Requires env `MC_RCON_PASSWORD`.
+- `TEST_SERVER_DIR=C:\Users\lloyet\Documents\Projects\servers\minecraft-paper1.21.11` (outside the repo, not in git). `PLUGIN_NAME=atlas`. **Disposable: test world only, no real data, no real players** (✔ 2026-11-07), so tests never back up or restore anything. Runs `online-mode=false`: anyone who reaches the port can join under any name.
+- Atlas there runs on **PostgreSQL** (`docker/postgres`, database `atlas_test`), like production will (M2). Its Atlas config is `scripts/test-world/atlas-config.yml` (PostgreSQL + AFK kick off).
+- Control script (Windows, PowerShell 5.1): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-server.ps1 <action>`. Reads `MC_RCON_PASSWORD`, `ATLAS_DB_PASSWORD`… from `.env` / `docker/postgres/.env`.
+  - `start|stop|restart|status|console "<cmd>"`, `deploy` (gradle build → replace `plugins/atlas-*.jar` → restart). Stop goes through RCON so `onDisable` saves data; the script never kills the process. `start` also starts the database.
+  - **`reset`**: restores the **baseline** (worlds + `plugins/atlas` + a `pg_dump` of `atlas_test`, kept in `<TEST_SERVER_DIR>\baseline`) and starts (~25 s). Run before every test campaign or after a run left a mess.
+  - Building the baseline (only when the map, `fixtures.json` or the setup change): `rebuild-from-map` (raw map from `run/world`, empty DB, structures installed), `node scripts/test-world/build-setup.mjs`, connect bot `Builder`, `run-console src/test/ingame/_setup/build-baseline.json`, check, `baseline`. Also `db-up`, `install-structures`.
+- **Test world** (✔ Open Questions 10/15): the user's map (`run/world`, git-ignored) + the setup, named in **`src/test/ingame/fixtures.json`**:
+  - safe zones `spawn` (world spawn -4956 80 -3044; 9 job/quest/smuggler/explorer/auction NPCs) and `city` (210 chunks, shop house `miner_shop`, ore zone `city_mine` inside it, mineable because ore zones win over safe zones);
+  - donjon `dark_forest` (map build, type `trial`, vault -4985 86 -2994) and a **structure gallery** at x -6400…-5969, y 200, z -3200: the 7 `.nbt` placed with `/place template hatlas:<name>`; `desert/nether_castle/ocean/plain_gallery` are registered donjons, `sky_donjon` has no vault (gallery only), `world_spawn` is the spawn build;
+  - `sandbox` (x 1000, z 1000) for scenarios that build their own setup. Gamerules: no mob/patrol/trader spawning, fixed day and weather.
+- Scenarios use `{{fixture.path}}` placeholders, rendered by `node scripts/test-world/render.mjs <file>` before `bot_run_scenario`.
 - **Never `/reload`.** Always restart.
-- Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics, spark, BlueMap.
-- Bots: offline names `Tester1`, `Tester2`… Atlas gotchas for scenarios: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); the AFK kick (`afk.timeout_seconds`) is raised on the test server; disconnecting within `combat_log.timeout_seconds` of PvP kills the bot; BlueMap re-renders world edits (CPU).
-- This server also holds a real world and plugin data: only act on it when the user has asked for an in-game test.
+- Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics.
+- Bots: offline names `Tester1`, `Tester2`… (`Builder` for the setup). Atlas gotchas: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); disconnecting within `combat_log.timeout_seconds` of PvP kills the bot.
 
 ### Wiki automation (Open Question 12)
 - **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
 - **Agent** `.claude/agents/wiki-writer.md`: preloads the skill, may only edit the two WIKI files, read-only Bash (`git diff/log/show`, `gh pr view`), never commits.
-- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff against the PR's `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background. Otherwise it does nothing.
+- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff of the PR's `--head/-H` branch (default: the checked-out branch) against its `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background (in a worktree of that branch when it is not checked out). Otherwise it does nothing.
 - `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
 
 ### In-game test gate (Open Question 20)
 - **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
 - **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
 - **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
-- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for HEAD or for an ancestor of HEAD with identical `src/main/`, and no uncommitted `src/main/` change. Else the call is denied with the exact agent prompt to run.
+- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for the PR's head (`--head/-H` branch, else the checked-out HEAD) or for an ancestor of it with identical `src/main/`, and (for the checked-out branch) no uncommitted `src/main/` change. `--base origin/main` and `main` are the same. Both hooks judge the `--head` branch's own content (feature map, suites, diff), so a PR from a worktree or another branch is checked correctly (fixed 2026-11-07). Else the call is denied with the exact agent prompt to run.
 
 ---
 
@@ -150,7 +158,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### 4.5 Donjons (`donjon/`, `DonjonCommand`, `DonjonListener`, `DonjonListGui`)
 - **Instance `Donjon`:** id, name, type (key in `donjons.yml > types`), world, level 0–99, `DonjonRarity`, `DonjonStatus` (**IDLE / ACTIVE only**), protected chunks (chunk-key longs), wave spawn points (id → loc), vault block (the trigger), teleport spawn, nametag TextDisplay, waves, boss damage per faction.
-- **Admin setup:** `/donjon create <type> <name>` claims the current chunk. Then use `claim/unclaim/unclaimall`, `set spawn`, `set vault` (look at the block), `wavespawn add/list/delete/clear`, `set difficulty|rarity`, `doctor <id>` (checks vault, teleport spawn and wave spawns), `activate|deactivate|reset|tp|delete|list|info`, `give <player> key|ominouskey [lvl] [rarity] [n]|creeper_egg|powered_creeper_egg|raider_diamond_pickaxe`, `npc summon smuggler`.
+- **Admin setup:** `/donjon create <type> <name>` claims the current chunk. Names are unique and every `<id>` argument also accepts the name (case-insensitive). Then use `claim/unclaim/unclaimall`, `set spawn`, `set vault [x y z]` (the given block, or the one you look at), `wavespawn add/list/delete/clear`, `set difficulty|rarity`, `doctor <id>` (checks vault, teleport spawn and wave spawns), `activate|deactivate|reset|tp|delete|list|info`, `give <player> key|ominouskey [lvl] [rarity] [n]|creeper_egg|powered_creeper_egg|raider_diamond_pickaxe`, `npc summon smuggler`.
 - **Schedule:** every `activation_interval_hours` a random idle donjon is activated (up to `max_active_donjons`) with a weighted level (`difficulty` ranges) and rarity (`rarity` weights). An active donjon times out after `idle_timeout_hours`, with a warning 1 h before.
 - **Starting a run:** right-click the **vault block**.
   - On an ACTIVE donjon, a Donjon Key (Trial or Ominous, PDC `donjon_key_marker`) starts it. An Ominous key overrides the level and rarity.
@@ -178,12 +186,12 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ### 4.6 Ore Zones (`orezone/`, `OreZoneCommand`)
 - Cuboid regions refilled every `interval_reset_hours` with a weighted roll per block over `OreType` (diamond, gold, emerald, iron, copper, coal, **stone**, **ruby**). Ruby is placed through `RubyBlockManager`.
-- Admin: `/orezone pos1|pos2` (the block you look at, up to 100 blocks), `add <name>`, `remove`, `reset`, `list`. New zones copy `default_ore_weights`. Weights per zone are saved in `orezones-data.yml`.
+- Admin: `/orezone pos1|pos2 [x y z]` (the given block, or the block you look at, up to 100 blocks), `add <name>`, `remove`, `reset`, `list`. New zones copy `default_ore_weights`. Weights per zone are saved in `orezones-data.yml`.
 - Status: compiles, but has **not been verified in game**. The current uncommitted change adds `STONE` and rebalances the weights (stone 75%).
 
 ### 4.7 Safe Zones (`safezone/`, `SafeZoneCommand`, `SpawnCommand`, `SafeZoneListener`, `SafeZoneGui`)
 - Named sets of chunks with an optional spawn point and description.
-- **Inside a safe zone:** players take no damage, players inside cannot hit players outside, blocks cannot be broken or interacted with, and explosions skip safe-zone blocks. Factions cannot be created, claimed or outposted there.
+- **Inside a safe zone:** players take no damage, players inside cannot hit players outside, blocks cannot be broken (**except inside an ore zone**: ore zones win over safe zones, so an ore zone can sit in a city; ✔ decided 2026-11-07) or interacted with, and explosions skip safe-zone blocks. Factions cannot be created, claimed or outposted there.
 - Entering a zone records a visit. The **Explorer** NPC (Illusioner on a Camel, `/safezone npc summon`) opens `SafeZoneGui`, which teleports you to zones you have visited.
 - `/safezone tp <name>` and `/spawn` (= `/safezone tp spawn`) use a countdown that is cancelled if you move, followed by a cooldown. Ops bypass both. `/spawn <zone>` works if you have visited the zone (or are admin). `/spawn set` writes the legacy `SpawnManager` spawn to config.yml.
 
@@ -355,12 +363,12 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 7. ~~**ALCHEMIST job**~~ — ✔ answered 2026-11-07: tracks **only brewing and crafting**. Kills no longer give Alchemist XP; the 7 kill/gather tasks in `jobs.yml` were replaced by 7 brew/craft tasks (still 16 per job).
 8. ~~**Amethyst gear**~~ — ✔ answered 2026-11-07: custom stats, by default **15 % above netherite** (configurable `amethyst.stat_bonus_percent`); **no** ruby-style restrictions. See §4.10.
 9. ~~**"Rubis Ruins" safe zone**~~ — ✔ answered 2026-11-07: **Ruby Ruins** is the name of the current update (ruby, amethyst, ore zones, auction house, shops), not a safe zone. WIKI EN/FR fixed (banner at the top, wrong safe-zone mention removed).
-10. ~~**Map/world**~~ — ✔ answered 2026-11-07: the user will add an **empty world save** plus **schematics of the spawn city and the donjons** to the repo (for saves/tests); see also Open Question 15.
+10. ~~**Map/world**~~ — ✔ answered 2026-11-07: the user will add an **empty world save** plus **schematics of the spawn city and the donjons** to the repo (for saves/tests); see also Open Question 15. — *done 2026-11-07:* map in `run/world` (git-ignored), fixtures + generated setup + baseline/reset (§2).
 11. ~~**Persistence:** autosave?~~ — ✔ answered 2026-11-06: storage adapter with async saves after mutations + autosave every `storage.autosave_minutes` (5) + sync save at shutdown.
 12. ~~**WIKI maintenance**~~ — ✔ answered 2026-11-07: a dedicated **wiki-writer agent + skill**, started by a **hook** each time a feature is finished, writes player-facing docs (features, commands, what players can do) in `WIKI.md` / `WIKI-FR.md`. Built on its own branch (`feat/wiki-agent`).
 13. ~~**M1 — who drives the tests in CI?**~~ — ✔ answered 2026-11-07: nobody; no MCP in CI (see M1).
 14. ~~**M1 — VitaminMCP in CI**~~ — ✔ answered 2026-11-07: not needed, no MCP in CI.
-15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR.
+15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR. — *done 2026-11-07:* disposable test server, reset to baseline, fixtures (§2).
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
 17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).

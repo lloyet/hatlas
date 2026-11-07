@@ -475,6 +475,14 @@ Les Zones Sûres sont des aires définies par les administrateurs (par exemple l
 
 `/spawn` est un alias strict de `/safezone tp spawn`.
 
+### Miner dans une zone sûre
+
+Vous ne pouvez pas casser de blocs dans une zone sûre. Seule exception : une **zone de minerai** (une mine installée par les admins, par exemple dans une ville). Ses blocs peuvent être minés même si elle se trouve dans une zone sûre. Tout le reste reste protégé, y compris dans la zone de minerai :
+
+- vous ne pouvez ni poser de blocs ni faire de clic droit sur un bloc ;
+- les explosions ne cassent aucun bloc ;
+- le PvP reste désactivé.
+
 ---
 
 ## Commandes de Base

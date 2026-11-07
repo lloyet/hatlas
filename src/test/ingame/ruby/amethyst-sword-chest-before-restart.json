@@ -17,7 +17,7 @@
   {"action": "close_menu", "bot": "Tester1"},
   {"action": "console", "command": "execute if items block 1041 101 1040 container.* minecraft:netherite_sword[item_model=\"hatlas:amethyst_sword\",max_damage=2336] run tellraw Tester1 \"AMT sword in chest\""},
   {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword in chest"},
-  {"action": "console", "command": "execute in minecraft:overworld run tp Tester1 0 100 0"},
+  {"action": "console", "command": "tp Tester1 {{spawn}}"},
   {"action": "console", "command": "forceload remove 1040 1040"},
   {"action": "console", "command": "save-all flush"},
   {"action": "despawn", "bot": "Tester1"}
