@@ -1,11 +1,14 @@
 # Atlas — Player Wiki
 
+> **Current update: Ruby Ruins** — rubies (the faction currency), amethyst gear, ore zones, the auction house and job shops.
+
 ## Summary
 
 | Section | Description |
 |---|---|
 | [Faction](#faction) | Create and manage a faction: levels, skill points, crystal, claims, allies |
 | [Job](#job) | Choose a profession (after joining a faction), complete daily quests, earn faction XP |
+| [Job Shops](#job-shops) | Buy gear and supplies from job NPCs with your faction's rubies |
 | [Dungeon](#dungeon) | Raid wave-based dungeons, fight a boss, share loot, earn special rewards |
 | [Combat & PvP](#combat--pvp) | 1.8-style PvP, anti-disconnect (combat log) rules |
 | [Safe Zones](#safe-zones) | Protected hubs and `/spawn` behavior |
@@ -61,10 +64,10 @@ Protection is a Skill Point purchase that is **stockpiled** until your Crystal i
 How it works:
 1. Your Crystal is destroyed by an enemy.
 2. The Crystal automatically respawns at full HP and becomes **invincible** for the duration of the longest stockpiled protection.
-3. If no damage is taken during that window, the protection regenerates and stays available for the next attack.
-4. If you own multiple protections, they activate one after another, **longest first**.
+3. When the invincibility ends, a **regen window** of the same length starts (by default; admins can change this ratio). If the Crystal takes **no hit** during that window, the protection regenerates and is ready for the next attack. If it is hit, that protection is **lost for good**.
+4. If you own multiple protections, the next defeat uses the **longest one still available**. Broken protections regenerate one at a time, **shortest first**.
 
-**Example:** your faction owns one 1-hour protection and one 30-minute protection. When the Crystal is destroyed, it respawns at full HP and is invincible for 1 hour. If the 1-hour window survives without damage, it regenerates. If it's broken through, the 30-minute protection automatically takes over.
+**Example:** your faction owns a 1-hour and a 30-minute protection. The Crystal is destroyed: it respawns at full HP and is invincible for 1 hour. Then comes a 1-hour regen window: if nobody hits the Crystal, the 1-hour protection is back 2 hours after the defeat. If the Crystal is destroyed again in the meantime, the 30-minute protection takes over.
 
 The level-based "protection on downgrade" mechanic is gone — all Crystal protection now comes from this stockpile.
 
@@ -236,6 +239,33 @@ Interact directly with the job NPCs to access the job GUI. There are no chat com
 
 ---
 
+## Job Shops
+
+### What is a Job Shop?
+
+Each job has its own shop: a villager NPC near spawn (Miner, Lumberjack, Hunter, Farmer, Alchemist). Shops sell tools, supplies and rare enchanted items, paid in **rubies from your faction vault**.
+
+### Who can buy?
+
+| Requirement | Common items | Rare items |
+|---|---|---|
+| Be in a faction | ✔ | ✔ |
+| Have a job | any job | **the shop's job** (e.g. only Miners buy rare Miner items) |
+
+Any member who meets these requirements can spend the faction vault. There is no role restriction.
+
+### How to buy
+
+1. Right-click the shop NPC.
+2. Pick **Common Items** or **Rare Items**. The menu shows your **faction vault** balance and the time until the next restock.
+3. Click an item to buy it. Its price is taken from the faction vault and the item goes to your inventory (dropped at your feet if it is full).
+
+If the vault does not hold enough rubies, the purchase is refused: deposit rubies in the faction vault first (Atlas Crystal → Vault).
+
+### Restock
+
+Every **7 days** each shop draws a new selection: up to **12 common** and **12 rare** items, picked at random from the shop's list (some items are rarer than others).
+
 ## Dungeon
 
 ### What is a Dungeon?
@@ -368,7 +398,7 @@ Action-bar notifications announce when you enter combat and when the timer expir
 
 ## Safe Zones
 
-Safe Zones are admin-defined areas (e.g. spawn, the new **Rubis Ruins** zone teased for the next content update) that are protected from PvP and territorial actions. Players entering one are recorded in their visit history and can teleport back later.
+Safe Zones are admin-defined areas (e.g. spawn) that are protected from PvP and territorial actions. Players entering one are recorded in their visit history and can teleport back later.
 
 ```
 /safezone tp <name>     — teleport to a safe zone you have already visited (op-bypassable countdown)
