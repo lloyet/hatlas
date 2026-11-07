@@ -47,21 +47,6 @@ final class YamlEconomy {
             return new AuctionsData(out);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, AuctionsData data) {
-            cfg.set("listings", null);
-            if (data.listings().isEmpty()) return;
-            ConfigurationSection root = cfg.createSection("listings");
-            for (Listing l : data.listings()) {
-                ConfigurationSection s = root.createSection(l.id().toString());
-                s.set("seller", l.seller().toString());
-                if (l.faction() != null && !l.faction().isEmpty()) s.set("faction", l.faction());
-                s.set("item_b64", ItemBytes.toBase64(l.item()));
-                s.set("price", l.price());
-                if (l.description() != null && !l.description().isEmpty()) s.set("description", l.description());
-                s.set("created_at", l.createdAt());
-            }
-        }
     }
 
     static final class OreZones implements YamlDomain<OreZonesData> {
@@ -88,26 +73,6 @@ final class YamlEconomy {
             return new OreZonesData(out);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, OreZonesData data) {
-            cfg.set("orezones", null);
-            if (data.zones().isEmpty()) return;
-            ConfigurationSection root = cfg.createSection("orezones");
-            for (OreZoneRow z : data.zones()) {
-                ConfigurationSection s = root.createSection(z.name());
-                if (z.world() != null) {
-                    s.set("world", z.world());
-                    s.set("min_x", z.minX());
-                    s.set("min_y", z.minY());
-                    s.set("min_z", z.minZ());
-                    s.set("max_x", z.maxX());
-                    s.set("max_y", z.maxY());
-                    s.set("max_z", z.maxZ());
-                }
-                ConfigurationSection w = s.createSection("ore_weights");
-                for (OreWeight ow : z.weights()) w.set(ow.ore(), ow.weight());
-            }
-        }
     }
 
     /**
@@ -164,34 +129,5 @@ final class YamlEconomy {
             return new ShopsData(shops, rotation, cfg.getLong("last_reset", 0L));
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, ShopsData data) {
-            cfg.set("last_reset", data.lastReset());
-            cfg.set("shops", null);
-            cfg.set("rotation", null);
-            ConfigurationSection rot = cfg.createSection("rotation");
-            data.rotation().forEach((shop, tiers) -> tiers.forEach((tier, ids) ->
-                    rot.set(shop + "." + tier, new ArrayList<>(ids))));
-
-            cfg.set("definitions", null);
-            if (data.shops().isEmpty()) return;
-            ConfigurationSection defs = cfg.createSection("definitions");
-            for (ShopRow shop : data.shops()) {
-                ConfigurationSection s = defs.createSection(shop.name());
-                s.set("job", shop.job());
-                if (shop.npc() != null || shop.npcUuid() != null) {
-                    ConfigurationSection npc = s.createSection("npc");
-                    if (shop.npc() != null) YamlUtil.writeLocation(npc, shop.npc());
-                    if (shop.npcUuid() != null) npc.set("uuid", shop.npcUuid().toString());
-                }
-                for (Item it : shop.items()) {
-                    ConfigurationSection e = s.createSection("items." + it.tier() + "." + it.id());
-                    e.set("name", it.name());
-                    e.set("item_b64", ItemBytes.toBase64(it.item()));
-                    e.set("price", it.price());
-                    e.set("weight", it.weight());
-                }
-            }
-        }
     }
 }

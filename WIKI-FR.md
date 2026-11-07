@@ -459,7 +459,7 @@ Lorsqu'un joueur inflige des dégâts à un autre joueur (mêlée ou projectile)
 - Se déconnecter pendant ce délai **tue le joueur** et fait tomber l'inventaire complet + l'armure à sa dernière position.
 - Chaque nouveau coup réinitialise le timer à la durée complète.
 - Tenir le timer en entier sans subir de dégâts efface la marque — vous pouvez quitter en sécurité.
-- Les timers de combat actifs persistent à travers les redémarrages serveur (`combats-data.yml`) ; un redémarrage propre ne **tue pas** les joueurs en combat.
+- Les timers de combat actifs persistent à travers les redémarrages serveur ; un redémarrage propre ne **tue pas** les joueurs en combat.
 
 Des notifications en barre d'action signalent l'entrée en combat et l'expiration du timer.
 

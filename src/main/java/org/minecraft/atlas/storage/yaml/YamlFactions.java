@@ -72,38 +72,6 @@ final class YamlFactions {
             return new FactionsData(rows);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, FactionsData data) {
-            cfg.set("factions", null);
-            ConfigurationSection root = cfg.createSection("factions");
-            for (FactionRow f : data.factions()) {
-                ConfigurationSection s = root.createSection(f.name());
-                s.set("owner", f.owner().toString());
-                List<String> members = new ArrayList<>();
-                ConfigurationSection roles = null;
-                for (Member m : f.members()) {
-                    if (m.member()) members.add(m.uuid().toString());
-                    if (m.role() != null) {
-                        if (roles == null) roles = s.createSection("roles");
-                        roles.set(m.uuid().toString(), m.role());
-                    }
-                }
-                s.set("members", members);
-                s.set("color", f.color());
-                s.set("description", f.description());
-                s.set("level", f.level());
-                s.set("exp", f.exp());
-                if (f.skillPoints() > 0) s.set("skill_points", f.skillPoints());
-                if (!f.allies().isEmpty()) s.set("allies", new ArrayList<>(f.allies()));
-                if (f.downgradeMul() != 1) s.set("downgrade_mul", f.downgradeMul());
-                if (f.downgradeWindowEnd() != 0L) s.set("downgrade_window_end", f.downgradeWindowEnd());
-                if (f.outpostUnlocked()) s.set("outpost_unlocked", true);
-                if (!f.homeTiers().isEmpty()) s.set("purchased_home_tiers", new ArrayList<>(f.homeTiers()));
-                if (!f.vaultTiers().isEmpty()) s.set("purchased_vault_tiers", new ArrayList<>(f.vaultTiers()));
-                if (f.vaultSize() != null) s.set("vault_size", f.vaultSize());
-                if (f.vaultContents() != null) s.set("vault_b64", ItemBytes.toBase64(f.vaultContents()));
-            }
-        }
     }
 
     static final class Crystals implements YamlDomain<CrystalsData> {
@@ -207,51 +175,5 @@ final class YamlFactions {
             return new CrystalsData(rows);
         }
 
-        @Override
-        public void write(YamlConfiguration cfg, CrystalsData data) {
-            cfg.set("crystal_homes", null);
-            cfg.set("crystal_data", null);
-            cfg.set("claims", null);
-            cfg.set("crystals", null);
-            if (data.crystals().isEmpty()) return;
-            ConfigurationSection root = cfg.createSection("crystals");
-            for (CrystalRow r : data.crystals()) {
-                ConfigurationSection cs = root.createSection(r.uuid().toString());
-                cs.set("faction", r.faction());
-                if (r.name() != null && !r.name().isEmpty()) cs.set("name", r.name());
-                cs.set("hp", r.hp());
-                cs.set("max_hp", r.maxHp());
-                if (r.outpost()) cs.set("outpost", true);
-                if (r.home() != null) cs.set("home", r.home().encode(','));
-                if (r.hpBonus() != null) cs.set("hp_bonus", r.hpBonus());
-                if (r.regenBonus() != null) cs.set("regen_bonus", r.regenBonus());
-                if (r.claimCapacity() != null) cs.set("claim_capacity", r.claimCapacity());
-                if (r.spentSkillPoints() != null) cs.set("spent_skill_points", r.spentSkillPoints());
-                if (r.immuneUntil() != null) cs.set("immune_until", r.immuneUntil());
-                YamlUtil.writeChunks(cs, "claimed_chunks", r.claims());
-
-                List<Integer> sizes = new ArrayList<>();
-                ConfigurationSection chests = null;
-                for (Chest ch : r.chests()) {
-                    if (ch.size() != null) sizes.add(ch.size());
-                    if (ch.contents() != null) {
-                        if (chests == null) chests = cs.createSection("chests_b64");
-                        chests.set(String.valueOf(ch.index()), ItemBytes.toBase64(ch.contents()));
-                    }
-                }
-                if (!sizes.isEmpty()) cs.set("chest_sizes", sizes);
-
-                List<Long> purchased = new ArrayList<>();
-                ConfigurationSection broken = null;
-                for (Protection p : r.protections()) {
-                    if (p.purchased()) purchased.add(p.durationMs());
-                    if (p.brokenAt() != null) {
-                        if (broken == null) broken = cs.createSection("broken_protections");
-                        broken.set(String.valueOf(p.durationMs()), p.brokenAt());
-                    }
-                }
-                if (!purchased.isEmpty()) cs.set("purchased_protections", purchased);
-            }
-        }
     }
 }

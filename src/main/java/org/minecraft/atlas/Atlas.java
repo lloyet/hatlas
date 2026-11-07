@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import org.minecraft.atlas.combat.CombatLogManager;
+import org.minecraft.atlas.command.AtlasCommand;
 import org.minecraft.atlas.command.RandomTeleportCommand;
 import org.minecraft.atlas.command.HomeCommand;
 import org.minecraft.atlas.command.SafeZoneCommand;
@@ -187,10 +188,10 @@ public final class Atlas extends JavaPlugin {
         RubyBlockManager.init();
         TagManager.init();
 
-        // Runtime data (YAML, SQLite or PostgreSQL — see config.yml > storage)
+        // Runtime data (SQLite or PostgreSQL — see config.yml > storage)
         DataSet data;
         try {
-            data = Storage.start(this, StorageSettings.from(configFile, getDataFolder()));
+            data = Storage.start(this, StorageSettings.from(configFile, getDataFolder(), getLogger()));
         } catch (StorageException e) {
             getLogger().log(Level.SEVERE, "Storage unavailable — Atlas is disabled to protect the data: "
                     + e.getMessage(), e);
@@ -290,6 +291,7 @@ public final class Atlas extends JavaPlugin {
                         event.registrar().register(AuctionCommand.build());
                         event.registrar().register(OreZoneCommand.build());
                         event.registrar().register(ShopCommand.build());
+                        event.registrar().register(AtlasCommand.build());
                     }
                 }
         );

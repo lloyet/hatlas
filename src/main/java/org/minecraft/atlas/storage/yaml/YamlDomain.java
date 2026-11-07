@@ -3,7 +3,7 @@ package org.minecraft.atlas.storage.yaml;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 /**
- * Maps one domain to sections of a data file. Several domains may share a file
+ * Reads one domain from sections of a legacy data file (one-time import only). Several domains may share a file
  * (FACTIONS and CRYSTALS both live in factions-data.yml); each one only touches its own keys.
  */
 interface YamlDomain<T> {
@@ -13,7 +13,4 @@ interface YamlDomain<T> {
 
     /** Reads the domain, accepting legacy layouts. Runs on the main thread. */
     T read(YamlConfiguration cfg);
-
-    /** Clears the domain's keys and writes {@code data}. May run off the main thread. */
-    void write(YamlConfiguration cfg, T data);
 }
