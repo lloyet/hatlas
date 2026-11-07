@@ -47,9 +47,9 @@ public interface DataStore {
         return java.util.List.of();
     }
 
-    /** {created, destroyed, rows} over the whole ledger. */
+    /** {emitted, burned, in placed ruby blocks, rows} over the whole ledger. */
     default long[] ledgerTotals() throws StorageException {
-        return new long[3];
+        return new long[4];
     }
 
     void close();

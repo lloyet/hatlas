@@ -1,7 +1,9 @@
 -- Hatlas storage schema, version 3: the ruby ledger (append-only history of every ruby move).
--- A row moves `amount` gems (a ruby block counts 9) from a sender to a receiver.
---   sender NULL   = rubies created (MINE, BLOCK_BREAK, ADMIN_GIVE, UNTRACKED_PICKUP)
---   receiver NULL = rubies leaving the economy (SHOP_BUY, BLOCK_PLACE, LOST)
+-- A row moves `amount` gems (a ruby block counts 9) from a sender to a receiver (NULL = none).
+--   emitted (new rubies):   MINE, ADMIN_GIVE, UNTRACKED_PICKUP           (no sender)
+--   burned (gone for good): SHOP_BUY, LOST                               (no receiver)
+--   stored in the world:    BLOCK_PLACE (no receiver) / BLOCK_BREAK (no sender): a placed ruby
+--                           block still exists, so it is neither emitted nor burned.
 -- Party types: PLAYER (id = UUID) or FACTION (id = faction name). *_faction = the faction of a
 -- PLAYER party when the row was written. Rubies dropped on the ground stay owned by whoever
 -- dropped them until someone else picks them up (PICKUP row) or they disappear (LOST row).
@@ -42,12 +44,14 @@ SELECT id, at, kind, amount,
        actor_uuid, actor_name, ref
   FROM ruby_ledger;
 
--- Website: the economy per UTC day (day = days since 1970-01-01). Money supply on a day =
--- running total of created - destroyed.
+-- Website: the economy per UTC day (day = days since 1970-01-01). Total supply = running sum
+-- of emitted - burned; of it, placed - broken sits in ruby blocks placed in the world.
 CREATE VIEW web_ruby_daily AS
 SELECT at / 86400000 AS day,
-       SUM(CASE WHEN sender_type IS NULL THEN amount ELSE 0 END) AS created,
-       SUM(CASE WHEN receiver_type IS NULL THEN amount ELSE 0 END) AS destroyed,
+       SUM(CASE WHEN kind IN ('MINE', 'ADMIN_GIVE', 'UNTRACKED_PICKUP') THEN amount ELSE 0 END) AS emitted,
+       SUM(CASE WHEN kind IN ('SHOP_BUY', 'LOST') THEN amount ELSE 0 END) AS burned,
+       SUM(CASE WHEN kind = 'BLOCK_PLACE' THEN amount ELSE 0 END) AS placed,
+       SUM(CASE WHEN kind = 'BLOCK_BREAK' THEN amount ELSE 0 END) AS broken,
        SUM(CASE WHEN sender_type IS NOT NULL AND receiver_type IS NOT NULL THEN amount ELSE 0 END) AS transferred,
        COUNT(*) AS transactions
   FROM ruby_ledger

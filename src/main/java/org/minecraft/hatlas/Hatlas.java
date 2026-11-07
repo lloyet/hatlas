@@ -269,6 +269,7 @@ public final class Hatlas extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(), this);
         getServer().getPluginManager().registerEvents(new RubyRestrictionListener(), this);
         getServer().getPluginManager().registerEvents(new org.minecraft.hatlas.economy.RubyLedgerListener(), this);
+        getServer().getPluginManager().registerEvents(new org.minecraft.hatlas.economy.GiveCommandListener(), this);
         getServer().getPluginManager().registerEvents(new AuctionNpcListener(), this);
         getServer().getPluginManager().registerEvents(new ShopNpcListener(), this);
         AfkManager afkManager = new AfkManager();

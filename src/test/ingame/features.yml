@@ -52,6 +52,7 @@ features:
     - src/main/java/org/minecraft/hatlas/gui/CrystalVaultGui.java
     - src/main/java/org/minecraft/hatlas/faction/FactionVault.java
     - src/main/java/org/minecraft/hatlas/combat/CombatLogManager.java
+    - src/main/java/org/minecraft/hatlas/trade/Trade.java
   storage:
     - src/main/java/org/minecraft/hatlas/storage/**
     - src/main/resources/db/**

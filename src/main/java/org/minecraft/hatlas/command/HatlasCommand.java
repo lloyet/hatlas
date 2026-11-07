@@ -98,7 +98,7 @@ public final class HatlasCommand {
                     .append(Component.text(" — latest ruby moves", NamedTextColor.GRAY))
                     .append(Component.newline())
                     .append(info("/hatlas economy supply"))
-                    .append(Component.text(" — rubies created and destroyed", NamedTextColor.GRAY));
+                    .append(Component.text(" — rubies emitted, burned, supply", NamedTextColor.GRAY));
         }
         sender.sendMessage(msg);
         return Command.SINGLE_SUCCESS;
@@ -160,8 +160,9 @@ public final class HatlasCommand {
                 sender.sendMessage(Component.text("Ledger read failed: " + err, NamedTextColor.RED));
                 return;
             }
-            sender.sendMessage(info("Rubies created: " + t[0] + ", destroyed: " + t[1]
-                    + ", in circulation: " + (t[0] - t[1]) + " (" + t[2] + " ledger rows)"));
+            sender.sendMessage(info("Rubies emitted: " + t[0] + ", burned: " + t[1]
+                    + ", supply: " + (t[0] - t[1]) + " (of which " + t[2] + " in placed ruby blocks; "
+                    + t[3] + " ledger rows)"));
         });
         return Command.SINGLE_SUCCESS;
     }

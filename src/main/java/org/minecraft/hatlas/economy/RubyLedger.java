@@ -69,6 +69,13 @@ public final class RubyLedger {
         return 0;
     }
 
+    /** Ruby value (gems + blocks) in a player's inventory plus the cursor. */
+    public static int rubyValueHeld(Player player) {
+        int total = gemValue(player.getItemOnCursor());
+        for (ItemStack s : player.getInventory().getContents()) total += gemValue(s);
+        return total;
+    }
+
     /** Gems (only gems, as the vault holds) in a player's inventory plus the cursor. */
     public static int gemsHeld(Player player) {
         int total = 0;

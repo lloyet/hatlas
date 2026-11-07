@@ -65,7 +65,7 @@
 
   {"action": "console", "command": "op Tester2"},
   {"action": "wait_for", "condition": "player_state", "name": "Tester2", "op": true},
-  {"action": "command", "bot": "Tester2", "command": "hatlas economy history Tester1 10"},
+  {"action": "command", "bot": "Tester2", "command": "hatlas economy history Tester1 8"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Ruby ledger of Tester1 (8 latest):"},
   {"action": "assert_message", "bot": "Tester2", "contains": "BLOCK_BREAK +9 — → Tester1"},
   {"action": "assert_message", "bot": "Tester2", "contains": "MINE +1 — → Tester1"},
@@ -78,7 +78,7 @@
   {"action": "command", "bot": "Tester2", "command": "hatlas economy history LedgerFac"},
   {"action": "assert_message", "bot": "Tester2", "contains": "Ruby ledger of faction LedgerFac (2 latest):"},
   {"action": "command", "bot": "Tester2", "command": "hatlas economy supply"},
-  {"action": "assert_message", "bot": "Tester2", "contains": "Rubies created: "},
+  {"action": "assert_message", "bot": "Tester2", "contains": "Rubies emitted: "},
   {"action": "command", "bot": "Tester2", "command": "hatlas economy history NobodyAtAll"},
   {"action": "assert_message", "bot": "Tester2", "contains": "No faction or known player named NobodyAtAll."},
 

@@ -6,7 +6,7 @@
   {"action": "assert_message", "bot": "Tester4", "contains": "Ruby ledger of Tester4 (1 latest):"},
   {"action": "assert_message", "bot": "Tester4", "contains": "ADMIN_GIVE +3 — → Tester4"},
   {"action": "command", "bot": "Tester4", "command": "hatlas economy supply"},
-  {"action": "assert_message", "bot": "Tester4", "contains": "Rubies created: "},
+  {"action": "assert_message", "bot": "Tester4", "contains": "Rubies emitted: "},
   {"action": "console", "command": "deop Tester4"},
   {"action": "console", "command": "clear Tester4"},
   {"action": "despawn", "bot": "Tester4"}

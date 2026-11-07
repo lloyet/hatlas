@@ -73,11 +73,12 @@ final class LedgerTable {
     static long[] totals(Connection c) throws SQLException {
         try (java.sql.Statement st = c.createStatement();
              java.sql.ResultSet rs = st.executeQuery("SELECT "
-                     + "COALESCE(SUM(CASE WHEN sender_type IS NULL THEN amount ELSE 0 END), 0), "
-                     + "COALESCE(SUM(CASE WHEN receiver_type IS NULL THEN amount ELSE 0 END), 0), "
+                     + "COALESCE(SUM(CASE WHEN kind IN ('MINE', 'ADMIN_GIVE', 'UNTRACKED_PICKUP') THEN amount ELSE 0 END), 0), "
+                     + "COALESCE(SUM(CASE WHEN kind IN ('SHOP_BUY', 'LOST') THEN amount ELSE 0 END), 0), "
+                     + "COALESCE(SUM(CASE WHEN kind = 'BLOCK_PLACE' THEN amount WHEN kind = 'BLOCK_BREAK' THEN -amount ELSE 0 END), 0), "
                      + "COUNT(*) FROM ruby_ledger")) {
             rs.next();
-            return new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3)};
+            return new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4)};
         }
     }
 
