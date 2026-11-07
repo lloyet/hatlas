@@ -1,8 +1,9 @@
 package org.minecraft.atlas.storage;
 
 /**
- * Persistence backend (the adapter). Implementations: {@code YamlDataStore} (legacy
- * *-data.yml files) and {@code SqlDataStore} (SQLite, PostgreSQL through {@code SqlDialect}).
+ * Persistence backend (the adapter). Runtime backend: {@code SqlDataStore} (SQLite or
+ * PostgreSQL through {@code SqlDialect}). {@code YamlDataStore} only reads the legacy
+ * *-data.yml files for the one-time import into a fresh database.
  *
  * <p>Contract:
  * <ul>

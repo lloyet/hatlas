@@ -51,10 +51,7 @@ public final class ItemBytes {
         return bytes == null || bytes.length == 0 ? null : ItemStack.deserializeBytes(bytes);
     }
 
-    public static String toBase64(byte[] bytes) {
-        return bytes == null ? null : Base64.getEncoder().encodeToString(bytes);
-    }
-
+    /** Decodes the {@code *_b64} items of the legacy *-data.yml files (import only). */
     public static byte[] fromBase64(String s) {
         if (s == null || s.isEmpty()) return null;
         try {

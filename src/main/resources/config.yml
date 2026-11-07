@@ -4,11 +4,12 @@
 # Where runtime data is stored (factions, crystals, jobs, donjons, homes, shops, …).
 # Tuning stays in the .yml files; only runtime data goes here. Changing the type needs a restart.
 storage:
-  # yaml       = legacy *-data.yml files in this folder
   # sqlite     = one database file (recommended for a single server)
   # postgresql = external server (needed to share data with other servers or a website)
-  # On the first start with a database, existing *-data.yml files are imported once and
-  # renamed to *.yml.migrated (kept as backup).
+  # Choose once: there is no migration between sqlite and postgresql. /atlas storage export
+  # writes a full backup to a portable SQLite file in backups/.
+  # Legacy *-data.yml files (old yaml storage, no longer supported) are imported once on the
+  # first start and renamed to *.yml.migrated (kept as backup).
   type: sqlite
   # Every domain is saved at this interval, in addition to saves right after important actions.
   autosave_minutes: 5
