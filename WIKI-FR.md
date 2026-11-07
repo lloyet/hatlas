@@ -304,6 +304,14 @@ Les admins peuvent régler les chances de chaque zone : une mine donnée peut do
 - Le minerai de rubis donne **1 gemme de rubis**.
 - Il faut une **pioche en fer, en diamant ou en netherite**. Avec tout autre outil, le minerai se casse et ne donne **rien**.
 
+### Blocs de rubis
+
+- **9 gemmes de rubis = 1 bloc de rubis** (et inversement) dans une table de craft.
+- Un bloc de rubis ne peut être **posé que dans un claim de votre propre faction**. Partout ailleurs (terres libres, claim d'une autre faction), la pose est refusée avec « Ruby blocks can only be placed in your faction's claim! ». La même règle s'applique aux objets minerai de rubis.
+- Un bloc de rubis posé appartient à **votre faction**. Cassez-le avec une **pioche en fer, en diamant ou en netherite** pour récupérer le bloc. Avec tout autre outil, il se casse et ne donne **rien** : ses 9 rubis sont perdus.
+- Une explosion (TNT, creeper) fait tomber le bloc au sol, où n'importe qui peut le ramasser. Les pillards peuvent ainsi prendre vos blocs de rubis, ou avec une Pioche du Pillard.
+- Les blocs de rubis ne vont ni dans les coffres ni dans le coffre de faction (gemmes uniquement) : gardez-les dans votre inventaire ou posez-les dans votre claim.
+
 ### Zones de minerai dans les zones sûres
 
 Une zone de minerai peut se trouver dans une zone sûre, comme la mine de la ville. Vous pouvez quand même la miner, mais tout le reste reste protégé. Voir [Miner dans une zone sûre](#miner-dans-une-zone-sûre).

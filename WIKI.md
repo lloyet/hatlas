@@ -297,6 +297,14 @@ Admins can tune the chances of each zone, so a given mine may differ from this t
 - Ruby ore drops **1 ruby gem**.
 - You need an **iron, diamond or netherite pickaxe**. With any other tool the ore breaks and drops **nothing**.
 
+### Ruby blocks
+
+- **9 ruby gems = 1 ruby block** (and back) in a crafting table.
+- A ruby block can only be **placed inside a claim of your own faction**. Anywhere else (wilderness, another faction's claim) the placement is refused with "Ruby blocks can only be placed in your faction's claim!". The same rule applies to ruby ore items.
+- A placed ruby block belongs to **your faction**. Break it with an **iron, diamond or netherite pickaxe** to get the block back. With any other tool it breaks and drops **nothing**: its 9 rubies are lost.
+- An explosion (TNT, creeper) drops the block on the ground, where anyone can pick it up. Raiders can take your ruby blocks this way, or with a Raider's Pickaxe.
+- Ruby blocks cannot go in chests or in the faction vault (gems only): keep them in your inventory or place them in your claim.
+
 ### Ore zones in safe zones
 
 An ore zone can sit inside a safe zone, like the city mine. You can still mine it there, but everything else stays protected. See [Mining inside a safe zone](#mining-inside-a-safe-zone).
