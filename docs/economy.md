@@ -17,7 +17,7 @@ append-only: rows are never changed or deleted.
 | `SHOP_BUY` | faction → — | Paid to a job shop: rubies leave the economy (the main sink). `ref = shop:<name>/<tier>/<item>`. |
 | `AUCTION_BUY` | faction → faction | Paid to the seller's faction. `ref = listing:<id>`. |
 | `PICKUP` | owner → player | Someone picked up rubies another party dropped. `ref` = why they were dropped: `DROP` (thrown), `DEATH`, `COMBAT_LOG`, `PROTECTION_BREAK`, `DISBAND` (crystal losses), `AUCTION_OVERFLOW`, `MINE`, `BLOCK_BREAK`, `ADMIN_GIVE`. |
-| `LOST` | owner → — | Dropped rubies disappeared. `ref` = cause: `DESPAWN`, `PLUGIN` (item clear), `DEATH` (lava, fire, cactus, explosion), `OUT_OF_WORLD`… |
+| `LOST` | owner → — | Dropped rubies disappeared. `ref` = cause: `DESPAWN`, `PLUGIN` (item clear), `DEATH` (lava, fire, cactus, explosion), `OUT_OF_WORLD`…; `DISBAND` = gems still in the vault when the owner disbands the faction (`/f disband` deletes them; a crystal loss drops them instead). |
 | `UNTRACKED_PICKUP` | — → player | Rubies of unknown origin picked up. Should not happen; a row means a leak to fix. |
 
 — = outside the economy: a row without a sender **creates** rubies, a row without a receiver
@@ -33,7 +33,7 @@ Rubies cannot move any other way: they are refused in every container except the
 crafting grids, including the trade window (`RubyRestrictionListener`).
 
 ### Not tracked
-- Creative mode (creative menu, pick block): admins only.
+- Creative mode (creative menu, pick block) and vanilla `/clear`: admins only.
 - A crash loses the rows of the last second (they are written every second and at shutdown),
   like the other data written between saves.
 

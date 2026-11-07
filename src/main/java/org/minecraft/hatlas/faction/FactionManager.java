@@ -46,6 +46,16 @@ public class FactionManager {
         Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
     }
 
+    /**
+     * Ruby ledger: gems still in the vault when a faction is deleted disappear with it (a crystal
+     * loss drops them first, so the vault is empty then).
+     */
+    private static void recordVaultLoss(Faction faction) {
+        int gems = FactionVault.countGems(faction);
+        org.minecraft.hatlas.economy.RubyLedger.record(org.minecraft.hatlas.economy.LedgerKind.LOST, gems,
+                org.minecraft.hatlas.economy.Party.faction(faction), null, null, "DISBAND", null);
+    }
+
     /** Deletes a faction. Only the owner can do this. */
     public static boolean deleteFaction(UUID requesterUUID) {
         String factionName = playerFaction.get(requesterUUID);
@@ -53,6 +63,7 @@ public class FactionManager {
         Faction faction = factions.get(factionName);
         if (!faction.getOwner().equals(requesterUUID)) return false;
         List<UUID> formerMembers = getFactionPlayers(factionName);
+        recordVaultLoss(faction);
         HatlasCrystalManager.removeAllForFaction(factionName);
         FactionClaimManager.removeAllClaims(factionName);
         faction.getMembers().forEach(uuid -> {
@@ -320,6 +331,7 @@ public class FactionManager {
         Faction faction = factions.get(factionName);
         if (faction == null) return;
         List<UUID> formerMembers = getFactionPlayers(factionName);
+        recordVaultLoss(faction);
         HatlasCrystalManager.removeAllForFaction(factionName);
         FactionClaimManager.removeAllClaims(factionName);
         faction.getMembers().forEach(uuid -> {

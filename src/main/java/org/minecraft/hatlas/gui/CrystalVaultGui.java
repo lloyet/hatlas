@@ -46,6 +46,8 @@ public class CrystalVaultGui implements HatlasGui {
 
     private final String factionName;
     private final Set<UUID> viewers = new HashSet<>();
+    /** Players whose vault move is already being measured this tick (one check per player per tick). */
+    private final Set<UUID> measuring = new HashSet<>();
     private final Inventory inventory;
 
     private CrystalVaultGui(Faction faction) {
@@ -163,11 +165,15 @@ public class CrystalVaultGui implements HatlasGui {
      * Ruby ledger: compares the vault and the player's gems before the click and one tick
      * later (after the server applied it). Gems the vault gained and the player lost are a
      * deposit, the opposite a withdrawal; anything else (a cancelled click, a throw) is ignored.
+     * Several clicks in the same tick share one measurement (the first click's "before"),
+     * otherwise each would record the combined change.
      */
     private void trackMove(Player player) {
+        if (!measuring.add(player.getUniqueId())) return;
         int vaultBefore = vaultGems();
         int heldBefore = org.minecraft.hatlas.economy.RubyLedger.gemsHeld(player);
         org.bukkit.Bukkit.getScheduler().runTask(Hatlas.instance, () -> {
+            measuring.remove(player.getUniqueId());
             Faction faction = FactionManager.getFaction(factionName);
             if (faction == null || !player.isOnline()) return;
             int dv = vaultGems() - vaultBefore;
