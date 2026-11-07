@@ -1,5 +1,7 @@
 # Atlas — Player Wiki
 
+> **Current update: Ruby Ruins** — rubies (the faction currency), amethyst gear, ore zones, the auction house and job shops.
+
 ## Summary
 
 | Section | Description |
@@ -367,7 +369,7 @@ Action-bar notifications announce when you enter combat and when the timer expir
 
 ## Safe Zones
 
-Safe Zones are admin-defined areas (e.g. spawn, the new **Rubis Ruins** zone teased for the next content update) that are protected from PvP and territorial actions. Players entering one are recorded in their visit history and can teleport back later.
+Safe Zones are admin-defined areas (e.g. spawn) that are protected from PvP and territorial actions. Players entering one are recorded in their visit history and can teleport back later.
 
 ```
 /safezone tp <name>     — teleport to a safe zone you have already visited (op-bypassable countdown)

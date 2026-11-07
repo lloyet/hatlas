@@ -1,5 +1,7 @@
 # Atlas — Wiki Joueur
 
+> **Mise à jour actuelle : Ruby Ruins** — les rubis (la monnaie des factions), l'équipement en améthyste, les zones de minerai, l'hôtel des ventes et les boutiques de métier.
+
 ## Sommaire
 
 | Section | Description |
@@ -374,7 +376,7 @@ Des notifications en barre d'action signalent l'entrée en combat et l'expiratio
 
 ## Zones Sûres
 
-Les Zones Sûres sont des aires définies par les administrateurs (par exemple le spawn, ainsi que la nouvelle zone **Rubis Ruins** prévue pour la prochaine mise à jour) protégées contre le PvP et les actions territoriales. Les joueurs entrant dans une zone sûre voient leur visite enregistrée et peuvent s'y téléporter plus tard.
+Les Zones Sûres sont des aires définies par les administrateurs (par exemple le spawn) protégées contre le PvP et les actions territoriales. Les joueurs entrant dans une zone sûre voient leur visite enregistrée et peuvent s'y téléporter plus tard.
 
 ```
 /safezone tp <nom>     — se téléporter vers une zone sûre déjà visitée (compte à rebours, contournable par op)
