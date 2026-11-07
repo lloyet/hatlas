@@ -8,6 +8,7 @@
 |---|---|
 | [Faction](#faction) | Créer et gérer une faction : niveaux, points de compétence, cristal, claims, alliés |
 | [Métier](#métier) | Choisir une profession (après avoir rejoint une faction), faire des quêtes quotidiennes |
+| [Zones de Minerai](#zones-de-minerai) | Mines qui se remplissent de minerais aléatoires toutes les heures : la principale source de rubis |
 | [Boutiques de métier](#boutiques-de-métier) | Acheter équipement et fournitures aux PNJ de métier avec les rubis de votre faction |
 | [Équipement en améthyste](#équipement-en-améthyste) | Fabriquer armes, outils et armure en améthyste, 15 % plus puissants que la netherite |
 | [Donjon](#donjon) | Raider des donjons par vagues, vaincre un boss, partager le butin, gagner des récompenses spéciales |
@@ -188,7 +189,7 @@ Seul le propriétaire peut promouvoir ou rétrograder. `/faction promote` fait m
 
 ### Qu'est-ce qu'un Métier ?
 
-Chaque joueur peut exercer l'un des quatre métiers disponibles. Votre métier détermine les quêtes quotidiennes que vous recevez et la façon dont vous contribuez à l'XP de votre faction.
+Chaque joueur peut exercer l'un des cinq métiers disponibles : Mineur, Bûcheron, Chasseur, Fermier et Alchimiste. Votre métier détermine les quêtes quotidiennes que vous recevez et la façon dont vous contribuez à l'XP de votre faction.
 
 > **Vous devez rejoindre une faction (via le PNJ de faction) avant de pouvoir prendre un métier.** Les métiers requièrent une faction d'origine pour que l'XP gagnée ait une destination.
 
@@ -261,6 +262,50 @@ La progression des quêtes Jokeyrini est affichée dans la barre d'action avec l
 ### Commandes de Métier
 
 Interagissez directement avec les PNJ de métier pour accéder à l'interface du métier. Il n'y a pas de commandes de chat pour la gestion des quêtes quotidiennes — tout se fait via l'interface en jeu.
+
+---
+
+## Zones de Minerai
+
+### Qu'est-ce qu'une zone de minerai ?
+
+Une zone de minerai est une mine installée par les admins. À intervalle régulier, **chaque bloc** de la zone est remplacé par un bloc tiré au hasard : de la pierre ou un minerai. Videz-la, revenez après le remplissage, et elle est de nouveau pleine. C'est dans les zones de minerai que vous trouvez le **minerai de rubis**, la source de la monnaie du serveur.
+
+### Remplissage
+
+Par défaut, chaque zone de minerai se remplit **toutes les heures** (réglable par les admins). Toute la zone est reconstruite d'un coup, y compris les endroits déjà minés.
+
+### Qu'est-ce qu'on y trouve ?
+
+Avec les réglages par défaut, chaque bloc d'une nouvelle zone est tiré ainsi :
+
+| Bloc | Chance |
+|---|---|
+| Pierre | 75 % |
+| Minerai de charbon | 9,3 % |
+| Minerai de fer | 6,6 % |
+| Minerai de cuivre | 5,3 % |
+| Minerai d'or | 2,1 % |
+| Minerai de diamant | 0,8 % |
+| Minerai d'émeraude | 0,5 % |
+| **Minerai de rubis** | 0,4 % |
+
+Les admins peuvent régler les chances de chaque zone : une mine donnée peut donc différer de ce tableau.
+
+### Miner le minerai de rubis
+
+- Le minerai de rubis donne **1 gemme de rubis**.
+- Il faut une **pioche en fer, en diamant ou en netherite**. Avec tout autre outil, le minerai se casse et ne donne **rien**.
+
+### Zones de minerai dans les zones sûres
+
+Une zone de minerai peut se trouver dans une zone sûre, comme la mine de la ville. Vous pouvez quand même la miner, mais tout le reste reste protégé. Voir [Miner dans une zone sûre](#miner-dans-une-zone-sûre).
+
+### De la mine à la boutique
+
+1. Minez du minerai de rubis dans une zone de minerai et ramassez les gemmes.
+2. Déposez les gemmes dans le [coffre à rubis de votre faction](#coffre-à-rubis-de-la-faction) (Cristal d'Atlas → Faction Vault).
+3. Votre faction les dépense dans les [boutiques de métier](#boutiques-de-métier) et à l'hôtel des ventes.
 
 ---
 

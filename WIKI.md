@@ -8,6 +8,7 @@
 |---|---|
 | [Faction](#faction) | Create and manage a faction: levels, skill points, crystal, claims, allies |
 | [Job](#job) | Choose a profession (after joining a faction), complete daily quests, earn faction XP |
+| [Ore Zones](#ore-zones) | Mines that refill with random ores every hour: the main source of rubies |
 | [Job Shops](#job-shops) | Buy gear and supplies from job NPCs with your faction's rubies |
 | [Amethyst Gear](#amethyst-gear) | Craft amethyst weapons, tools and armor, 15% stronger than netherite |
 | [Dungeon](#dungeon) | Raid wave-based dungeons, fight a boss, share loot, earn special rewards |
@@ -181,7 +182,7 @@ Only the owner can promote or demote. `/faction promote` moves a player up one s
 
 ### What is a Job?
 
-Each player can hold one of four jobs. Your job determines which daily quests you receive and how you contribute to your faction's XP.
+Each player can hold one of five jobs: Miner, Lumberjack, Hunter, Farmer and Alchemist. Your job determines which daily quests you receive and how you contribute to your faction's XP.
 
 > **You must join a faction (via the faction NPC) before you can take a job.** Jobs require a faction-of-origin so that earned XP has somewhere to go.
 
@@ -254,6 +255,50 @@ Progress on Jokeyrini quests is tracked via the action bar with the `[Jokeyrini]
 ### Job Commands
 
 Interact directly with the job NPCs to access the job GUI. There are no chat commands for daily quest management — everything is done through the in-game interface.
+
+---
+
+## Ore Zones
+
+### What is an Ore Zone?
+
+An ore zone is a mine set up by the admins. On a timer, **every block** of the zone is replaced by a random block: stone or an ore. Mine it out, come back after the refill, and it is full again. Ore zones are the place to find **ruby ore**, the source of the server's currency.
+
+### Refill
+
+By default, every ore zone refills **every hour** (admins can change this). The whole zone is rebuilt at once, including the spots you already mined.
+
+### What can you find?
+
+With the default settings, each block of a new zone rolls:
+
+| Block | Chance |
+|---|---|
+| Stone | 75% |
+| Coal ore | 9.3% |
+| Iron ore | 6.6% |
+| Copper ore | 5.3% |
+| Gold ore | 2.1% |
+| Diamond ore | 0.8% |
+| Emerald ore | 0.5% |
+| **Ruby ore** | 0.4% |
+
+Admins can tune the chances of each zone, so a given mine may differ from this table.
+
+### Mining ruby ore
+
+- Ruby ore drops **1 ruby gem**.
+- You need an **iron, diamond or netherite pickaxe**. With any other tool the ore breaks and drops **nothing**.
+
+### Ore zones in safe zones
+
+An ore zone can sit inside a safe zone, like the city mine. You can still mine it there, but everything else stays protected. See [Mining inside a safe zone](#mining-inside-a-safe-zone).
+
+### From the mine to the shop
+
+1. Mine ruby ore in an ore zone and collect the gems.
+2. Deposit the gems in your [faction vault](#faction-vault-rubies) (Atlas Crystal → Faction Vault).
+3. Your faction spends them in the [job shops](#job-shops) and on the auction house.
 
 ---
 
