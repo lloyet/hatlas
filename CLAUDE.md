@@ -281,6 +281,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 8. Typo `maxActiveDonjonons` in `DonjonManager`.
 9. ~~`FactionClaimManager.saveClaims/loadClaims` are legacy~~ — **removed 2026-11-06**: claims are persisted per crystal (CRYSTALS domain, `crystal_claims`).
 10. ~~**Orphan crystals keep claims**~~ — **fixed 2026-11-06**: `FactionManager.persist()` saves factions + crystals right after create/delete/disband; `loadCrystalData` drops crystals of unknown factions (WARN log + file rewrite); `restore()` removes orphan crystal entities when their chunk loads.
+11. **Crystals in chunks already loaded at enable are never restored** (found 2026-11-06, PR #22 tests): `FactionListener.onEntitiesLoad` only sees chunks whose entities load after the listener is registered. A force-loaded chunk's crystal stays a stub (and an orphan entity stays in the world) until the chunk unloads and reloads. Fix proposed: after registering listeners in `Atlas.onEnable`, run the same check on every `EnderCrystal` already loaded in each world.
 
 ---
 
