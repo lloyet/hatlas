@@ -1,0 +1,12 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "gamemode survival Tester1"},
+  {"action": "console", "command": "forceload add 1000 1000"},
+  {"action": "console", "command": "execute in minecraft:overworld positioned 1000 0 1000 positioned over motion_blocking_no_leaves run tp Tester1 ~ ~ ~"},
+  {"action": "wait_for", "condition": "player_near", "name": "Tester1", "x": 1000, "y": 100, "z": 1000, "distance": 120},
+  {"action": "command", "bot": "Tester1", "command": "f create PR22Fac"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "created successfully"},
+  {"action": "command", "bot": "Tester1", "command": "sethome base"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Home 'base' set"},
+  {"action": "despawn", "bot": "Tester1"}
+]

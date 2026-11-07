@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -185,8 +188,7 @@ public class OreZoneCommand {
     }
 
     private static void save() {
-        OreZoneManager.save(Atlas.orezonesDataConfig);
-        Atlas.saveOrezonesDataConfig();
+        Storage.save(DataDomain.OREZONES);
     }
 
     private static Component entry(String sub, String args, String desc) {

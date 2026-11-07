@@ -299,7 +299,7 @@ public class QuestManager {
                     }
                 }
 
-                TaskTemplate.ExpMultiplier expMult = parseExpMultiplier(tMap.get("exp_multiplier"));
+                TaskTemplate.ExpMultiplier expMult = parseExpMultiplier(expMultiplierSection(tMap));
 
                 taskTemplates.computeIfAbsent(job, k -> new ArrayList<>())
                         .add(new TaskTemplate(id, name, desc, job, action, targets, baseRewards, expMult));
@@ -317,6 +317,15 @@ public class QuestManager {
     private static int mapInt(Map<?, ?> map, String key, int def) {
         Object v = map.get(key);
         return v instanceof Number n ? n.intValue() : def;
+    }
+
+    /**
+     * Returns a task's per-difficulty exp multiplier section. jobs.yml uses
+     * {@code multiplier_exp}; the legacy {@code exp_multiplier} key is still accepted.
+     */
+    public static Object expMultiplierSection(Map<?, ?> taskMap) {
+        Object raw = taskMap.get("multiplier_exp");
+        return raw != null ? raw : taskMap.get("exp_multiplier");
     }
 
     public static TaskTemplate.ExpMultiplier parseExpMultiplier(Object raw) {

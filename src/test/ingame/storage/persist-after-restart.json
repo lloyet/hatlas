@@ -1,0 +1,17 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "f info PR22Fac"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Claims: 1 / 1"},
+  {"action": "command", "bot": "Tester1", "command": "crystal list"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "main"},
+  {"action": "console", "command": "execute positioned 1000 67 1000 if entity @e[type=end_crystal,distance=..4]"},
+  {"action": "command", "bot": "Tester1", "command": "delhome base"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "base"},
+  {"action": "command", "bot": "Tester1", "command": "f disband"},
+  {"action": "wait_for", "condition": "inventory_open", "name": "Tester1", "title": "Confirm Disband"},
+  {"action": "click_slot", "bot": "Tester1", "slot": 0, "click": "left"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Your faction has been disbanded"},
+  {"action": "console", "command": "execute positioned 1000 67 1000 unless entity @e[type=end_crystal,distance=..4]"},
+  {"action": "console", "command": "forceload remove 1000 1000"},
+  {"action": "despawn", "bot": "Tester1"}
+]

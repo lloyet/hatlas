@@ -12,8 +12,8 @@ import java.util.UUID;
 
 /**
  * A job shop: a named NPC selling a rotating selection of items from two weighted pools
- * (common and rare). Pools come from {@code shops.yml}; the current selection is runtime
- * state persisted to {@code shops-data.yml}.
+ * (common and rare). Shops, pools and the current selection are persisted through
+ * {@code Storage} (domain SHOPS).
  */
 public class Shop {
 

@@ -1,0 +1,10 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "execute in minecraft:overworld run tp Tester1 1003 67 1000"},
+  {"action": "wait_for", "condition": "player_near", "name": "Tester1", "x": 1003, "y": 67, "z": 1000, "distance": 3},
+  {"action": "look_at", "bot": "Tester1", "x": 1000.5, "y": 68.5, "z": 1000.5},
+  {"action": "use_entity", "bot": "Tester1", "x": 1000.5, "y": 68, "z": 1000.5},
+  {"action": "wait_for", "condition": "inventory_open", "name": "Tester1"},
+  {"action": "close_menu", "bot": "Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]

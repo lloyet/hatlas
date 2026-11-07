@@ -20,3 +20,6 @@ hs_err_pid*
 
 # Common working directory
 run
+
+# Local secrets (RCON password, DB password)
+.env

@@ -11,6 +11,7 @@ import org.jspecify.annotations.NonNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
 import org.minecraft.atlas.combat.CombatLogManager;
 import org.minecraft.atlas.command.RandomTeleportCommand;
 import org.minecraft.atlas.command.HomeCommand;
@@ -68,6 +69,19 @@ import org.minecraft.atlas.orezone.OreZoneManager;
 import org.minecraft.atlas.command.ShopCommand;
 import org.minecraft.atlas.listener.ShopNpcListener;
 import org.minecraft.atlas.shop.ShopManager;
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.DataSet;
+import org.minecraft.atlas.storage.Storage;
+import org.minecraft.atlas.storage.StorageException;
+import org.minecraft.atlas.storage.StorageSettings;
+import org.minecraft.atlas.storage.model.CrystalsData;
+import org.minecraft.atlas.storage.model.DonjonsData;
+import org.minecraft.atlas.storage.model.FactionsData;
+import org.minecraft.atlas.storage.model.HomesData;
+import org.minecraft.atlas.storage.model.JobsData;
+import org.minecraft.atlas.storage.model.MiscData;
+import org.minecraft.atlas.storage.model.SafeZonesData;
+import org.minecraft.atlas.storage.model.ShopsData;
 import org.minecraft.atlas.util.AfkManager;
 import org.minecraft.atlas.util.ItemClearManager;
 import org.minecraft.atlas.util.NpcLookHelper;
@@ -81,6 +95,7 @@ public final class Atlas extends JavaPlugin {
 
     public static Atlas instance;
 
+    // Tuning files (shipped in resources). Runtime data goes through Storage.
     public static YamlConfiguration factionsConfig;
     public static File factionsFile;
 
@@ -99,47 +114,14 @@ public final class Atlas extends JavaPlugin {
     public static YamlConfiguration combatsConfig;
     public static File combatsFile;
 
-    public static YamlConfiguration tagsDataConfig;
-    public static File tagsDataFile;
-
-    public static YamlConfiguration factionsDataConfig;
-    public static File factionsDataFile;
-
-    public static YamlConfiguration donjonsDataConfig;
-    public static File donjonsDataFile;
-
-    public static YamlConfiguration jobsDataConfig;
-    public static File jobsDataFile;
-
-    public static YamlConfiguration homesDataConfig;
-    public static File homesDataFile;
-
-    public static YamlConfiguration safezonesDataConfig;
-    public static File safezonesDataFile;
-
-    public static YamlConfiguration combatsDataConfig;
-    public static File combatsDataFile;
-
-    public static YamlConfiguration blocksDataConfig;
-    public static File blocksDataFile;
-
     public static YamlConfiguration auctionsConfig;
     public static File auctionsFile;
-
-    public static YamlConfiguration auctionsDataConfig;
-    public static File auctionsDataFile;
 
     public static YamlConfiguration orezonesConfig;
     public static File orezonesFile;
 
-    public static YamlConfiguration orezonesDataConfig;
-    public static File orezonesDataFile;
-
     public static YamlConfiguration shopsConfig;
     public static File shopsFile;
-
-    public static YamlConfiguration shopsDataConfig;
-    public static File shopsDataFile;
 
     @Override
     public void onEnable() {
@@ -149,95 +131,35 @@ public final class Atlas extends JavaPlugin {
         // lifecycle (load/init/terminate) — we only register our listener against it.
         PacketEvents.getAPI().getEventManager().registerListener(new LocatorBarListener());
 
-        // config.yml — tpa, spawn/random teleport, AFK, death-teleport cooldown
+        // config.yml — storage, tpa, random teleport, AFK, death-teleport cooldown, resource pack.
+        // copyDefaults adds new sections (e.g. storage) to an existing config.yml.
         saveDefaultConfig();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
         FileConfiguration configFile = getConfig();
 
-        // factions.yml — factions, claims, upgrades
-        factionsFile = new File(getDataFolder(), "factions.yml");
-        if (!factionsFile.exists()) saveResource("factions.yml", false);
-        factionsConfig = YamlConfiguration.loadConfiguration(factionsFile);
-
-        // donjons.yml — donjon system, instances, type configs
-        donjonsFile = new File(getDataFolder(), "donjons.yml");
-        if (!donjonsFile.exists()) saveResource("donjons.yml", false);
-        donjonsConfig = YamlConfiguration.loadConfiguration(donjonsFile);
-
-        // jobs.yml — quests, jokeyrini, job runtime data
-        jobsFile = new File(getDataFolder(), "jobs.yml");
-        if (!jobsFile.exists()) saveResource("jobs.yml", false);
-        jobsConfig = YamlConfiguration.loadConfiguration(jobsFile);
-
-        // homes.yml — /home and /sethome teleport settings
-        homesFile = new File(getDataFolder(), "homes.yml");
-        if (!homesFile.exists()) saveResource("homes.yml", false);
-        homesConfig = YamlConfiguration.loadConfiguration(homesFile);
-
-        // safezones.yml — safe-zone teleport settings
+        factionsConfig  = loadTuning("factions.yml");
+        donjonsConfig   = loadTuning("donjons.yml");
+        jobsConfig      = loadTuning("jobs.yml");
+        homesConfig     = loadTuning("homes.yml");
+        safezonesConfig = loadTuning("safezones.yml");
+        combatsConfig   = loadTuning("combats.yml");
+        auctionsConfig  = loadTuning("auctions.yml");
+        orezonesConfig  = loadTuning("orezones.yml");
+        shopsConfig     = loadTuning("shops.yml");
+        factionsFile  = new File(getDataFolder(), "factions.yml");
+        donjonsFile   = new File(getDataFolder(), "donjons.yml");
+        jobsFile      = new File(getDataFolder(), "jobs.yml");
+        homesFile     = new File(getDataFolder(), "homes.yml");
         safezonesFile = new File(getDataFolder(), "safezones.yml");
-        if (!safezonesFile.exists()) saveResource("safezones.yml", false);
-        safezonesConfig = YamlConfiguration.loadConfiguration(safezonesFile);
+        combatsFile   = new File(getDataFolder(), "combats.yml");
+        auctionsFile  = new File(getDataFolder(), "auctions.yml");
+        orezonesFile  = new File(getDataFolder(), "orezones.yml");
+        shopsFile     = new File(getDataFolder(), "shops.yml");
 
-        // combats.yml — anti-disconnect combat-log settings
-        combatsFile = new File(getDataFolder(), "combats.yml");
-        if (!combatsFile.exists()) saveResource("combats.yml", false);
-        combatsConfig = YamlConfiguration.loadConfiguration(combatsFile);
-
-        // tags-data.yml — in-world text display tags (runtime-only, not in resources)
-        tagsDataFile = new File(getDataFolder(), "tags-data.yml");
-        tagsDataConfig = YamlConfiguration.loadConfiguration(tagsDataFile);
-
-        // Data files (runtime-only, not shipped in resources)
-        factionsDataFile = new File(getDataFolder(), "factions-data.yml");
-        factionsDataConfig = YamlConfiguration.loadConfiguration(factionsDataFile);
-
-        donjonsDataFile = new File(getDataFolder(), "donjons-data.yml");
-        donjonsDataConfig = YamlConfiguration.loadConfiguration(donjonsDataFile);
-
-        jobsDataFile = new File(getDataFolder(), "jobs-data.yml");
-        jobsDataConfig = YamlConfiguration.loadConfiguration(jobsDataFile);
-
-        homesDataFile = new File(getDataFolder(), "homes-data.yml");
-        homesDataConfig = YamlConfiguration.loadConfiguration(homesDataFile);
-
-        safezonesDataFile = new File(getDataFolder(), "safezones-data.yml");
-        safezonesDataConfig = YamlConfiguration.loadConfiguration(safezonesDataFile);
-
-        combatsDataFile = new File(getDataFolder(), "combats-data.yml");
-        combatsDataConfig = YamlConfiguration.loadConfiguration(combatsDataFile);
-
-        blocksDataFile = new File(getDataFolder(), "blocks-data.yml");
-        blocksDataConfig = YamlConfiguration.loadConfiguration(blocksDataFile);
-
-        // auctions.yml — auction-system tuning (max listings per player, …)
-        auctionsFile = new File(getDataFolder(), "auctions.yml");
-        if (!auctionsFile.exists()) saveResource("auctions.yml", false);
-        auctionsConfig = YamlConfiguration.loadConfiguration(auctionsFile);
-
-        auctionsDataFile = new File(getDataFolder(), "auctions-data.yml");
-        auctionsDataConfig = YamlConfiguration.loadConfiguration(auctionsDataFile);
-
-        // orezones.yml — ore-zone refill tuning (defaults, interval)
-        orezonesFile = new File(getDataFolder(), "orezones.yml");
-        if (!orezonesFile.exists()) saveResource("orezones.yml", false);
-        orezonesConfig = YamlConfiguration.loadConfiguration(orezonesFile);
-
-        orezonesDataFile = new File(getDataFolder(), "orezones-data.yml");
-        orezonesDataConfig = YamlConfiguration.loadConfiguration(orezonesDataFile);
-
-        // shops.yml — job shops (tuning, per-job default pools, shops + NPCs); edited by /shop
-        shopsFile = new File(getDataFolder(), "shops.yml");
-        if (!shopsFile.exists()) saveResource("shops.yml", false);
-        shopsConfig = YamlConfiguration.loadConfiguration(shopsFile);
-
-        shopsDataFile = new File(getDataFolder(), "shops-data.yml");
-        shopsDataConfig = YamlConfiguration.loadConfiguration(shopsDataFile);
-
-        // Load from config / data files
+        // Tuning
         AtlasCrystalManager.loadConfig(factionsConfig);
-        SafeZoneManager.loadConfig(safezonesDataConfig);
         SafeZoneTeleportManager.loadConfig(safezonesConfig);
-        SpawnManager.loadConfig(configFile);
         RandomTeleportManager.loadConfig(configFile);
         HomeManager.loadConfig(homesConfig);
         HomeTeleportManager.loadConfig(factionsConfig);
@@ -245,25 +167,15 @@ public final class Atlas extends JavaPlugin {
         AfkManager.loadConfig(configFile);
         DeathTeleportCooldownManager.loadConfig(configFile);
         CombatLogManager.loadConfig(combatsConfig);
-        CombatLogManager.loadCombatData(combatsDataConfig);
-
-        // Load from factions.yml (config) and factions-data.yml (data)
         FactionLevelManager.loadUpgrades(factionsConfig);
-        FactionManager.loadFactions(factionsDataConfig);
-        // Crystals own their claims; loadCrystalHomes also rebuilds FactionClaimManager's
-        // runtime cache by calling claimChunk() for each per-crystal claim.
-        AtlasCrystalManager.loadCrystalData(factionsDataConfig);
-
-        // Load from jobs.yml (config) and jobs-data.yml (data)
         QuestManager.loadQuestConfig(jobsConfig);
-        JobManager.loadJobData(jobsDataConfig);
         JokeyriniManager.loadJokeyriniConfig(jobsConfig);
-        JokeyriniManager.loadJokeyriniData(jobsDataConfig);
-
-        // Load from donjons.yml (config) and donjons-data.yml (data)
         DonjonManager.loadConfig(donjonsConfig);
-        DonjonManager.loadDonjons(donjonsDataConfig);
         SmugglerManager.loadConfig(donjonsConfig);
+        AuctionManager.loadConfig(auctionsConfig);
+        OreZoneManager.loadConfig(orezonesConfig);
+        ShopManager.loadConfig(shopsConfig);
+        ResourcePackManager.loadConfig(configFile);
 
         ElectricalCreeperManager.init();
         SmugglerManager.init();
@@ -273,18 +185,50 @@ public final class Atlas extends JavaPlugin {
         AmethystItem.init();
         AmethystItem.registerRecipes();
         RubyBlockManager.init();
-        RubyBlockManager.loadConfig(blocksDataConfig);
-        AuctionManager.loadConfig(auctionsConfig);
-        AuctionManager.loadData(auctionsDataConfig);
-        OreZoneManager.loadConfig(orezonesConfig);
-        OreZoneManager.load(orezonesDataConfig);
-        ShopManager.loadConfig(shopsConfig);
-        ShopManager.loadData(shopsDataConfig);
-        ShopManager.spawnMissingNpcs();
-        ResourcePackManager.loadConfig(configFile);
         TagManager.init();
-        TagManager.loadTags(tagsDataConfig);
-        HomeManager.loadHomes(homesDataConfig);
+
+        // Runtime data (YAML, SQLite or PostgreSQL — see config.yml > storage)
+        DataSet data;
+        try {
+            data = Storage.start(this, StorageSettings.from(configFile, getDataFolder()));
+        } catch (StorageException e) {
+            getLogger().log(Level.SEVERE, "Storage unavailable — Atlas is disabled to protect the data: "
+                    + e.getMessage(), e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        registerSnapshots();
+
+        // Restore order matters: factions before crystals (orphan check) and auctions
+        // (faction fallback); config before donjons/shops/ore zones/blocks.
+        FactionManager.restore(data.get(DataDomain.FACTIONS, FactionsData.class));
+        if (AtlasCrystalManager.restoreData(data.get(DataDomain.CRYSTALS, CrystalsData.class)) > 0) {
+            Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
+        }
+        JobManager.restore(data.get(DataDomain.JOBS, JobsData.class));
+        DonjonManager.restore(data.get(DataDomain.DONJONS, DonjonsData.class));
+        HomeManager.restore(data.get(DataDomain.HOMES, HomesData.class));
+        SafeZoneManager.restore(data.get(DataDomain.SAFEZONES, SafeZonesData.class));
+        CombatLogManager.restore(data.get(DataDomain.COMBAT, MiscData.CombatData.class));
+        RubyBlockManager.restore(data.get(DataDomain.BLOCKS, MiscData.BlocksData.class));
+        AuctionManager.restore(data.get(DataDomain.AUCTIONS, MiscData.AuctionsData.class));
+        OreZoneManager.restore(data.get(DataDomain.OREZONES, MiscData.OreZonesData.class));
+        TagManager.restore(data.get(DataDomain.TAGS, MiscData.TagsData.class));
+        SpawnManager.restore(data.get(DataDomain.SPAWN, MiscData.SpawnData.class));
+        if (ShopManager.restore(data.get(DataDomain.SHOPS, ShopsData.class), shopsConfig)) {
+            // Shops were imported from the old shops.yml layout: store them, then drop the
+            // section so they are not imported again.
+            Storage.save(DataDomain.SHOPS);
+            shopsConfig.set("shops", null);
+            try {
+                shopsConfig.save(shopsFile);
+            } catch (IOException e) {
+                getLogger().warning("Could not remove the imported 'shops' section from shops.yml: " + e.getMessage());
+            }
+        }
+        // Every manager now holds its data: writes are safe from here on.
+        Storage.markReady();
+        ShopManager.spawnMissingNpcs();
 
         // Register all listeners
         getServer().getPluginManager().registerEvents(new ChatListener(), this);
@@ -307,6 +251,8 @@ public final class Atlas extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new org.minecraft.atlas.listener.CombatLogListener(), this);
         getServer().getPluginManager().registerEvents(new ResourcePackManager(), this);
         ResourcePackManager.sendToAll();
+        // Force-loaded chunks loaded their entities before FactionListener existed.
+        AtlasCrystalManager.restoreLoadedEntities();
 
         // Schedulers
         GolemListener.schedule(this);
@@ -351,153 +297,38 @@ public final class Atlas extends JavaPlugin {
         getLogger().info("Atlas enabled.");
     }
 
+    /** Each domain's snapshot supplier, used by Storage for saves, autosave and shutdown. */
+    private static void registerSnapshots() {
+        Storage.register(DataDomain.FACTIONS, FactionManager::snapshot);
+        Storage.register(DataDomain.CRYSTALS, AtlasCrystalManager::snapshot);
+        Storage.register(DataDomain.JOBS, JobManager::snapshot);
+        Storage.register(DataDomain.DONJONS, DonjonManager::snapshot);
+        Storage.register(DataDomain.HOMES, HomeManager::snapshot);
+        Storage.register(DataDomain.SAFEZONES, SafeZoneManager::snapshot);
+        Storage.register(DataDomain.COMBAT, CombatLogManager::snapshot);
+        Storage.register(DataDomain.BLOCKS, RubyBlockManager::snapshot);
+        Storage.register(DataDomain.AUCTIONS, AuctionManager::snapshot);
+        Storage.register(DataDomain.OREZONES, OreZoneManager::snapshot);
+        Storage.register(DataDomain.SHOPS, ShopManager::snapshot);
+        Storage.register(DataDomain.TAGS, TagManager::snapshot);
+        Storage.register(DataDomain.SPAWN, SpawnManager::snapshot);
+    }
+
+    /** Loads a tuning file, copying the default from the jar on first start. */
+    private YamlConfiguration loadTuning(String name) {
+        File file = new File(getDataFolder(), name);
+        if (!file.exists()) saveResource(name, false);
+        return YamlConfiguration.loadConfiguration(file);
+    }
+
     @Override
     public void onDisable() {
         // Mark shutdown first so any incoming PlayerQuitEvent does not trigger the
-        // combat-log kill — state will be persisted to combats-data.yml below.
+        // combat-log kill — the combat timers are persisted below.
         CombatLogManager.setShuttingDown(true);
-
-        FileConfiguration configFile = getConfig();
-
-        // Save to config.yml
-        SpawnManager.saveSpawn(configFile);
-        saveConfig();
-
-        // Save to homes-data.yml
-        HomeManager.saveHomes(homesDataConfig);
-        saveHomesDataConfig();
-
-        // Save to safezones-data.yml
-        SafeZoneManager.saveConfig(safezonesDataConfig);
-        saveSafezonesDataConfig();
-
-        // Save to tags-data.yml
-        TagManager.saveTags(tagsDataConfig);
-        saveTagsDataConfig();
-
-        // Save to factions-data.yml
-        FactionManager.saveFactions(factionsDataConfig);
-        // Per-crystal claims are persisted as part of saveCrystalHomes (the "crystals" section).
-        AtlasCrystalManager.saveCrystalData(factionsDataConfig);
-        saveFactionsDataConfig();
-
-        // Save to jobs-data.yml
-        JobManager.saveJobData(jobsDataConfig);
-        JokeyriniManager.saveJokeyriniData(jobsDataConfig);
-        saveJobsDataConfig();
-
-        // Save to donjons-data.yml
-        DonjonManager.saveDonjonData(donjonsDataConfig);
-        saveDonjonsDataConfig();
-
-        // Save to combats-data.yml
-        CombatLogManager.saveCombatData(combatsDataConfig);
-        saveCombatsDataConfig();
-
-        // Save to blocks-data.yml
-        RubyBlockManager.saveConfig(blocksDataConfig);
-        saveBlocksDataConfig();
-
-        // Save to auctions-data.yml
-        AuctionManager.saveData(auctionsDataConfig);
-        saveAuctionsDataConfig();
-
-        // Save to orezones-data.yml
-        OreZoneManager.save(orezonesDataConfig);
-        saveOrezonesDataConfig();
-
-        // Save to shops-data.yml
-        ShopManager.saveData(shopsDataConfig);
-        saveShopsDataConfig();
-
+        // Waits for pending async saves, then writes every domain synchronously.
+        // Does nothing if the data was never loaded (failed startup), so stored data is safe.
+        Storage.shutdown();
         getLogger().info("Atlas disabled.");
-    }
-
-    public static void saveCombatsDataConfig() {
-        try {
-            combatsDataConfig.save(combatsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save combats-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveBlocksDataConfig() {
-        try {
-            blocksDataConfig.save(blocksDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save blocks-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveAuctionsDataConfig() {
-        try {
-            auctionsDataConfig.save(auctionsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save auctions-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveShopsDataConfig() {
-        try {
-            shopsDataConfig.save(shopsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save shops-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveOrezonesDataConfig() {
-        try {
-            orezonesDataConfig.save(orezonesDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save orezones-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveTagsDataConfig() {
-        try {
-            tagsDataConfig.save(tagsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save tags-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveDonjonsDataConfig() {
-        try {
-            donjonsDataConfig.save(donjonsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save donjons-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveFactionsDataConfig() {
-        try {
-            factionsDataConfig.save(factionsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save factions-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveJobsDataConfig() {
-        try {
-            jobsDataConfig.save(jobsDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save jobs-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveHomesDataConfig() {
-        try {
-            homesDataConfig.save(homesDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save homes-data.yml: " + e.getMessage());
-        }
-    }
-
-    public static void saveSafezonesDataConfig() {
-        try {
-            safezonesDataConfig.save(safezonesDataFile);
-        } catch (IOException e) {
-            instance.getLogger().severe("Could not save safezones-data.yml: " + e.getMessage());
-        }
     }
 }

@@ -12,7 +12,9 @@ import org.minecraft.atlas.Atlas;
 import org.minecraft.atlas.donjon.DonjonKey;
 import org.minecraft.atlas.quest.ActiveQuest;
 import org.minecraft.atlas.quest.GeneratedTask;
+import org.minecraft.atlas.quest.QuestCodec;
 import org.minecraft.atlas.quest.QuestManager;
+import org.minecraft.atlas.storage.model.JobsData;
 import org.minecraft.atlas.quest.TaskTemplate;
 
 import java.util.ArrayList;
@@ -171,32 +173,19 @@ public class JokeyriniManager {
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
-    public static void saveJokeyriniData(FileConfiguration config) {
-        config.set("jokeyrini_player_data", null);
-        ConfigurationSection root = config.createSection("jokeyrini_player_data");
+    /** Per-player Jokeyrini state, for storage (part of the JOBS domain). Main thread only. */
+    public static List<JobsData.Jokeyrini> snapshot() {
         long now = System.currentTimeMillis();
-
+        List<JobsData.Jokeyrini> out = new ArrayList<>();
         for (UUID uuid : allTrackedPlayers()) {
-            ConfigurationSection s = root.createSection(uuid.toString());
-
             Long reset = dailyReset.get(uuid);
-            if (reset != null) s.set("last_daily_reset_ms", reset);
-
             List<GeneratedTask> offer = dailyOffer.get(uuid);
-            if (offer != null && !offer.isEmpty()) {
-                s.set("daily_offer", offer.stream().map(GeneratedTask::serialize).toList());
-            }
-
             ActiveQuest aq = activeQuests.get(uuid);
-            if (aq != null && aq.getExpiresAt() > now) {
-                Map<String, Object> qMap = new LinkedHashMap<>();
-                qMap.put("quest_id",      aq.getQuestId());
-                qMap.put("tasks",         aq.getTasks().stream().map(GeneratedTask::serialize).toList());
-                qMap.put("expires_at",    aq.getExpiresAt());
-                qMap.put("task_progress", new HashMap<>(aq.getTaskProgressMap()));
-                s.set("active_quest", qMap);
-            }
+            out.add(new JobsData.Jokeyrini(uuid, reset == null ? 0L : reset,
+                    offer == null ? List.of() : QuestCodec.toData(offer),
+                    aq != null && aq.getExpiresAt() > now ? QuestCodec.toData(aq) : null));
         }
+        return List.copyOf(out);
     }
 
     public static void loadJokeyriniConfig(FileConfiguration config) {
@@ -218,54 +207,20 @@ public class JokeyriniManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static void loadJokeyriniData(FileConfiguration config) {
+    /** Restores per-player Jokeyrini state; expired active quests are dropped. */
+    public static void restore(List<JobsData.Jokeyrini> data) {
         dailyReset.clear();
         dailyOffer.clear();
         activeQuests.clear();
-
-        ConfigurationSection playerSection = config.getConfigurationSection("jokeyrini_player_data");
-        if (playerSection == null) return;
-
         long now = System.currentTimeMillis();
-        for (String uuidStr : playerSection.getKeys(false)) {
-            UUID uuid;
-            try { uuid = UUID.fromString(uuidStr); }
-            catch (IllegalArgumentException e) { continue; }
-
-            ConfigurationSection s = playerSection.getConfigurationSection(uuidStr);
-            if (s == null) continue;
-
-            long reset = s.getLong("last_daily_reset_ms", 0);
-            if (reset > 0) dailyReset.put(uuid, reset);
-
-            List<?> offerRaw = s.getList("daily_offer");
-            if (offerRaw != null) {
-                List<GeneratedTask> tasks = deserializeTasks(offerRaw);
-                if (!tasks.isEmpty()) dailyOffer.put(uuid, tasks);
+        for (JobsData.Jokeyrini j : data) {
+            if (j.lastDailyReset() > 0) dailyReset.put(j.uuid(), j.lastDailyReset());
+            if (j.offer() != null && !j.offer().isEmpty()) {
+                List<GeneratedTask> tasks = QuestCodec.fromData(j.offer());
+                if (!tasks.isEmpty()) dailyOffer.put(j.uuid(), tasks);
             }
-
-            Object aqObj = s.get("active_quest");
-            if (aqObj instanceof Map<?, ?> qMap) {
-                String questId    = qMap.get("quest_id") != null ? qMap.get("quest_id").toString() : null;
-                Object expiresObj = qMap.get("expires_at");
-                if (questId != null && expiresObj != null) {
-                    long expiresAt = ((Number) expiresObj).longValue();
-                    if (expiresAt > now) {
-                        List<GeneratedTask> tasks = deserializeTasks(qMap.get("tasks"));
-                        if (!tasks.isEmpty()) {
-                            Map<String, Integer> progress = new HashMap<>();
-                            Object pObj = qMap.get("task_progress");
-                            if (pObj instanceof Map<?, ?> pMap) {
-                                for (Map.Entry<?, ?> e : pMap.entrySet())
-                                    if (e.getValue() instanceof Number n)
-                                        progress.put(e.getKey().toString(), n.intValue());
-                            }
-                            activeQuests.put(uuid, new ActiveQuest(questId, tasks, expiresAt, progress));
-                        }
-                    }
-                }
-            }
+            ActiveQuest aq = QuestCodec.fromData(j.active(), now);
+            if (aq != null) activeQuests.put(j.uuid(), aq);
         }
     }
 
@@ -301,20 +256,8 @@ public class JokeyriniManager {
                 if (mat != null) rewards.add(new ItemStack(mat, 1));
             }
         }
-        TaskTemplate.ExpMultiplier expMult = QuestManager.parseExpMultiplier(tMap.get("exp_multiplier"));
+        TaskTemplate.ExpMultiplier expMult = QuestManager.parseExpMultiplier(QuestManager.expMultiplierSection(tMap));
         return new TaskTemplate(id, name, desc, Job.JOKEYRINI, action, targets, rewards, expMult);
-    }
-
-    private static List<GeneratedTask> deserializeTasks(Object raw) {
-        List<GeneratedTask> result = new ArrayList<>();
-        if (!(raw instanceof List<?> list)) return result;
-        for (Object item : list) {
-            if (item instanceof Map<?, ?> m) {
-                GeneratedTask gt = GeneratedTask.deserialize(m);
-                if (gt != null) result.add(gt);
-            }
-        }
-        return result;
     }
 
     private static String str(Map<?, ?> map, String key) {

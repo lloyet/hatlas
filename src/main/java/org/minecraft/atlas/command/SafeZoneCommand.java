@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -274,8 +277,7 @@ public class SafeZoneCommand {
     }
 
     private static void save() {
-        SafeZoneManager.saveConfig(Atlas.safezonesDataConfig);
-        Atlas.saveSafezonesDataConfig();
+        Storage.save(DataDomain.SAFEZONES);
     }
 
     private static int usage(net.kyori.adventure.audience.Audience audience, String syntax) {

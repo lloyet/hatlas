@@ -38,7 +38,7 @@ items_per_shop:
 # Default pools per job
 # ------------------------------------------------------------
 # Copied into a new shop by /shop create <name> <job>. Editing these afterwards does
-# NOT change existing shops — edit the shop's own section under `shops:` instead.
+# NOT change existing shops (they live in the database, see config.yml > storage).
 job_defaults:
 
   MINER:
@@ -304,8 +304,12 @@ job_defaults:
 # ------------------------------------------------------------
 # Shops
 # ------------------------------------------------------------
-# Managed with /shop create | delete | additem, but can be edited by hand (then restart).
-# A hand-written shop with an `npc` location but no `uuid` gets its NPC spawned on startup.
+# Shops are stored with the rest of the runtime data (config.yml > storage) and managed
+# with /shop create | delete | additem.
+#
+# IMPORT ONLY: a shop written here by hand is imported into storage at the next start
+# (if no shop with that name exists yet), then this section is emptied. A shop with an
+# `npc` location but no `uuid` gets its NPC spawned on startup.
 #
 # shops:
 #   miner_shop:

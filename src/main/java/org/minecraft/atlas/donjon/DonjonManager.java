@@ -1,5 +1,8 @@
 package org.minecraft.atlas.donjon;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -27,6 +30,9 @@ import org.minecraft.atlas.faction.Faction;
 import org.minecraft.atlas.faction.FactionManager;
 import org.minecraft.atlas.donjon.ElectricalCreeperManager;
 import org.minecraft.atlas.donjon.RaiderPickaxe;
+import org.minecraft.atlas.storage.model.BlockPos;
+import org.minecraft.atlas.storage.model.DonjonsData;
+import org.minecraft.atlas.storage.model.LocationData;
 import org.minecraft.atlas.util.TitleUtil;
 
 import java.util.*;
@@ -183,181 +189,77 @@ public class DonjonManager {
     // Persistence
     // -------------------------------------------------------------------------
 
-    public static void saveDonjonData(FileConfiguration config) {
-        config.set("last_activation_time", lastActivationTime);
-        config.set("instances", null);
+    /**
+     * Stored donjons that could not be rebuilt (world not loaded, type removed from
+     * donjons.yml). Kept verbatim and written back so they are not lost from storage.
+     */
+    private static final List<DonjonsData.DonjonRow> unresolvedDonjons = new ArrayList<>();
 
-        // Persist which players have visited which donjons (needed for Smuggler NPC teleport)
-        config.set("visited_donjons", null);
-        if (!playerVisitedDonjons.isEmpty()) {
-            ConfigurationSection visitedSection = config.createSection("visited_donjons");
-            for (Map.Entry<UUID, Set<String>> entry : playerVisitedDonjons.entrySet()) {
-                if (!entry.getValue().isEmpty()) {
-                    visitedSection.set(entry.getKey().toString(), new ArrayList<>(entry.getValue()));
-                }
-            }
-        }
-
-        if (donjons.isEmpty()) return;
-
-        ConfigurationSection instances = config.createSection("instances");
+    /** Donjons, visits and the activation timer, for storage. Main thread only. */
+    public static DonjonsData snapshot() {
+        List<DonjonsData.DonjonRow> rows = new ArrayList<>();
         for (Donjon d : donjons.values()) {
-            ConfigurationSection s = instances.createSection(d.getId());
-            s.set("type",             d.getType());
-            s.set("name",             d.getName());
-            s.set("level",            d.getLevel());
-            s.set("rarity",           d.getRarity().name());
-            s.set("status",           d.getStatus().name());
-            s.set("activation_time",  d.getActivationTime());
-            s.set("timeout_warned",   d.isTimeoutWarned());
-
-            s.set("world", d.getWorld().getName());
-
+            String world = d.getWorld().getName();
+            Map<Integer, BlockPos> spawns = new TreeMap<>();
+            d.getSpawnPointsById().forEach((id, p) ->
+                    spawns.put(id, new BlockPos(world, p.getBlockX(), p.getBlockY(), p.getBlockZ())));
             Location nt = d.getNametagLocation();
-            if (nt != null) {
-                s.set("nametag_x", nt.getBlockX());
-                s.set("nametag_y", nt.getBlockY());
-                s.set("nametag_z", nt.getBlockZ());
-            }
-
-            Map<Integer, Location> spawnById = d.getSpawnPointsById();
-            if (!spawnById.isEmpty()) {
-                List<String> encoded = new ArrayList<>();
-                for (Map.Entry<Integer, Location> e : spawnById.entrySet()) {
-                    Location pt = e.getValue();
-                    encoded.add(e.getKey() + "," + pt.getBlockX() + "," + pt.getBlockY() + "," + pt.getBlockZ());
-                }
-                s.set("spawn_points", encoded);
-            }
-
-            Set<Long> protectedKeys = d.getProtectedChunkKeys();
-            if (!protectedKeys.isEmpty()) {
-                List<String> chunkList = new ArrayList<>();
-                for (long key : protectedKeys) chunkList.add(String.valueOf(key));
-                s.set("protected_chunks", chunkList);
-            }
-
-            if (d.getTextDisplayUUID() != null) {
-                s.set("text_display_uuid", d.getTextDisplayUUID().toString());
-            }
-
             Location vl = d.getVaultLocation();
-            if (vl != null) {
-                s.set("vault_x", vl.getBlockX());
-                s.set("vault_y", vl.getBlockY());
-                s.set("vault_z", vl.getBlockZ());
-            }
-
-            Location ts = d.getTeleportSpawn();
-            if (ts != null) {
-                s.set("teleport_spawn_x",     ts.getX());
-                s.set("teleport_spawn_y",     ts.getY());
-                s.set("teleport_spawn_z",     ts.getZ());
-                s.set("teleport_spawn_yaw",   (double) ts.getYaw());
-                s.set("teleport_spawn_pitch", (double) ts.getPitch());
-            }
+            rows.add(new DonjonsData.DonjonRow(d.getId(), d.getType(), d.getName(), d.getLevel(),
+                    d.getRarity().name(), d.getStatus().name(), d.getActivationTime(), d.isTimeoutWarned(), world,
+                    nt == null ? null : new BlockPos(world, nt.getBlockX(), nt.getBlockY(), nt.getBlockZ()),
+                    vl == null ? null : new BlockPos(world, vl.getBlockX(), vl.getBlockY(), vl.getBlockZ()),
+                    LocationData.of(d.getTeleportSpawn()), d.getTextDisplayUUID(),
+                    Map.copyOf(spawns), List.copyOf(d.getProtectedChunkKeys())));
         }
+        for (DonjonsData.DonjonRow raw : unresolvedDonjons) {
+            if (!donjons.containsKey(raw.id())) rows.add(raw);
+        }
+        Map<UUID, Set<String>> visits = new HashMap<>();
+        playerVisitedDonjons.forEach((u, ids) -> {
+            if (!ids.isEmpty()) visits.put(u, Set.copyOf(ids));
+        });
+        return new DonjonsData(List.copyOf(rows), Map.copyOf(visits), lastActivationTime);
     }
 
-    public static void loadDonjons(FileConfiguration config) {
+    /** Rebuilds donjons from storage. Call after {@link #loadConfig} (needs the type configs). */
+    public static void restore(DonjonsData data) {
         donjons.clear();
         playerVisitedDonjons.clear();
-        lastActivationTime = config.getLong("last_activation_time", 0);
+        unresolvedDonjons.clear();
+        lastActivationTime = data.lastActivation();
+        data.visits().forEach((u, ids) -> {
+            if (!ids.isEmpty()) playerVisitedDonjons.put(u, new HashSet<>(ids));
+        });
 
-        ConfigurationSection visitedSection = config.getConfigurationSection("visited_donjons");
-        if (visitedSection != null) {
-            for (String uuidStr : visitedSection.getKeys(false)) {
-                try {
-                    UUID uuid = UUID.fromString(uuidStr);
-                    List<String> ids = visitedSection.getStringList(uuidStr);
-                    if (!ids.isEmpty()) {
-                        playerVisitedDonjons.put(uuid, new HashSet<>(ids));
-                    }
-                } catch (IllegalArgumentException ignored) {}
+        for (DonjonsData.DonjonRow row : data.donjons()) {
+            World world = Bukkit.getWorld(row.world());
+            if (world == null || row.type() == null || !typeConfigMap.containsKey(row.type())) {
+                unresolvedDonjons.add(row);
+                Atlas.instance.getLogger().warning("Donjon '" + row.id() + "' kept in storage but not loaded "
+                        + "(world '" + row.world() + "' or type '" + row.type() + "' unavailable).");
+                continue;
             }
-        }
-
-        ConfigurationSection instances = config.getConfigurationSection("instances");
-        if (instances == null) return;
-
-        for (String id : instances.getKeys(false)) {
-            ConfigurationSection s = instances.getConfigurationSection(id);
-            if (s == null) continue;
-
-            String type = s.getString("type", "");
-            if (type.isEmpty() || !typeConfigMap.containsKey(type)) continue;
-
-            String worldName = s.getString("world");
-            if (worldName == null) continue;
-            World world = Bukkit.getWorld(worldName);
-            if (world == null) continue;
-
-            Location nametagLoc = s.contains("nametag_x")
-                    ? new Location(world,
-                            s.getInt("nametag_x"), s.getInt("nametag_y"), s.getInt("nametag_z"))
-                    : null;
-
-            Location vaultLoc = s.contains("vault_x")
-                    ? new Location(world,
-                            s.getInt("vault_x"), s.getInt("vault_y"), s.getInt("vault_z"))
-                    : null;
-
-            Location teleportSpawnLoc = s.contains("teleport_spawn_x")
-                    ? new Location(world,
-                            s.getDouble("teleport_spawn_x"),
-                            s.getDouble("teleport_spawn_y"),
-                            s.getDouble("teleport_spawn_z"),
-                            (float) s.getDouble("teleport_spawn_yaw"),
-                            (float) s.getDouble("teleport_spawn_pitch"))
-                    : null;
-
-            List<String> protectedChunkStrs = s.getStringList("protected_chunks");
-
-            String name = s.getString("name", "Unknown");
-            int level = s.getInt("level", 0);
-            DonjonRarity rarity = parseEnum(DonjonRarity.class, s.getString("rarity"), DonjonRarity.COMMON);
-
-            Donjon donjon = new Donjon(id, name, type, world, level, rarity);
-            donjon.setStatus(parseEnum(DonjonStatus.class, s.getString("status"), DonjonStatus.IDLE));
-            donjon.setActivationTime(s.getLong("activation_time", 0));
-            donjon.setTimeoutWarned(s.getBoolean("timeout_warned", false));
-
-            if (nametagLoc != null) donjon.setNametagLocation(nametagLoc);
-            if (vaultLoc != null)   donjon.setVaultLocation(vaultLoc);
-            if (teleportSpawnLoc != null) donjon.setTeleportSpawn(teleportSpawnLoc);
-
-            List<String> spawnPtsRaw = s.getStringList("spawn_points");
-            for (String enc : spawnPtsRaw) {
-                String[] parts = enc.split(",");
-                try {
-                    if (parts.length == 4) {
-                        // New format: id,x,y,z
-                        int spawnId = Integer.parseInt(parts[0].trim());
-                        int sx = Integer.parseInt(parts[1].trim());
-                        int sy = Integer.parseInt(parts[2].trim());
-                        int sz = Integer.parseInt(parts[3].trim());
-                        donjon.putSpawnPoint(spawnId, new Location(world, sx + 0.5, sy, sz + 0.5));
-                    } else if (parts.length == 3) {
-                        // Legacy format: x,y,z — assign IDs sequentially
-                        int sx = Integer.parseInt(parts[0].trim());
-                        int sy = Integer.parseInt(parts[1].trim());
-                        int sz = Integer.parseInt(parts[2].trim());
-                        donjon.addSpawnPoint(new Location(world, sx + 0.5, sy, sz + 0.5));
-                    }
-                } catch (NumberFormatException ignored) {}
+            DonjonRarity rarity = parseEnum(DonjonRarity.class, row.rarity(), DonjonRarity.COMMON);
+            Donjon donjon = new Donjon(row.id(), row.name(), row.type(), world, row.level(), rarity);
+            donjon.setStatus(parseEnum(DonjonStatus.class, row.status(), DonjonStatus.IDLE));
+            donjon.setActivationTime(row.activationTime());
+            donjon.setTimeoutWarned(row.timeoutWarned());
+            if (row.nametag() != null) {
+                donjon.setNametagLocation(new Location(world, row.nametag().x(), row.nametag().y(), row.nametag().z()));
             }
-
-            String displayUUIDStr = s.getString("text_display_uuid");
-            if (displayUUIDStr != null) {
-                try { donjon.setTextDisplayUUID(UUID.fromString(displayUUIDStr)); }
-                catch (IllegalArgumentException ignored) {}
+            if (row.vault() != null) {
+                donjon.setVaultLocation(new Location(world, row.vault().x(), row.vault().y(), row.vault().z()));
             }
-
-            for (String keyStr : protectedChunkStrs) {
-                try { donjon.getProtectedChunkKeys().add(Long.parseLong(keyStr)); }
-                catch (NumberFormatException ignored) {}
+            if (row.teleportSpawn() != null) {
+                LocationData t = row.teleportSpawn();
+                donjon.setTeleportSpawn(new Location(world, t.x(), t.y(), t.z(), t.yaw(), t.pitch()));
             }
-            donjons.put(id, donjon);
+            row.spawnPoints().forEach((id, p) ->
+                    donjon.putSpawnPoint(id, new Location(world, p.x() + 0.5, p.y(), p.z() + 0.5)));
+            donjon.setTextDisplayUUID(row.textDisplay());
+            donjon.getProtectedChunkKeys().addAll(row.protectedChunks());
+            donjons.put(row.id(), donjon);
         }
     }
 
@@ -387,8 +289,7 @@ public class DonjonManager {
         if (!donjons.isEmpty() && (now - lastActivationTime) >= activationIntervalMs) {
             activateRandomDonjon();
             lastActivationTime = now;
-            Atlas.donjonsDataConfig.set("last_activation_time", lastActivationTime);
-            Atlas.saveDonjonsDataConfig();
+            Storage.save(DataDomain.DONJONS);
         }
 
         // Timeout checks
@@ -1341,8 +1242,7 @@ public class DonjonManager {
         donjons.put(id, donjon);
 
         Bukkit.getScheduler().runTaskLater(Atlas.instance, () -> {
-            saveDonjonData(Atlas.donjonsDataConfig);
-            Atlas.saveDonjonsDataConfig();
+            Storage.save(DataDomain.DONJONS);
         }, 20L);
 
         return donjon;

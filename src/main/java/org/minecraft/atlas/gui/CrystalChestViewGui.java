@@ -1,5 +1,8 @@
 package org.minecraft.atlas.gui;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -83,8 +86,7 @@ public class CrystalChestViewGui implements AtlasGui {
         AtlasCrystal crystal = AtlasCrystalManager.getCrystal(crystalEntityUUID);
         if (crystal != null) {
             crystal.setChestContents(chestIndex, event.getInventory().getContents().clone());
-            AtlasCrystalManager.saveCrystalData(Atlas.factionsDataConfig);
-            Atlas.saveFactionsDataConfig();
+            Storage.save(DataDomain.FACTIONS, DataDomain.CRYSTALS);
         }
 
         viewers.remove(uuid);

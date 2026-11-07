@@ -1,10 +1,12 @@
 package org.minecraft.atlas.auction;
 
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
-import org.minecraft.atlas.Atlas;
 import org.minecraft.atlas.faction.FactionManager;
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.ItemBytes;
+import org.minecraft.atlas.storage.Storage;
+import org.minecraft.atlas.storage.model.MiscData;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,8 +16,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * In-memory registry of all open auction listings, with YAML persistence to
- * {@code auctions-data.yml}. Listings have global scope (every player sees the market)
+ * In-memory registry of all open auction listings, persisted through {@code Storage}
+ * (domain AUCTIONS). Listings have global scope (every player sees the market)
  * and are keyed by their own UUID. Insertion order is preserved so paging stays stable.
  */
 public final class AuctionManager {
@@ -89,55 +91,39 @@ public final class AuctionManager {
         return Collections.unmodifiableList(new ArrayList<>(listings.values()));
     }
 
-    // ── Persistence (auctions-data.yml) ───────────────────────────────────────
+    // ── Persistence ───────────────────────────────────────────────────────────
 
-    /** Writes current state into the {@code listings} section of the data config. */
-    public static void saveData(FileConfiguration config) {
-        config.set("listings", null);
-        if (listings.isEmpty()) return;
-        ConfigurationSection root = config.createSection("listings");
+    public static MiscData.AuctionsData snapshot() {
+        List<MiscData.Listing> out = new ArrayList<>();
         for (AuctionListing l : listings.values()) {
-            ConfigurationSection s = root.createSection(l.id().toString());
-            s.set("seller", l.seller().toString());
-            if (!l.factionName().isEmpty()) s.set("faction", l.factionName());
-            s.set("item", l.item());
-            s.set("price", l.price());
-            if (!l.description().isEmpty()) s.set("description", l.description());
-            s.set("created_at", l.createdAtMs());
+            byte[] item = ItemBytes.fromItem(l.item());
+            if (item == null) continue;
+            out.add(new MiscData.Listing(l.id(), l.seller(), l.factionName(), item, l.price(),
+                    l.description(), l.createdAtMs()));
         }
+        return new MiscData.AuctionsData(List.copyOf(out));
     }
 
-    public static void loadData(FileConfiguration config) {
+    /** Call after FactionManager.restore (orphan listings fall back to the seller's faction). */
+    public static void restore(MiscData.AuctionsData data) {
         listings.clear();
-        ConfigurationSection root = config.getConfigurationSection("listings");
-        if (root == null) return;
-        for (String idStr : root.getKeys(false)) {
-            ConfigurationSection s = root.getConfigurationSection(idStr);
-            if (s == null) continue;
-            try {
-                UUID id = UUID.fromString(idStr);
-                UUID seller = UUID.fromString(s.getString("seller", ""));
-                ItemStack item = s.getItemStack("item");
-                if (item == null) continue;
-                int price = s.getInt("price", 0);
-                String description = s.getString("description", "");
-                long createdAt = s.getLong("created_at", System.currentTimeMillis());
-                // Migration: pre-faction-field listings fall back to the seller's CURRENT
-                // faction at load time. If none, the listing loads as orphan ("") — hidden
-                // from market, but still retrievable via /auction sales.
-                String factionName = s.getString("faction", "");
-                if (factionName.isEmpty()) {
-                    String currentFaction = FactionManager.getPlayerFaction(seller);
-                    if (currentFaction != null) factionName = currentFaction;
-                }
-                listings.put(id, new AuctionListing(id, seller, factionName, item, price,
-                        description, createdAt));
-            } catch (IllegalArgumentException ignored) {}
+        for (MiscData.Listing l : data.listings()) {
+            ItemStack item = ItemBytes.toItem(l.item());
+            if (item == null) continue;
+            // Migration: pre-faction-field listings fall back to the seller's CURRENT
+            // faction at load time. If none, the listing loads as orphan ("") — hidden
+            // from market, but still retrievable via /auction sales.
+            String factionName = l.faction() == null ? "" : l.faction();
+            if (factionName.isEmpty()) {
+                String currentFaction = FactionManager.getPlayerFaction(l.seller());
+                if (currentFaction != null) factionName = currentFaction;
+            }
+            listings.put(l.id(), new AuctionListing(l.id(), l.seller(), factionName, item, l.price(),
+                    l.description() == null ? "" : l.description(), l.createdAt()));
         }
     }
 
     private static void persist() {
-        saveData(Atlas.auctionsDataConfig);
-        Atlas.saveAuctionsDataConfig();
+        Storage.save(DataDomain.AUCTIONS);
     }
 }

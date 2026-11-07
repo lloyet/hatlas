@@ -33,7 +33,7 @@ XP pour atteindre le niveau 1  = 100
 XP pour atteindre le niveau N  = ceil(XP(N-1) × 1.09)
 ```
 
-Le niveau maximum d'une faction est **100**.
+Le niveau maximum d'une faction est **99**.
 
 L'XP est gagnée en complétant des quêtes de métier (système de quêtes quotidiennes) ou en terminant des donjons. Elle est ajoutée automatiquement au pool de la faction — aucune action manuelle n'est requise.
 

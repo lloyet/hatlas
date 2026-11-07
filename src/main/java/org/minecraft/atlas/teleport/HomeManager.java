@@ -5,16 +5,19 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.minecraft.atlas.Atlas;
 import org.minecraft.atlas.faction.Faction;
 import org.minecraft.atlas.faction.FactionManager;
+import org.minecraft.atlas.storage.model.HomesData;
+import org.minecraft.atlas.storage.model.LocationData;
 import org.minecraft.atlas.util.TitleUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -46,76 +49,36 @@ public class HomeManager {
     // Persistence
     // -------------------------------------------------------------------------
 
-    public static void loadHomes(FileConfiguration config) {
-        homes.clear();
-        ConfigurationSection sec = config.getConfigurationSection("player_homes");
-        if (sec == null) return;
+    /** Stored homes whose world is not loaded: kept verbatim and written back. */
+    private static final List<HomesData.Home> unresolvedHomes = new ArrayList<>();
 
-        for (String key : sec.getKeys(false)) {
-            UUID uuid;
-            try {
-                uuid = UUID.fromString(key);
-            } catch (IllegalArgumentException ignored) {
+    public static void restore(HomesData data) {
+        homes.clear();
+        unresolvedHomes.clear();
+        for (HomesData.Home h : data.homes()) {
+            Location loc = h.location() == null ? null : h.location().toLocation();
+            if (loc == null) {
+                if (h.location() != null) unresolvedHomes.add(h);
                 continue;
             }
-
-            ConfigurationSection playerSec = sec.getConfigurationSection(key);
-            if (playerSec == null) continue;
-
-            LinkedHashMap<String, Location> playerHomes = new LinkedHashMap<>();
-
-            if (playerSec.contains("world")) {
-                // Legacy single-home format: migrate transparently
-                Location loc = readLocation(playerSec);
-                if (loc != null) {
-                    String name = playerSec.getString("name", "home");
-                    playerHomes.put(name, loc);
-                }
-            } else {
-                // Current format: each sub-key is a named home
-                for (String homeName : playerSec.getKeys(false)) {
-                    ConfigurationSection hs = playerSec.getConfigurationSection(homeName);
-                    if (hs == null) continue;
-                    Location loc = readLocation(hs);
-                    if (loc != null) playerHomes.put(homeName, loc);
-                }
-            }
-
-            if (!playerHomes.isEmpty()) homes.put(uuid, playerHomes);
+            homes.computeIfAbsent(h.player(), k -> new LinkedHashMap<>()).put(h.name(), loc);
         }
     }
 
-    public static void saveHomes(FileConfiguration config) {
-        config.set("player_homes", null);
-        if (homes.isEmpty()) return;
-
-        ConfigurationSection sec = config.createSection("player_homes");
-        for (Map.Entry<UUID, LinkedHashMap<String, Location>> entry : homes.entrySet()) {
-            ConfigurationSection playerSec = sec.createSection(entry.getKey().toString());
-            for (Map.Entry<String, Location> homeEntry : entry.getValue().entrySet()) {
-                ConfigurationSection hs = playerSec.createSection(homeEntry.getKey());
-                writeLocation(hs, homeEntry.getValue());
+    /** Every home in insertion order, for storage. Main thread only. */
+    public static HomesData snapshot() {
+        List<HomesData.Home> out = new ArrayList<>();
+        for (Map.Entry<UUID, LinkedHashMap<String, Location>> e : homes.entrySet()) {
+            for (Map.Entry<String, Location> h : e.getValue().entrySet()) {
+                LocationData loc = LocationData.of(h.getValue());
+                if (loc != null) out.add(new HomesData.Home(e.getKey(), h.getKey(), loc));
             }
         }
-    }
-
-    private static Location readLocation(ConfigurationSection s) {
-        String worldName = s.getString("world");
-        if (worldName == null) return null;
-        World world = Bukkit.getWorld(worldName);
-        if (world == null) return null;
-        return new Location(world,
-                s.getDouble("x"), s.getDouble("y"), s.getDouble("z"),
-                (float) s.getDouble("yaw"), (float) s.getDouble("pitch"));
-    }
-
-    private static void writeLocation(ConfigurationSection s, Location loc) {
-        s.set("world", loc.getWorld().getName());
-        s.set("x", loc.getX());
-        s.set("y", loc.getY());
-        s.set("z", loc.getZ());
-        s.set("yaw", loc.getYaw());
-        s.set("pitch", loc.getPitch());
+        for (HomesData.Home h : unresolvedHomes) {
+            Map<String, Location> current = homes.get(h.player());
+            if (current == null || !current.containsKey(h.name())) out.add(h);
+        }
+        return new HomesData(List.copyOf(out));
     }
 
     // -------------------------------------------------------------------------

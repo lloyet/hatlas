@@ -3,12 +3,12 @@ package org.minecraft.atlas.job;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.NamespacedKey;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.minecraft.atlas.Atlas;
 import org.minecraft.atlas.quest.ActiveQuest;
 import org.minecraft.atlas.quest.GeneratedTask;
+import org.minecraft.atlas.quest.QuestCodec;
+import org.minecraft.atlas.storage.model.JobsData;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -125,155 +125,54 @@ public class JobManager {
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
-    public static void saveJobData(FileConfiguration config) {
-        config.set("job_cooldowns", null);
-        ConfigurationSection cdSection = config.createSection("job_cooldowns");
+    /** Jobs, quests, cooldowns and Jokeyrini data, for storage. Main thread only. */
+    public static JobsData snapshot() {
         long now = System.currentTimeMillis();
-        for (Map.Entry<UUID, Long> e : jobCooldowns.entrySet()) {
-            if (e.getValue() > now) cdSection.set(e.getKey().toString(), e.getValue());
+        Map<UUID, Long> cooldowns = new HashMap<>();
+        jobCooldowns.forEach((u, until) -> {
+            if (until > now) cooldowns.put(u, until);
+        });
+        List<JobsData.PlayerJob> players = new ArrayList<>();
+        for (Map.Entry<UUID, PlayerJobData> e : playerJobs.entrySet()) {
+            PlayerJobData d = e.getValue();
+            List<JobsData.Quest> active = new ArrayList<>();
+            for (ActiveQuest q : d.activeQuests) active.add(QuestCodec.toData(q));
+            List<JobsData.Quest> offered = new ArrayList<>();
+            d.dailyOfferedQuests.forEach((id, tasks) -> offered.add(new JobsData.Quest(id, 0L, QuestCodec.toData(tasks), Map.of())));
+            players.add(new JobsData.PlayerJob(e.getKey(), d.getJob().name(), d.getLevel(), d.getProgress(),
+                    d.lastDailyResetMs, List.copyOf(active), List.copyOf(offered), List.copyOf(d.dailySelectedIds)));
         }
-
-        config.set("jobs", null);
-        ConfigurationSection section = config.createSection("jobs");
-
-        for (Map.Entry<UUID, PlayerJobData> entry : playerJobs.entrySet()) {
-            ConfigurationSection s = section.createSection(entry.getKey().toString());
-            PlayerJobData data = entry.getValue();
-            s.set("job",      data.getJob().name());
-            s.set("level",    data.getLevel());
-            s.set("progress", data.getProgress());
-
-            // Active quests
-            List<Map<String, Object>> questList = new ArrayList<>();
-            for (ActiveQuest aq : data.activeQuests) {
-                Map<String, Object> qMap = new LinkedHashMap<>();
-                qMap.put("quest_id",      aq.getQuestId());
-                qMap.put("tasks",         aq.getTasks().stream().map(GeneratedTask::serialize).toList());
-                qMap.put("expires_at",    aq.getExpiresAt());
-                qMap.put("task_progress", new HashMap<>(aq.getTaskProgressMap()));
-                questList.add(qMap);
-            }
-            s.set("active_quests", questList);
-
-            s.set("last_daily_reset_ms", data.lastDailyResetMs);
-
-            // Daily offered quests
-            List<Map<String, Object>> offeredList = new ArrayList<>();
-            for (Map.Entry<String, List<GeneratedTask>> e : data.dailyOfferedQuests.entrySet()) {
-                Map<String, Object> oMap = new LinkedHashMap<>();
-                oMap.put("quest_id", e.getKey());
-                oMap.put("tasks", e.getValue().stream().map(GeneratedTask::serialize).toList());
-                offeredList.add(oMap);
-            }
-            s.set("daily_offered_quests", offeredList);
-            s.set("daily_selected", new ArrayList<>(data.dailySelectedIds));
-        }
+        return new JobsData(List.copyOf(players), Map.copyOf(cooldowns), JokeyriniManager.snapshot());
     }
 
-    public static void loadJobData(FileConfiguration config) {
+    /** Restores jobs and Jokeyrini data. Expired quests and cooldowns are dropped. */
+    public static void restore(JobsData data) {
         playerJobs.clear();
         jobCooldowns.clear();
-
-        ConfigurationSection cdSection = config.getConfigurationSection("job_cooldowns");
-        if (cdSection != null) {
-            long now = System.currentTimeMillis();
-            for (String uuidStr : cdSection.getKeys(false)) {
-                try {
-                    UUID uuid  = UUID.fromString(uuidStr);
-                    long until = cdSection.getLong(uuidStr);
-                    if (until > now) jobCooldowns.put(uuid, until);
-                } catch (IllegalArgumentException ignored) {}
-            }
-        }
-
-        // ── Load player data ───────────────────────────────────────────────────
-        ConfigurationSection playerSection = config.getConfigurationSection("jobs");
-        if (playerSection == null) return;
-
-        for (String uuidStr : playerSection.getKeys(false)) {
-            ConfigurationSection s = playerSection.getConfigurationSection(uuidStr);
-            if (s == null) continue;
-            String jobName = s.getString("job");
-            if (jobName == null) continue;
+        long now = System.currentTimeMillis();
+        data.cooldowns().forEach((u, until) -> {
+            if (until > now) jobCooldowns.put(u, until);
+        });
+        for (JobsData.PlayerJob p : data.players()) {
             Job job;
-            try { job = Job.valueOf(jobName); }
-            catch (IllegalArgumentException e) { continue; }
-
-            int level    = s.getInt("level", 1);
-            int progress = s.getInt("progress", 0);
-            UUID uuid;
-            try { uuid = UUID.fromString(uuidStr); }
-            catch (IllegalArgumentException e) { continue; }
-
-            PlayerJobData data = new PlayerJobData(job, level, progress);
-
-            // Active quests
-            List<?> aqList = s.getList("active_quests");
-            if (aqList != null) {
-                for (Object obj : aqList) {
-                    if (!(obj instanceof Map<?, ?> qMap)) continue;
-                    String questId    = mapStr(qMap, "quest_id");
-                    Object expiresObj = qMap.get("expires_at");
-                    if (questId == null || expiresObj == null) continue;
-                    long expiresAt = ((Number) expiresObj).longValue();
-                    if (expiresAt <= System.currentTimeMillis()) continue;
-
-                    List<GeneratedTask> tasks = deserializeTasks(qMap.get("tasks"));
-                    if (tasks.isEmpty()) continue;
-
-                    Map<String, Integer> taskProgress = new HashMap<>();
-                    Object progressObj = qMap.get("task_progress");
-                    if (progressObj instanceof Map<?, ?> pMap) {
-                        for (Map.Entry<?, ?> e : pMap.entrySet()) {
-                            if (e.getKey() != null && e.getValue() instanceof Number n) {
-                                taskProgress.put(e.getKey().toString(), n.intValue());
-                            }
-                        }
-                    }
-                    data.activeQuests.add(new ActiveQuest(questId, tasks, expiresAt, taskProgress));
-                }
+            try {
+                job = Job.valueOf(p.job());
+            } catch (IllegalArgumentException e) {
+                continue;
             }
-
-            data.lastDailyResetMs = s.getLong("last_daily_reset_ms", 0);
-
-            // Daily offered quests
-            List<?> offeredList = s.getList("daily_offered_quests");
-            if (offeredList != null) {
-                for (Object obj : offeredList) {
-                    if (!(obj instanceof Map<?, ?> oMap)) continue;
-                    String questId = mapStr(oMap, "quest_id");
-                    if (questId == null) continue;
-                    List<GeneratedTask> tasks = deserializeTasks(oMap.get("tasks"));
-                    if (!tasks.isEmpty()) data.dailyOfferedQuests.put(questId, tasks);
-                }
+            PlayerJobData d = new PlayerJobData(job, p.level(), p.progress());
+            for (JobsData.Quest q : p.active()) {
+                ActiveQuest aq = QuestCodec.fromData(q, now);
+                if (aq != null) d.activeQuests.add(aq);
             }
-
-            data.dailySelectedIds.addAll(s.getStringList("daily_selected"));
-            playerJobs.put(uuid, data);
+            d.lastDailyResetMs = p.lastDailyReset();
+            for (JobsData.Quest q : p.offered()) {
+                List<GeneratedTask> tasks = QuestCodec.fromData(q.tasks());
+                if (!tasks.isEmpty()) d.dailyOfferedQuests.put(q.questId(), tasks);
+            }
+            d.dailySelectedIds.addAll(p.selected());
+            playerJobs.put(p.uuid(), d);
         }
-    }
-
-    // ── Private helpers ────────────────────────────────────────────────────────
-
-    private static List<GeneratedTask> deserializeTasks(Object raw) {
-        List<GeneratedTask> result = new ArrayList<>();
-        if (!(raw instanceof List<?> list)) return result;
-        for (Object item : list) {
-            if (item instanceof Map<?, ?> m) {
-                GeneratedTask gt = GeneratedTask.deserialize(m);
-                if (gt != null) result.add(gt);
-            }
-        }
-        return result;
-    }
-
-    private static String mapStr(Map<?, ?> map, String key) {
-        Object v = map.get(key);
-        return v != null ? v.toString() : null;
-    }
-
-    private static int mapInt(Map<?, ?> map, String key, int def) {
-        Object v = map.get(key);
-        return v instanceof Number n ? n.intValue() : def;
+        JokeyriniManager.restore(data.jokeyrini());
     }
 }

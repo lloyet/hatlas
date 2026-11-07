@@ -95,35 +95,7 @@ public class FactionClaimManager {
             || chunks.contains(key(worldName, chunkX, chunkZ - 1));
     }
 
-    // ── Persistence ────────────────────────────────────────────────────────────
-
-    public static void saveClaims(FileConfiguration config) {
-        config.set("claims", null);
-        ConfigurationSection sec = config.createSection("claims");
-        for (Map.Entry<String, Set<String>> e : factionChunks.entrySet()) {
-            if (!e.getValue().isEmpty()) {
-                sec.set(e.getKey() + ".chunks", new ArrayList<>(e.getValue()));
-            }
-        }
-    }
-
-    public static void loadClaims(FileConfiguration config) {
-        claimedChunks.clear();
-        factionChunks.clear();
-
-        ConfigurationSection sec = config.getConfigurationSection("claims");
-        if (sec == null) return;
-
-        for (String factionName : sec.getKeys(false)) {
-            ConfigurationSection fs = sec.getConfigurationSection(factionName);
-            if (fs == null) continue;
-            List<String> chunks = fs.getStringList("chunks");
-            if (chunks.isEmpty()) continue;
-            Set<String> set = new LinkedHashSet<>(chunks);
-            factionChunks.put(factionName, set);
-            set.forEach(k -> claimedChunks.put(k, factionName));
-        }
-    }
+    // Claims are persisted per crystal (CRYSTALS domain); this class is only the runtime index.
 
     // ── Helper ─────────────────────────────────────────────────────────────────
 

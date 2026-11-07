@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -46,7 +49,7 @@ public class SpawnCommand {
                                 return Command.SINGLE_SUCCESS;
                             }
                             SpawnManager.setSpawn(player.getLocation());
-                            SpawnManager.saveSpawn(Atlas.instance.getConfig());
+                            Storage.save(DataDomain.SPAWN);
                             Atlas.instance.saveConfig();
                             player.sendMessage(success(
                                     "Server spawn set to your location ("

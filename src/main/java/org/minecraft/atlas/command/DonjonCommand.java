@@ -1,5 +1,8 @@
 package org.minecraft.atlas.command;
 
+import org.minecraft.atlas.storage.DataDomain;
+import org.minecraft.atlas.storage.Storage;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -130,8 +133,7 @@ public class DonjonCommand {
                                                         NamedTextColor.RED));
                                                 return Command.SINGLE_SUCCESS;
                                             }
-                                            DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                            Atlas.saveDonjonsDataConfig();
+                                            Storage.save(DataDomain.DONJONS);
                                             player.sendMessage(Component.text(
                                                     "Donjon created: [" + donjon.getId() + "] " + donjon.getName()
                                                             + " LvL." + donjon.getLevel()
@@ -247,8 +249,7 @@ public class DonjonCommand {
                                     }
 
                                     DonjonManager.activateDonjon(d);
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text("Donjon activated: " + d.getName(), NamedTextColor.GREEN));
 
@@ -277,8 +278,7 @@ public class DonjonCommand {
                                     }
 
                                     DonjonManager.setIdle(d, null);
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text("Donjon deactivated: " + d.getName(), NamedTextColor.GREEN));
 
@@ -301,8 +301,7 @@ public class DonjonCommand {
                                     }
 
                                     DonjonManager.setIdle(d, null);
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text("Donjon reset to idle: " + d.getName(), NamedTextColor.GREEN));
 
@@ -368,8 +367,7 @@ public class DonjonCommand {
 
                                     String name = d.getName();
                                     DonjonManager.deleteDonjon(id);
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(
                                             Component.text("Donjon deleted: " + name, NamedTextColor.GREEN));
 
@@ -406,8 +404,7 @@ public class DonjonCommand {
                                                     int difficulty = IntegerArgumentType.getInteger(ctx, "difficulty");
                                                     d.setLevel(difficulty);
                                                     DonjonManager.spawnOrUpdateNametag(d);
-                                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                                    Atlas.saveDonjonsDataConfig();
+                                                    Storage.save(DataDomain.DONJONS);
                                                     ctx.getSource().getSender().sendMessage(Component.text(
                                                             "Donjon " + d.getName() + " difficulty set to LvL." + difficulty + ".", NamedTextColor.GREEN));
                                                     return Command.SINGLE_SUCCESS;
@@ -435,8 +432,7 @@ public class DonjonCommand {
                                                     }
                                                     d.setRarity(rarity);
                                                     DonjonManager.spawnOrUpdateNametag(d);
-                                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                                    Atlas.saveDonjonsDataConfig();
+                                                    Storage.save(DataDomain.DONJONS);
                                                     ctx.getSource().getSender().sendMessage(Component.text(
                                                             "Donjon " + d.getName() + " rarity set to " + rarity.getDisplayName() + ".", NamedTextColor.GREEN));
                                                     return Command.SINGLE_SUCCESS;
@@ -465,8 +461,7 @@ public class DonjonCommand {
                                                 return Command.SINGLE_SUCCESS;
                                             }
                                             d.setTeleportSpawn(player.getLocation());
-                                            DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                            Atlas.saveDonjonsDataConfig();
+                                            Storage.save(DataDomain.DONJONS);
                                             player.sendMessage(Component.text("Teleport spawn set for donjon " + d.getName() + ".", NamedTextColor.GREEN));
                                             return Command.SINGLE_SUCCESS;
                                         })))
@@ -501,8 +496,7 @@ public class DonjonCommand {
                                             }
                                             d.setVaultLocation(target.getLocation());
                                             DonjonManager.spawnOrUpdateNametag(d);
-                                            DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                            Atlas.saveDonjonsDataConfig();
+                                            Storage.save(DataDomain.DONJONS);
                                             player.sendMessage(Component.text(
                                                     "Vault block set to " + target.getType().name()
                                                     + " at " + target.getX() + ", " + target.getY() + ", " + target.getZ()
@@ -560,8 +554,7 @@ public class DonjonCommand {
                                         player.sendMessage(Component.text("Cannot add chunk: donjon not found or wrong world.", NamedTextColor.RED));
                                         return Command.SINGLE_SUCCESS;
                                     }
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     player.sendMessage(Component.text(
                                             "Chunk [" + cx + ", " + cz + "] added to donjon " + d.getName() + " protected area.", NamedTextColor.GREEN));
                                     return Command.SINGLE_SUCCESS;
@@ -592,8 +585,7 @@ public class DonjonCommand {
                                                 NamedTextColor.YELLOW));
                                         return Command.SINGLE_SUCCESS;
                                     }
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     player.sendMessage(Component.text(
                                             "Chunk [" + cx + ", " + cz + "] removed from donjon " + d.getName() + " protected area.",
                                             NamedTextColor.GREEN));
@@ -618,8 +610,7 @@ public class DonjonCommand {
                                                 "Donjon " + d.getName() + " has no claimed chunks.", NamedTextColor.YELLOW));
                                         return Command.SINGLE_SUCCESS;
                                     }
-                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                    Atlas.saveDonjonsDataConfig();
+                                    Storage.save(DataDomain.DONJONS);
                                     ctx.getSource().getSender().sendMessage(Component.text(
                                             "Removed " + removed + " claimed chunk(s) from donjon " + d.getName() + ".",
                                             NamedTextColor.GREEN));
@@ -665,8 +656,7 @@ public class DonjonCommand {
                                                 return Command.SINGLE_SUCCESS;
                                             }
                                             int spawnId = d.addSpawnPoint(player.getLocation());
-                                            DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                            Atlas.saveDonjonsDataConfig();
+                                            Storage.save(DataDomain.DONJONS);
                                             player.sendMessage(Component.text(
                                                     "Wave spawn point #" + spawnId + " added to donjon " + d.getName() + ".", NamedTextColor.GREEN));
                                             return Command.SINGLE_SUCCESS;
@@ -721,8 +711,7 @@ public class DonjonCommand {
                                                                 "No spawn point with ID #" + spawnId + " found.", NamedTextColor.RED));
                                                         return Command.SINGLE_SUCCESS;
                                                     }
-                                                    DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                                    Atlas.saveDonjonsDataConfig();
+                                                    Storage.save(DataDomain.DONJONS);
                                                     ctx.getSource().getSender().sendMessage(Component.text(
                                                             "Spawn point #" + spawnId + " removed from donjon " + d.getName() + ".", NamedTextColor.GREEN));
                                                     return Command.SINGLE_SUCCESS;
@@ -746,8 +735,7 @@ public class DonjonCommand {
                                                 return Command.SINGLE_SUCCESS;
                                             }
                                             d.setSpawnPoints(java.util.Collections.emptyList());
-                                            DonjonManager.saveDonjonData(Atlas.donjonsDataConfig);
-                                            Atlas.saveDonjonsDataConfig();
+                                            Storage.save(DataDomain.DONJONS);
                                             ctx.getSource().getSender().sendMessage(Component.text(
                                                     "Cleared " + removed + " wave spawn point(s) from donjon " + d.getName() + ".",
                                                     NamedTextColor.GREEN));
