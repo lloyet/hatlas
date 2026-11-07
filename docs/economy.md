@@ -42,6 +42,7 @@ itself, recorded as `TRADE`).
 
 ### Not tracked
 - Creative mode (creative menu, pick block) and vanilla `/clear`: admins only.
+- A `/give` run by another plugin through `Bukkit.dispatchCommand` (no command event); players, the console and RCON are seen.
 - A crash loses the rows of the last second (they are written every second and at shutdown),
   like the other data written between saves.
 

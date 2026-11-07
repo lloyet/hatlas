@@ -21,6 +21,7 @@ import java.util.Map;
  * item model, so an admin can create them that way). The command result is not exposed, so
  * the ruby value held by each target is measured before the command and one tick after it;
  * a gain is recorded as {@code ADMIN_GIVE}. Only commands that mention a ruby are measured.
+ * Not seen: commands run by plugins through {@code Bukkit.dispatchCommand} (no command event).
  */
 public final class GiveCommandListener implements Listener {
 
@@ -31,6 +32,12 @@ public final class GiveCommandListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onServerCommand(ServerCommandEvent event) {
+        measure(event.getSender(), event.getCommand().startsWith("/") ? event.getCommand().substring(1) : event.getCommand());
+    }
+
+    /** RCON commands fire their own event (separate handler list), not {@link ServerCommandEvent}. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onRemoteCommand(org.bukkit.event.server.RemoteServerCommandEvent event) {
         measure(event.getSender(), event.getCommand().startsWith("/") ? event.getCommand().substring(1) : event.getCommand());
     }
 
