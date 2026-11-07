@@ -1,0 +1,15 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "console", "command": "item give Tester1 amethyst_sword"},
+  {"action": "console", "command": "item give Tester1 amethyst_pickaxe"},
+  {"action": "despawn", "bot": "Tester1"},
+  {"action": "wait_for", "condition": "player_offline", "name": "Tester1"},
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.1 minecraft:netherite_pickaxe[item_model=\"hatlas:amethyst_pickaxe\",max_damage=2336] run tellraw Tester1 \"AMT pickaxe kept\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT pickaxe kept"},
+  {"action": "console", "command": "execute if items entity Tester1 hotbar.0 minecraft:netherite_sword[item_model=\"hatlas:amethyst_sword\",max_damage=2336] run tellraw Tester1 \"AMT sword kept\""},
+  {"action": "assert_message", "bot": "Tester1", "contains": "AMT sword kept"},
+  {"action": "console", "command": "clear Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]

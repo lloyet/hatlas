@@ -213,7 +213,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
   - Gems and blocks are allowed in a crafting table.
   - Only gems are allowed in the faction vault.
   - Everything else (chests, shulkers, hoppers, crystal chests…) rejects all ruby items.
-- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards.
+- `AmethystItem`: a netherite-based gear set re-skinned as amethyst (sword, tools, spear/trident, armor via equipment asset `hatlas:amethyst`, rod, horse armor), crafted from amethyst shards. Stats are the base item's **+`config.yml > amethyst.stat_bonus_percent`** (default 15 %): attack damage (total, fist included), armor, toughness, knockback resistance, correct-tool mining speed (huge speeds such as the sword's instant-mine rule are kept, else the item cannot be saved) and durability; attack speed and default mining speed unchanged. No ruby-style restrictions (✔ answered 2026-11-07, Open Question 8).
 - `/item give <player> <id> [amount]` (`atlas.item.admin`).
 
 ### 4.11 Trade (`trade/`, `TradeCommand`, `TradeListener`, `TradeGui`)
@@ -258,7 +258,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 | Config (shipped) | Content |
 |---|---|
-| `config.yml` | `storage` (backend), `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
+| `config.yml` | `storage` (backend), `amethyst`, `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
 | `factions.yml` | `faction_home`, `skill_points_per_level`, `vault`, `skills.{homes,hp,claims,chest,protection,outpost,vault}`, `crystal.*` |
 | `jobs.yml` | `quests.{daily_reset_hours,exp_base_reward,tasks[]}`, `jokeyrini.{daily_reset_hours,special_quest_chance,tasks[]}` |
 | `donjons.yml` | activation/timeout/max active, smuggler cooldown, `difficulty[]`, `rarity`, `ominous_key`, `types.<type>` (mobs, bosses, waves, multipliers, exp, `boss_drops.<rarity>`) |
@@ -323,7 +323,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 5. ~~**Crystal immunity escalation**~~ — ✔ answered 2026-11-07: the dead `immunity_base_seconds` / `immunity_multiplier` keys are removed; the protection watch window (hard-coded `2 × duration` before) is configurable as `crystal.protection_watch_multiplier`, default 2 = previous behaviour.
 6. ~~**Shop payment**~~ — ✔ answered 2026-11-07: shops are paid from the **faction vault** like the auction house (no difference intended). New role **BANKER** (MEMBER < BANKER < MODERATOR < LEADER) that may only spend the vault's rubies; spending the vault (withdraw, shop, auction buy) = owner or BANKER+ (see §4.1).
 7. ~~**ALCHEMIST job**~~ — ✔ answered 2026-11-07: tracks **only brewing and crafting**. Kills no longer give Alchemist XP; the 7 kill/gather tasks in `jobs.yml` were replaced by 7 brew/craft tasks (still 16 per job).
-8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby? — *clarified 2026-11-07:* "restrictions" meant ruby-style limits (`RubyRestrictionListener`: where the item may be stored, traded, auctioned or used), e.g. no chests/shulkers, no auction, unusable in safe zones. **Awaiting the user's choice.**
+8. ~~**Amethyst gear**~~ — ✔ answered 2026-11-07: custom stats, by default **15 % above netherite** (configurable `amethyst.stat_bonus_percent`); **no** ruby-style restrictions. See §4.10.
 9. ~~**"Rubis Ruins" safe zone**~~ — ✔ answered 2026-11-07: **Ruby Ruins** is the name of the current update (ruby, amethyst, ore zones, auction house, shops), not a safe zone. WIKI EN/FR fixed (banner at the top, wrong safe-zone mention removed).
 10. ~~**Map/world**~~ — ✔ answered 2026-11-07: the user will add an **empty world save** plus **schematics of the spawn city and the donjons** to the repo (for saves/tests); see also Open Question 15.
 11. ~~**Persistence:** autosave?~~ — ✔ answered 2026-11-06: storage adapter with async saves after mutations + autosave every `storage.autosave_minutes` (5) + sync save at shutdown.

@@ -2,7 +2,9 @@ package org.minecraft.atlas.Item;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
+import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
 import io.papermc.paper.datacomponent.item.ItemLore;
+import io.papermc.paper.datacomponent.item.Tool;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -10,6 +12,8 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
@@ -25,6 +29,11 @@ import java.util.Map;
  * the legacy ruby gear set — ruby_sword → amethyst_sword, etc. Crafted from
  * vanilla amethyst shards. Item models live under the hatlas resource pack
  * (hatlas:item/amethyst_*); armor pieces reference equipment asset hatlas:amethyst.
+ *
+ * <p>Stats: every piece starts from its vanilla base (netherite, or trident for the spear)
+ * and gets {@code config.yml > amethyst.stat_bonus_percent} (default 15 %) more attack damage,
+ * armor, armor toughness, knockback resistance, mining speed (correct-tool rules only) and
+ * durability. Attack speed and the default mining speed are kept. Items already crafted keep the stats they were made with.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class AmethystItem {
@@ -34,12 +43,23 @@ public final class AmethystItem {
 
     private static final Map<String, ItemStack> REGISTRY = new LinkedHashMap<>();
 
+    /** Default bonus over the vanilla base, in percent. */
+    public static final double DEFAULT_STAT_BONUS_PERCENT = 15.0;
+    /** Stat multiplier (1 + bonus/100), read from config.yml in {@link #init()}. */
+    private static double statMultiplier = 1.0 + DEFAULT_STAT_BONUS_PERCENT / 100.0;
+
+    /** Player base attack damage (fist), added by vanilla to the item's modifier. */
+    private static final double PLAYER_BASE_ATTACK_DAMAGE = 1.0;
+
     private AmethystItem() {
     }
 
     // ── Entry points ───────────────────────────────────────────────────────────
 
     public static void init() {
+        double bonus = Atlas.instance.getConfig()
+                .getDouble("amethyst.stat_bonus_percent", DEFAULT_STAT_BONUS_PERCENT);
+        statMultiplier = Math.max(0.0, 1.0 + bonus / 100.0);
         REGISTRY.clear();
         register("amethyst_sword", buildSword());
         register("amethyst_pickaxe", buildTool(Material.NETHERITE_PICKAXE, "amethyst_pickaxe", "Amethyst Pickaxe"));
@@ -139,6 +159,7 @@ public final class AmethystItem {
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private static void applyCommon(ItemStack item, String modelId, String displayName, String loreLine) {
+        boostStats(item);
         item.setData(DataComponentTypes.ITEM_NAME,
                 Component.text(displayName, NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false));
         item.setData(DataComponentTypes.ITEM_MODEL, Key.key(NAMESPACE, modelId));
@@ -149,6 +170,69 @@ public final class AmethystItem {
                                     .decoration(TextDecoration.ITALIC, false))
                             .build());
         }
+    }
+
+    /**
+     * Scales the base item's default stats by {@link #statMultiplier}. Modifier keys are kept
+     * so the tooltip still shows the vanilla "8 Attack Damage" style lines.
+     */
+    private static void boostStats(ItemStack item) {
+        if (statMultiplier == 1.0) return;
+        ItemAttributeModifiers attrs = item.getData(DataComponentTypes.ATTRIBUTE_MODIFIERS);
+        if (attrs != null && !attrs.modifiers().isEmpty()) {
+            ItemAttributeModifiers.Builder builder = ItemAttributeModifiers.itemAttributes();
+            for (ItemAttributeModifiers.Entry e : attrs.modifiers()) {
+                AttributeModifier m = e.modifier();
+                double amount = scaledAmount(e.attribute(), m);
+                builder.addModifier(e.attribute(),
+                        new AttributeModifier(m.getKey(), amount, m.getOperation(), e.getGroup()),
+                        e.getGroup(), e.display());
+            }
+            item.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, builder.build());
+        }
+
+        Tool tool = item.getData(DataComponentTypes.TOOL);
+        if (tool != null) {
+            Tool.Builder builder = Tool.tool()
+                    // Default speed (blocks the tool is not made for) stays vanilla.
+                    .defaultMiningSpeed(tool.defaultMiningSpeed())
+                    .damagePerBlock(tool.damagePerBlock())
+                    .canDestroyBlocksInCreative(tool.canDestroyBlocksInCreative());
+            for (Tool.Rule rule : tool.rules()) {
+                Float speed = scaledSpeed(rule.speed());
+                builder.addRule(Tool.rule(rule.blocks(), speed, rule.correctForDrops()));
+            }
+            item.setData(DataComponentTypes.TOOL, builder.build());
+        }
+
+        Integer maxDamage = item.getData(DataComponentTypes.MAX_DAMAGE);
+        if (maxDamage != null) {
+            item.setData(DataComponentTypes.MAX_DAMAGE, (int) Math.round(maxDamage * statMultiplier));
+        }
+    }
+
+    /**
+     * Scales a tool rule speed. Huge speeds (the sword's instant-mine rule uses
+     * Float.MAX_VALUE) are kept as is: scaling them overflows to Infinity, which Minecraft
+     * refuses to save, so the item would vanish on logout.
+     */
+    private static Float scaledSpeed(Float speed) {
+        if (speed == null) return null;
+        double scaled = speed * statMultiplier;
+        return (Double.isFinite(scaled) && scaled <= Float.MAX_VALUE) ? (float) scaled : speed;
+    }
+
+        private static double scaledAmount(Attribute attribute, AttributeModifier m) {
+        if (m.getOperation() != AttributeModifier.Operation.ADD_NUMBER) return m.getAmount();
+        if (attribute == Attribute.ATTACK_DAMAGE) {
+            // The modifier is added to the fist's 1 damage: scale the total, not the modifier.
+            return (PLAYER_BASE_ATTACK_DAMAGE + m.getAmount()) * statMultiplier - PLAYER_BASE_ATTACK_DAMAGE;
+        }
+        if (attribute == Attribute.ARMOR || attribute == Attribute.ARMOR_TOUGHNESS
+                || attribute == Attribute.KNOCKBACK_RESISTANCE) {
+            return m.getAmount() * statMultiplier;
+        }
+        return m.getAmount(); // attack speed and anything else: unchanged
     }
 
     private static void register(String id, ItemStack item) {
