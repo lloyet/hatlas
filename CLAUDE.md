@@ -257,7 +257,10 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 ### 4.15 Locator bar (`LocatorBarListener`, packetevents)
 - Intercepts outgoing WAYPOINT packets so a player only sees locator-bar markers of **their own faction**. `refresh(players)` must be called whenever faction membership changes (already done in `FactionManager`).
 
-### 4.16 Utilities
+### 4.16 Paid access (`access/`, M2)
+- `AccessManager` listens to `AsyncPlayerPreLoginEvent`: with `access.require_ticket: true` a login needs `max(valid_until) > now()` in `<access.web_schema>.tickets` for the player's UUID (own JDBC connection via `Storage.newConnection()`, query off the main thread). No/expired ticket → refused with the renew link; query error or SQLite → refused (fails closed); operators bypass (`ops_bypass`). `/hatlas access check <player|uuid>` (`hatlas.access.admin`). The real gate is `hatlas-proxy`. Test server: check off, ticket fixture `scripts/test-world/web-tickets.sql` loaded on `reset`. See [`docs/access.md`](docs/access.md).
+
+### 4.17 Utilities
 - `TagManager` / `/tag create|delete|add|edit|list`: multi-line TextDisplay holograms (`tags-data.yml`).
 - `AfkManager`: kicks after `afk.timeout_seconds` without activity.
 - `ItemClearManager`: clears dropped items every 20 min with warnings.
@@ -270,7 +273,7 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 | Config (shipped) | Content |
 |---|---|
-| `config.yml` | `storage` (backend), `amethyst`, `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
+| `config.yml` | `storage` (backend), `access` (login ticket check, `docs/access.md`), `amethyst`, `tpa`, `random_teleport`, `afk`, `death_teleport_cooldown`, `resourcepack` (legacy `spawn.*` is only read once, for the import) |
 | `factions.yml` | `faction_home`, `skill_points_per_level`, `vault`, `skills.{homes,hp,claims,chest,protection,outpost,vault}`, `crystal.*` |
 | `jobs.yml` | `quests.{daily_reset_hours,exp_base_reward,tasks[]}`, `jokeyrini.{daily_reset_hours,special_quest_chance,tasks[]}` |
 | `donjons.yml` | activation/timeout/max active, smuggler cooldown, `difficulty[]`, `rarity`, `ominous_key`, `types.<type>` (mobs, bosses, waves, multipliers, exp, `boss_drops.<rarity>`) |
@@ -347,15 +350,15 @@ Stripe ─webhook▶ SvelteKit (writes web.tickets)
 **Planned PRs (in order)**
 1. `feat/postgres-default` (**merged 2026-11-07**, PR #40): default `storage.type: postgresql` (driver loaded on a first start too), clear startup error, `/hatlas storage export` + portable SQLite mode removed, docs.
 2. `feat/backup-script` (**merged 2026-11-07**, PR #41): `scripts/backup/hatlas-backup.sh` (Bash, Linux prod with PostgreSQL in docker compose, ✔ 2026-11-07) `backup|list|verify|restore|prune`, systemd timer (daily 04:30), rotation 7 daily + 4 weekly (+3 pre-restore), new `/hatlas storage save` (sync write before the dump). A restore replaces only `GAME_SCHEMAS` (website tickets kept) unless `--full`. Doc: [`docs/backup.md`](docs/backup.md).
-3. `feat/web-read-model` (**PR opened 2026-11-07**): tables moved to schema `hatlas`, readable columns (`vault_gems`, shop item `material`/`amount`), 7 `hatlas.web_*` views, read-only role `hatlas_web` granted SELECT on the views only (Hatlas never creates the role). Backup `GAME_SCHEMAS` default → `hatlas`; restore now recreates any schema before `pg_restore -n` (it only worked for `public`).
-4. `feat/hatlas-proxy`: multi-module Gradle (`hatlas-paper`, `hatlas-proxy`, shared), Velocity plugin with `/link`, ticket check, expiry kick to hub, presence table; Hatlas login check behind `access.require_ticket`.
+3. `feat/web-read-model` (**merged 2026-11-07**, PR #42): tables moved to schema `hatlas`, readable columns (`vault_gems`, shop item `material`/`amount`), 7 `hatlas.web_*` views, read-only role `hatlas_web` granted SELECT on the views only (Hatlas never creates the role). Backup `GAME_SCHEMAS` default → `hatlas`; restore now recreates any schema before `pg_restore -n` (it only worked for `public`).
+4. **Proxy and access** (✔ 2026-11-07: **separate repo `../hatlas-proxy`**, no multi-module build here). The Velocity plugin (`/link` built on its `feat/link-command`; ticket gate, expiry kick to hub, presence still to do) is developed in that repo with its own CLAUDE.md, test stack (`scripts/test-stack.ps1`: Velocity 25577 offline + hub + faction backends, DB `hatlas_proxy_dev`) and gate. **Hatlas side: `feat/access-ticket-check`** (PR opened 2026-11-07): login check behind `access.require_ticket` (default off, fails closed, ops bypass), `/hatlas access check`, ticket contract `web.tickets (uuid, valid_until)` = latest `valid_until > now()`. Doc: [`docs/access.md`](docs/access.md).
 5. Website (separate repo): SvelteKit + Drizzle/postgres.js on schema `web`, Stripe Checkout + webhook, link page, dashboard.
-6. **`test/e2e-access-chain`** (task added 2026-11-07, user request): an **end-to-end check of the whole access chain** through Velocity, needed before launch. A local test stack: Velocity (`hatlas-proxy`) + hub + faction server (Hatlas with `access.require_ticket: true`) + PostgreSQL (`hatlas` and `web` schemas) + the website (or a stub writing `web.link_codes` / `web.tickets`). Scenarios with bots connecting **through the proxy**:
+6. **`test/e2e-access-chain`** (task added 2026-11-07, user request): an **end-to-end check of the whole access chain** through Velocity, needed before launch. **Built in `../hatlas-proxy`** on its test stack (its task 1, `test-stack.ps1 install faction --with-hatlas`, unblocked by step 4's Hatlas login check); needs the proxy's ticket gate first. A local test stack: Velocity (`hatlas-proxy`) + hub + faction server (Hatlas with `access.require_ticket: true`) + PostgreSQL (`hatlas` and `web` schemas) + the website (or a stub writing `web.link_codes` / `web.tickets`). Scenarios with bots connecting **through the proxy**:
    - **Login and `/link`:** a new player joins → lands on the hub → `/link` gives a single-use code (5–10 min) → the code is redeemed on the site (or stub) → the link is recorded; an expired or reused code is refused.
    - **Ticket validation:** no ticket / expired ticket → stays on the hub with "access expired, renew at <url>"; valid ticket (bought via Stripe test mode → webhook → `web.tickets`) → may move hub → faction server; Hatlas itself refuses a direct login without a ticket (defence in depth).
    - **Mid-session expiry:** a ticket expiring while on the faction server → warning, then sent back to the hub; **ticket tied to the UUID** (another account linked to the same web account gets no access).
    - **Presence:** join / quit / server switch update the presence table read by the website.
-   Open points (ask the user when the task starts): offline-mode bots behind an online-mode proxy (test proxy in offline mode + forwarding secret?), Stripe test mode vs. a stub, where the stack runs (docker compose next to the test server?), and whether it becomes an in-game gate suite (`features.yml` feature `access`).
+   Settled by the proxy repo's stack: the test proxy runs offline-mode with modern forwarding, local processes (not compose), suites behind its gate. Still open: Stripe test mode vs. a stub writing `web.tickets` (stub until the website exists).
 
 **Shared code with `../hatlas-proxy`** (✔ decided 2026-11-07): for now the small ticket check is **duplicated** in each plugin. If more code has to be shared later (config models, link-code logic, constants), extract a library `../hatlas-common` and include it with a **Gradle composite build** (`includeBuild("../hatlas-common")`, built from source, no publishing); publish it (e.g. GitHub Packages) only when CI needs it.
 

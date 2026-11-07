@@ -31,6 +31,21 @@ storage:
     # schema (granted on every start). Hatlas never creates it. Empty = no grants.
     web_role: hatlas_web
 
+# Paid access (website tickets). The Velocity plugin hatlas-proxy is the real gate (hub → this
+# server, expiry while playing); this check refuses a login that reaches this server without a
+# valid ticket (defence in depth). Needs storage.type: postgresql, and the storage user must be
+# allowed to read <web_schema>.tickets (GRANT USAGE ON SCHEMA web, SELECT ON web.tickets).
+# If the check cannot run, logins are refused. Changing it needs a restart.
+access:
+  # Turn on in production (off for a development or test server without the website).
+  require_ticket: false
+  # Schema of the website holding the tickets table (uuid, valid_until).
+  web_schema: web
+  # Shown to a refused player (clickable). Empty = no link.
+  renew_url: ''
+  # Server operators always get in, so an admin is never locked out.
+  ops_bypass: true
+
 # Teleport-to-player settings for /tpa
 tpa:
   # Countdown delay in seconds before the requester is teleported after acceptance. Op bypasses.

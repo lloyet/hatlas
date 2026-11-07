@@ -62,6 +62,14 @@ public final class SqlDataStore implements DataStore {
         }
     }
 
+    /**
+     * A new connection to the same database for another reader (e.g. the login ticket check),
+     * without the per-connection settings: names must be schema-qualified. The caller closes it.
+     */
+    public Connection newConnection() throws SQLException {
+        return dialect.connect();
+    }
+
     private Connection connection() throws SQLException {
         if (connection != null) {
             try {

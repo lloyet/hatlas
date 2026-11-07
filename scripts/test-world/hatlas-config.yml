@@ -14,3 +14,7 @@ storage:
 # Bots wait a lot during scenarios: never kick them for being AFK.
 afk:
   timeout_seconds: 86400
+# Bots connect directly (no proxy): no login ticket check. The access suites use the ticket
+# fixture loaded by test-server.ps1 reset (test-world/web-tickets.sql) through /hatlas access check.
+access:
+  require_ticket: false
