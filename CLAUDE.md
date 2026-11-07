@@ -7,6 +7,8 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 > 2. **Every time you modify the project, append an entry to [`docs/claude-changelog.md`](docs/claude-changelog.md)** (date, branch, what changed, files touched) and update any section that is now out of date.
 > 3. **When a request is vague or a design choice isn't settled, add it to [Open Questions](#open-questions)** and ask the user, instead of guessing. Move answered questions into the relevant feature section, marked `✔ answered <date>`.
 > 4. For Paper API questions, use the `papermc-docs` MCP server (`.mcp.json`) or the 1.21.11 Javadocs at `https://jd.papermc.io/paper/1.21.11/`.
+> 5. **When a feature is finished (its PR is opened), the player wiki is updated by the `wiki-writer` agent**, started in the background by the `wiki-on-feature` hook (§2). Review its edits, commit them as `docs(wiki): …` on the feature branch and push. Never skip it for a PR that changes `src/main/`.
+> 6. **A feature is only finished when its in-game suites pass.** Before `gh pr create`, the `ingame-gate` hook (§2) denies the PR until the `ingame-tester` agent has written a PASS verdict for the change. When denied, run that agent in the foreground with the features it names, fix any FAIL, commit (incl. new scenarios), then retry. `WAIVED` only when the user explicitly says to skip.
 
 ---
 
@@ -49,6 +51,18 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 - Server plugins: atlas, packetevents 2.14.0, VitaminMCP (`read-only: false`), OldCombatMechanics, spark, BlueMap.
 - Bots: offline names `Tester1`, `Tester2`… Atlas gotchas for scenarios: most features need a faction first (`/f create` or `/f join <bot> <faction>` from console); the AFK kick (`afk.timeout_seconds`) is raised on the test server; disconnecting within `combat_log.timeout_seconds` of PvP kills the bot; BlueMap re-renders world edits (CPU).
 - This server also holds a real world and plugin data: only act on it when the user has asked for an in-game test.
+
+### Wiki automation (Open Question 12)
+- **Skill** `.claude/skills/wiki-writer/SKILL.md`: how to write `WIKI.md` (EN) + `WIKI-FR.md` (FR) for players. Sources: code, shipped `src/main/resources/*.yml`, `paper-plugin.yml`. Both files kept in sync, no internals, admin commands left out.
+- **Agent** `.claude/agents/wiki-writer.md`: preloads the skill, may only edit the two WIKI files, read-only Bash (`git diff/log/show`, `gh pr view`), never commits.
+- **Hook** `.claude/settings.json` → PostToolUse on `Bash(gh pr create*)` runs `.claude/hooks/wiki-on-feature.mjs` (Node). If a segment of the command really is `gh pr create`, its stdout has the new PR URL, and the diff against the PR's `--base` (default `main`) touches `src/main/`, it injects context asking the main session to launch `wiki-writer` in the background. Otherwise it does nothing.
+- `.gitignore` now versions `.claude/settings.json`, `agents/`, `skills/` and `hooks/` (so `paper-ingame-test` is versioned too); `settings.local.json` stays personal.
+
+### In-game test gate (Open Question 20)
+- **Suites:** `src/test/ingame/<feature>/<case>.json` (step arrays for VitaminMCP `bot_run_scenario`), `*-before-restart.json` / `*-after-restart.json` pairs for persistence. Format, conventions and pitfalls: `paper-ingame-test` skill, section "Suites de scénarios du projet Atlas".
+- **Map:** `src/test/ingame/features.yml` (feature → globs; `shared` globs run all suites). Selection is per feature (✔ Open Question 17). `node .claude/hooks/affected-features.mjs --base <branch>` prints the affected features, `uncovered` src/main files and `missingSuites`.
+- **Agent** `.claude/agents/ingame-tester.md`: writes missing scenarios, deploys to the test server (§2), protects real data (backup/restore, or only undoes bot changes when a real player is online), runs the suites, writes the verdict `.claude/state/ingame/<sha>.json` (git-ignored).
+- **Hook** `.claude/settings.json` → PreToolUse on `Bash(gh pr create*)` runs `.claude/hooks/ingame-gate.mjs`: no feature touched → allowed; otherwise needs a PASS/WAIVED verdict covering every affected feature, for HEAD or for an ancestor of HEAD with identical `src/main/`, and no uncommitted `src/main/` change. Else the call is denied with the exact agent prompt to run.
 
 ---
 
@@ -287,16 +301,13 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 
 ## 8. Milestones
 
-### M1 — In-game regression & end-to-end tests in CI (status: **on hold, redesign needed**, requested 2026-11-06)
+### M1 — Regression tests: local in-game gate + CI unit tests (status: **in progress**, redesigned 2026-11-07)
 
-**Decision (2026-11-07, Open Questions 13, 14, 16):** CI will **not** run an MCP server or a Minecraft server in Docker: too many tokens and too much CI time. The docker-compose stack, the VitaminMCP runner in CI and the required status check are dropped.
+**Decisions (Open Questions 13–16, 20):** no MCP server and no Minecraft server in CI (token and CI-time cost).
+1. **Local, in game, before every feature PR** — done on `feat/ingame-test-agent`: JSON suites per feature, `features.yml` selection, `ingame-tester` agent, `ingame-gate` hook (§2). Runs on the Windows test server until the dedicated test world lands (Open Questions 10/15), then on that world.
+2. **CI on every PR to `main`** — planned: a GitHub Actions workflow running `./gradlew build` + **unit tests** (JUnit 5, MockBukkit where Bukkit types are needed) for pure logic: faction XP curve and level-ups, quest amounts / time limits / rewards, donjon XP and rarity rolls, ore-zone weighted roll, storage round-trip (YAML ↔ SQLite on a temp folder). Required status check before merge.
 
-**Kept:**
-- In-game scenarios in `src/test/ingame/<feature>/<case>.json` (faction, storage, orezone so far), replayed **locally** with the `paper-ingame-test` skill on the test server (§2) before merging a feature.
-- A **dedicated test world**, copied into the repo in the next PR (Open Question 15). Scenarios will then rely on its fixtures instead of the real world.
-- A new or changed feature ships with its scenarios in the same PR.
-
-**New plan (Open Question 20, 2026-11-07):** a GitHub Actions workflow on `pull_request` → `main` that runs `./gradlew build` and **unit tests** (JUnit 5 + MockBukkit) for pure logic: faction XP curve and level-ups, quest amounts / time limits / rewards, donjon XP and rarity rolls, ore-zone weighted roll, storage round-trip (YAML ↔ SQLite on a temp folder). Required status check before merge. Not started yet.
+**Coverage target:** per feature of §4, one nominal + one refusal/edge + one persistence scenario, plus E2E flows ("create faction → job quest → faction XP → crystal skill", "mine ruby in an ore zone → buy in a shop", "run donjon → raid with the Raider's Pickaxe"). Current suites: faction, storage, orezone (+ shop and job on their PR branches).
 
 ---
 
@@ -311,16 +322,16 @@ Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are 
 5. ~~**Crystal immunity escalation**~~ — ✔ answered 2026-11-07: the dead `immunity_base_seconds` / `immunity_multiplier` keys are removed; the protection watch window (hard-coded `2 × duration` before) is configurable as `crystal.protection_watch_multiplier`, default 2 = previous behaviour.
 6. **Shop payment:** shops take rubies from the **player inventory**, while auctions use the **faction vault**. Is that difference intended?
 7. **ALCHEMIST job:** it counts every `kill_entity` like Hunter. Intended, or should it only track brewing and crafting?
-8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby?
-9. **"Rubis Ruins" safe zone** (mentioned in WIKI): is it planned content with its own mechanics?
-10. **Map/world:** is there a production world save or a schematic of spawn that should live in the repo or be documented?
+8. **Amethyst gear:** should it have custom stats (currently plain netherite stats) or restrictions like ruby? — *clarified 2026-11-07:* "restrictions" meant ruby-style limits (`RubyRestrictionListener`: where the item may be stored, traded, auctioned or used), e.g. no chests/shulkers, no auction, unusable in safe zones. **Awaiting the user's choice.**
+9. ~~**"Rubis Ruins" safe zone**~~ — ✔ answered 2026-11-07: **Ruby Ruins** is the name of the current update (ruby, amethyst, ore zones, auction house, shops), not a safe zone. WIKI EN/FR fixed (banner at the top, wrong safe-zone mention removed).
+10. ~~**Map/world**~~ — ✔ answered 2026-11-07: the user will add an **empty world save** plus **schematics of the spawn city and the donjons** to the repo (for saves/tests); see also Open Question 15.
 11. ~~**Persistence:** autosave?~~ — ✔ answered 2026-11-06: storage adapter with async saves after mutations + autosave every `storage.autosave_minutes` (5) + sync save at shutdown.
 12. ~~**WIKI maintenance**~~ — ✔ answered 2026-11-07: a dedicated **wiki-writer agent + skill**, started by a **hook** each time a feature is finished, writes player-facing docs (features, commands, what players can do) in `WIKI.md` / `WIKI-FR.md`. Built on its own branch (`feat/wiki-agent`).
 13. ~~**M1 — who drives the tests in CI?**~~ — ✔ answered 2026-11-07: nobody; no MCP in CI (see M1).
 14. ~~**M1 — VitaminMCP in CI**~~ — ✔ answered 2026-11-07: not needed, no MCP in CI.
 15. ~~**M1 — test world**~~ — ✔ answered 2026-11-07: a dedicated test world, copied into the repo by the user in the next PR.
 16. ~~**M1 — CI host**~~ — ✔ answered 2026-11-07: no Minecraft server in CI, so no runner choice needed.
-17. **M1 — "part of a feature" granularity** (moot while M1 is on hold): is path-based selection (file globs per feature) enough, or should some changes (e.g. a GUI-only tweak) select only specific scenarios inside a feature?
+17. ~~**M1 — "part of a feature" granularity**~~ — ✔ answered 2026-11-07: test selection **by feature**, feature-level (every scenario of a touched feature runs), as implemented in `src/test/ingame/features.yml`.
 18. ~~**Storage backend**~~ — ✔ answered 2026-11-06: adapter `DataStore` with YAML, SQLite (default) and PostgreSQL (later) backends; full relational schema; automatic one-time import of `*-data.yml`; shops moved to storage; async writes + autosave. See [`docs/storage.md`](docs/storage.md).
 19. **Storage — PostgreSQL not run yet:** the dialect and driver loading are written, but no test against a real PostgreSQL server. How should it be covered now that M1 has no docker-compose stack (local PostgreSQL run before switching)? Also: is a `/atlas storage export` (DB → DB / DB → YAML) command needed for the move to PostgreSQL?
 20. ~~**M1 — what should CI check instead?**~~ — ✔ answered 2026-11-07: **`./gradlew build` + unit tests** (JUnit + MockBukkit) for pure logic on each PR. In-game scenarios stay local. See M1.

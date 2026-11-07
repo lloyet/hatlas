@@ -1,0 +1,111 @@
+# Feature → files map for the in-game test suites (src/test/ingame/<feature>/*.json).
+#
+# A change runs the suites of every feature whose globs match a changed file
+# (resolved by .claude/hooks/affected-features.mjs). Matching is per feature, not per
+# scenario (Open Question 17): when a feature is touched, all its scenarios run.
+#
+# Glob syntax: `**` = any number of directories, `*` = anything except `/`, `?` = one char.
+# Paths are relative to the repository root.
+
+# Files that every feature depends on: touching one runs ALL suites.
+shared:
+  - src/main/java/org/minecraft/atlas/Atlas.java
+  - src/main/java/org/minecraft/atlas/AtlasLoader.java
+  - src/main/java/org/minecraft/atlas/util/**
+  - src/main/java/org/minecraft/atlas/gui/AtlasGui.java
+  - src/main/java/org/minecraft/atlas/gui/GuiNavigator.java
+  - src/main/java/org/minecraft/atlas/listener/GuiListener.java
+  - src/main/resources/paper-plugin.yml
+  - src/main/resources/config.yml
+  - build.gradle*
+  - settings.gradle*
+
+features:
+  faction:
+    - src/main/java/org/minecraft/atlas/faction/**
+    - src/main/java/org/minecraft/atlas/command/FactionCommand.java
+    - src/main/java/org/minecraft/atlas/listener/FactionListener.java
+    - src/main/java/org/minecraft/atlas/listener/ChatListener.java
+    - src/main/java/org/minecraft/atlas/listener/LocatorBarListener.java
+    - src/main/java/org/minecraft/atlas/gui/CrystalDisbandGui.java
+    - src/main/resources/factions.yml
+  crystal:
+    - src/main/java/org/minecraft/atlas/crystal/**
+    - src/main/java/org/minecraft/atlas/command/CrystalCommand.java
+    - src/main/java/org/minecraft/atlas/listener/CrystalListener.java
+    - src/main/java/org/minecraft/atlas/listener/FactionListener.java
+    - src/main/java/org/minecraft/atlas/gui/Crystal*.java
+    - src/main/resources/factions.yml
+  storage:
+    - src/main/java/org/minecraft/atlas/storage/**
+    - src/main/resources/db/**
+  job:
+    - src/main/java/org/minecraft/atlas/job/**
+    - src/main/java/org/minecraft/atlas/quest/**
+    - src/main/java/org/minecraft/atlas/command/JobCommand.java
+    - src/main/java/org/minecraft/atlas/listener/JobListener.java
+    - src/main/java/org/minecraft/atlas/gui/Job*.java
+    - src/main/java/org/minecraft/atlas/gui/JokeyriniQuestGui.java
+    - src/main/java/org/minecraft/atlas/gui/NpcJobSwitchGui.java
+    - src/main/resources/jobs.yml
+  donjon:
+    - src/main/java/org/minecraft/atlas/donjon/**
+    - src/main/java/org/minecraft/atlas/command/DonjonCommand.java
+    - src/main/java/org/minecraft/atlas/listener/DonjonListener.java
+    - src/main/java/org/minecraft/atlas/gui/DonjonListGui.java
+    - src/main/resources/donjons.yml
+    - src/main/resources/structures/**
+  orezone:
+    - src/main/java/org/minecraft/atlas/orezone/**
+    - src/main/java/org/minecraft/atlas/command/OreZoneCommand.java
+    - src/main/resources/orezones.yml
+  safezone:
+    - src/main/java/org/minecraft/atlas/safezone/**
+    - src/main/java/org/minecraft/atlas/spawn/**
+    - src/main/java/org/minecraft/atlas/command/SafeZoneCommand.java
+    - src/main/java/org/minecraft/atlas/command/SpawnCommand.java
+    - src/main/java/org/minecraft/atlas/listener/SafeZone*.java
+    - src/main/java/org/minecraft/atlas/gui/SafeZoneGui.java
+    - src/main/resources/safezones.yml
+  auction:
+    - src/main/java/org/minecraft/atlas/auction/**
+    - src/main/java/org/minecraft/atlas/command/AuctionCommand.java
+    - src/main/java/org/minecraft/atlas/listener/AuctionNpcListener.java
+    - src/main/java/org/minecraft/atlas/gui/Auction*.java
+    - src/main/resources/auctions.yml
+  shop:
+    - src/main/java/org/minecraft/atlas/shop/**
+    - src/main/java/org/minecraft/atlas/command/ShopCommand.java
+    - src/main/java/org/minecraft/atlas/listener/ShopNpcListener.java
+    - src/main/java/org/minecraft/atlas/gui/Shop*.java
+    - src/main/resources/shops.yml
+  ruby:
+    - src/main/java/org/minecraft/atlas/Item/**
+    - src/main/java/org/minecraft/atlas/block/**
+    - src/main/java/org/minecraft/atlas/command/ItemCommand.java
+    - src/main/java/org/minecraft/atlas/listener/BlockListener.java
+    - src/main/java/org/minecraft/atlas/listener/RubyRestrictionListener.java
+    - src/main/java/org/minecraft/atlas/gui/CrystalVaultGui.java
+    - resourcepack/**
+  trade:
+    - src/main/java/org/minecraft/atlas/trade/**
+    - src/main/java/org/minecraft/atlas/command/TradeCommand.java
+    - src/main/java/org/minecraft/atlas/listener/TradeListener.java
+    - src/main/java/org/minecraft/atlas/gui/TradeGui.java
+  teleport:
+    - src/main/java/org/minecraft/atlas/teleport/**
+    - src/main/java/org/minecraft/atlas/command/HomeCommand.java
+    - src/main/java/org/minecraft/atlas/command/TpaCommand.java
+    - src/main/java/org/minecraft/atlas/command/RandomTeleportCommand.java
+    - src/main/resources/homes.yml
+  combat:
+    - src/main/java/org/minecraft/atlas/combat/**
+    - src/main/java/org/minecraft/atlas/listener/CombatLogListener.java
+    - src/main/resources/combats.yml
+  golem:
+    - src/main/java/org/minecraft/atlas/golem/**
+    - src/main/java/org/minecraft/atlas/listener/GolemListener.java
+  tag:
+    - src/main/java/org/minecraft/atlas/tag/**
+    - src/main/java/org/minecraft/atlas/command/TagCommand.java
+    - src/main/java/org/minecraft/atlas/listener/TagListener.java
