@@ -101,7 +101,7 @@ Claims protect chunks against enemy mining and building. They are no longer gran
 
 ### Crystal Home & Outpost Promotion
 
-Creating an Hatlas Crystal **no longer auto-sets your faction home**. Instead a chat prompt invites you to set it manually:
+Creating a Hatlas Crystal **no longer auto-sets your faction home**. Instead a chat prompt invites you to set it manually:
 
 ```
 /faction sethome              — set the home of your main Crystal at your current location
