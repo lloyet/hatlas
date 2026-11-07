@@ -11,8 +11,10 @@
   {"action": "console", "command": "clear Tester6"},
   {"action": "console", "command": "clear Tester7"},
 
-  {"action": "console", "command": "give Tester6 minecraft:emerald[minecraft:item_model=\"hatlas:ruby\"] 5"},
-  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester6", "material": "EMERALD"},
+  {"action": "console", "command": "op Tester7"},
+  {"action": "wait_for", "condition": "player_state", "name": "Tester7", "op": true},
+  {"action": "command", "bot": "Tester7", "command": "give Tester6 minecraft:emerald[minecraft:item_model=\"hatlas:ruby\"] 5"},
+  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester6", "material": "EMERALD", "which": "player"},
 
   {"action": "console", "command": "tp Tester6 1270.5 200 1200.5 -90 0"},
   {"action": "console", "command": "tp Tester7 1272.5 200 1200.5 90 0"},
@@ -29,14 +31,12 @@
   {"action": "click_slot", "bot": "Tester6", "slot": 31, "click": "left"},
   {"action": "click_slot", "bot": "Tester7", "slot": 31, "click": "left"},
   {"action": "assert_message", "bot": "Tester7", "contains": "Trade completed successfully!", "timeoutMillis": 10000},
-  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester7", "material": "EMERALD"},
+  {"action": "wait_for", "condition": "inventory_contains", "name": "Tester7", "material": "EMERALD", "which": "player"},
 
-  {"action": "console", "command": "op Tester7"},
-  {"action": "wait_for", "condition": "player_state", "name": "Tester7", "op": true},
   {"action": "command", "bot": "Tester7", "command": "hatlas economy history Tester6 5"},
   {"action": "assert_message", "bot": "Tester7", "contains": "Ruby ledger of Tester6 (2 latest):"},
   {"action": "assert_message", "bot": "Tester7", "contains": "TRADE -5 Tester6 → Tester7"},
-  {"action": "assert_message", "bot": "Tester7", "contains": "ADMIN_GIVE +5 — → Tester6 (/give by"},
+  {"action": "assert_message", "bot": "Tester7", "contains": "ADMIN_GIVE +5 — → Tester6 (/give by Tester7)"},
   {"action": "command", "bot": "Tester7", "command": "hatlas economy supply"},
   {"action": "assert_message", "bot": "Tester7", "contains": "in placed ruby blocks"},
 
