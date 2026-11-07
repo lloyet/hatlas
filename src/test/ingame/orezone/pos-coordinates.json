@@ -1,0 +1,22 @@
+[
+  {"action": "spawn", "bot": "Tester1"},
+  {"action": "console", "command": "op Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "orezone pos1 1000 40 1000"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "pos1 set to 1000, 40, 1000"},
+  {"action": "command", "bot": "Tester1", "command": "orezone pos2 1002 42 1003"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "pos2 set to 1002, 42, 1003"},
+  {"action": "command", "bot": "Tester1", "command": "orezone add itest_coords"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Ore zone 'itest_coords' created — 36 blocks."},
+  {"action": "command", "bot": "Tester1", "command": "orezone list"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "itest_coords — 36 blocks in world"},
+  {"action": "command", "bot": "Tester1", "command": "orezone pos1 1000 40 1000"},
+  {"action": "command", "bot": "Tester1", "command": "orezone pos2 1001 41 1001"},
+  {"action": "command", "bot": "Tester1", "command": "orezone add itest_coords"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "An ore zone named 'itest_coords' already exists."},
+  {"action": "command", "bot": "Tester1", "command": "orezone remove itest_coords"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Ore zone 'itest_coords' removed."},
+  {"action": "command", "bot": "Tester1", "command": "orezone remove itest_coords"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "No ore zone named 'itest_coords'."},
+  {"action": "console", "command": "deop Tester1"},
+  {"action": "despawn", "bot": "Tester1"}
+]
