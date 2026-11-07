@@ -13,8 +13,10 @@
   {"action": "click_slot", "bot": "Tester1", "slot": 11, "click": "left"},
   {"action": "wait_for", "condition": "inventory_open", "name": "Tester1", "title": "Common"},
   {"action": "click_slot", "bot": "Tester1", "slot": 14, "click": "left"},
-  {"action": "assert_message", "bot": "Tester1", "contains": "from the faction vault"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "Only the faction owner or a banker (or higher) can spend from the vault"},
   {"action": "close_menu", "bot": "Tester1"},
+  {"action": "command", "bot": "Tester1", "command": "f leave"},
+  {"action": "assert_message", "bot": "Tester1", "contains": "You left the faction 'zob'"},
 
   {"action": "spawn", "bot": "Tester2"},
   {"action": "console", "command": "forceload add 1000 1000"},
