@@ -390,7 +390,7 @@ When a player damages another player (melee or projectile), both attacker and vi
 - Disconnecting while flagged **kills the player** and drops their full inventory + armor at their last location.
 - Each new hit refreshes the timer to the full duration.
 - Surviving the timer without further damage clears the flag — you can quit safely.
-- Active combat timers persist across server restarts (`combats-data.yml`); a clean restart by itself does **not** kill in-combat players.
+- Active combat timers persist across server restarts; a clean restart by itself does **not** kill in-combat players.
 
 Action-bar notifications announce when you enter combat and when the timer expires.
 
