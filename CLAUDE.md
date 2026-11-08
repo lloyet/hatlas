@@ -9,6 +9,7 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 > 4. For Paper API questions, use the `papermc-docs` MCP server (`.mcp.json`) or the 1.21.11 Javadocs at `https://jd.papermc.io/paper/1.21.11/`.
 > 5. **When a feature is finished (its PR is opened), the player wiki is updated by the `wiki-writer` agent**, started in the background by the `wiki-on-feature` hook (§2). Review its edits, commit them as `docs(wiki): …` on the feature branch and push. Never skip it for a PR that changes `src/main/`.
 > 6. **A feature is only finished when its in-game suites pass.** Before `gh pr create`, the `ingame-gate` hook (§2) denies the PR until the `ingame-tester` agent has written a PASS verdict for the change. When denied, run that agent in the foreground with the features it names, fix any FAIL, commit (incl. new scenarios), then retry. `WAIVED` only when the user explicitly says to skip.
+> 7. **This is the control repo of the whole Hatlas network** (✔ user, 2026-11-08): this session coordinates every project of §1.1, merges their PRs in a sensible order, and owns the cross-repo contracts. Other sessions may work in the sibling repos, but decisions and merges are regrouped here.
 
 ---
 
@@ -26,6 +27,23 @@ This file guides Claude Code (claude.ai/code) when working in this repository.
 - **PvP/raiding** goes through siege items from donjons (Raider's Pickaxe, creeper eggs, TNT), the combat-log penalty, faction golems and a locator bar that shows faction members only.
 
 Player-facing docs: `WIKI.md` (EN) and `WIKI-FR.md` (FR). Some values there are out of date; see [Open Questions](#open-questions).
+
+### 1.1 The Hatlas network: projects controlled from here
+
+All repos are in the GitHub organization **`play-hatlas-net`** (moved there by the user 2026-11-08), cloned side by side:
+
+| Repo | What | Own tests | Merge style |
+|---|---|---|---|
+| `hatlas` (this one) | Paper plugin of the faction server; schema `hatlas`, `web_*` views; `docker/postgres` (DB + roles init script) | in-game gate on the Hatlas test server (§2) | merge commit |
+| `../hatlas-proxy` | Velocity plugin: `/link`, ticket gate, expiry back to the hub, `web.presence` | JUnit + in-game on its own **test stack** (`scripts/test-stack.ps1`; `hatlas on` = full chain with this plugin) | merge commit |
+| `../hatlas-hub` | Paper plugin of the hub: selector compass, server menu (players online, access status), no drop | JUnit + in-game on the proxy test stack (`scripts/stack.ps1 deploy`) | merge commit |
+| `../hatlas-webapp` | SvelteKit website (accounts, link page, Stripe tickets, dashboard); owns schema `web` | GitHub Actions CI (lint, typecheck, unit, build, e2e, migrations, docker) | squash |
+
+**Cross-repo contracts** (change them only from here, then update every side): `web.tickets` (`docs/access.md`), `web.link_codes` and `web.presence` (hatlas-proxy `db/web-schema.sql` ↔ webapp migrations), `hatlas.web_*` views (`docs/storage.md` §5, `docs/economy.md`), database roles (`docker/postgres/init/10-roles.sh` ↔ webapp Decision 6), the website URLs used by the plugins (webapp Open Question 24).
+
+**Merge order rule:** contracts and providers first (Hatlas views / roles, then the proxy, then the hub), then the website; Dependabot PRs only with a green CI; a PR rebased on newer work needs a new campaign before merge.
+
+**Deployment** (✔ user, 2026-11-08): one private machine behind the user's router, no SSH from outside. Everything runs with docker compose; the user updates by hand with scripts on the machine: the website with `hatlas-webapp/deploy/update.sh` (planned), the game servers with a script to write here (plugin jars, backup first with `scripts/backup/hatlas-backup.sh`, announced restart). k3s was considered and rejected for one machine.
 
 ---
 

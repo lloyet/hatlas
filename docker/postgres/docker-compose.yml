@@ -18,11 +18,23 @@ services:
       POSTGRES_DB: hatlas
       POSTGRES_USER: hatlas
       POSTGRES_PASSWORD: ${HATLAS_DB_PASSWORD:?set HATLAS_DB_PASSWORD in docker/postgres/.env}
+      # Passwords of the network roles created by init/10-roles.sh (optional; empty = no login yet).
+      HATLAS_WEBAPP_OWNER_PASSWORD: ${HATLAS_WEBAPP_OWNER_PASSWORD:-}
+      HATLAS_WEBAPP_PASSWORD: ${HATLAS_WEBAPP_PASSWORD:-}
+      HATLAS_PROXY_DB_PASSWORD: ${HATLAS_PROXY_DB_PASSWORD:-}
+      HATLAS_HUB_DB_PASSWORD: ${HATLAS_HUB_DB_PASSWORD:-}
+      HATLAS_WEB_DB_PASSWORD: ${HATLAS_WEB_DB_PASSWORD:-}
     ports:
       # Bound to localhost only: never expose the database on the network.
       - "127.0.0.1:${HATLAS_PG_PORT:-5432}:5432"
     volumes:
       - hatlas-pgdata:/var/lib/postgresql/data
+      # Roles + schema web, run once on an empty volume (re-run by hand: docker/postgres/README.md).
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      default:
+      # Shared with the website's deploy/compose.yml (external network there, host name "postgres").
+      hatlas-db:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hatlas -d hatlas"]
       interval: 5s
@@ -31,3 +43,8 @@ services:
 
 volumes:
   hatlas-pgdata:
+
+networks:
+  # Created by this file under a fixed name, so other compose projects can join it as external.
+  hatlas-db:
+    name: hatlas-db
